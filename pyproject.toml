@@ -35,6 +35,9 @@ target-version = "py312"
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP", "SIM", "ASYNC", "RUF"]
 
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["ASYNC109", "ASYNC110"]  # polling loops and timeouts are fine in tests
+
 [tool.mypy]
 strict = true
 files = ["src"]
