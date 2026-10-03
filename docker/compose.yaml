@@ -1,0 +1,66 @@
+# Run from the repo root:  docker compose -f docker/compose.yaml --env-file .env up
+# (make up does this, and runs migrations first)
+name: hopper
+
+x-app: &app
+  image: ${HOPPER_IMAGE:-hopper:dev}
+  build:
+    context: ..
+    dockerfile: docker/Dockerfile
+  env_file: ../.env
+  environment: &app-env
+    # Inside the Compose network the services are reached by name, not localhost.
+    DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-hopper}:${POSTGRES_PASSWORD:-hopper}@postgres:5432/${POSTGRES_DB:-hopper}
+    REDIS_URL: redis://redis:6379/0
+  init: true                       # PID 1 forwards signals
+  restart: unless-stopped
+
+services:
+  postgres:
+    image: postgres:16.15
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-hopper}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-hopper}
+      POSTGRES_DB: ${POSTGRES_DB:-hopper}
+    volumes: [pgdata:/var/lib/postgresql/data]
+    ports: ["127.0.0.1:${POSTGRES_PORT:-5432}:5432"]   # dev only; compose.prod.yaml publishes nothing
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-hopper} -d ${POSTGRES_DB:-hopper}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7.4.11
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes: [redisdata:/data]
+    ports: ["127.0.0.1:${REDIS_PORT:-6379}:6379"]      # dev only
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  migrate:
+    <<: *app
+    restart: "no"
+    command: ["alembic", "upgrade", "head"]
+    depends_on:
+      postgres: { condition: service_healthy }
+
+  api:
+    <<: *app
+    ports: ["127.0.0.1:${API_PORT:-8000}:8000"]        # dev only; Caddy is the public entry point later
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+      migrate: { condition: service_completed_successfully }
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/readyz', timeout=3)"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  pgdata: {}
+  redisdata: {}

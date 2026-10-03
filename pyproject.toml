@@ -1,0 +1,47 @@
+[project]
+name = "hopper"
+version = "0.1.0"
+description = "Multi-tenant distributed job queue and scheduler on PostgreSQL"
+requires-python = ">=3.12"
+dependencies = [
+    "alembic>=1.16",
+    "asyncpg>=0.30",
+    "fastapi>=0.115",
+    "pydantic>=2.11",
+    "pydantic-settings>=2.9",
+    "redis>=6.0",
+    "sqlalchemy[asyncio]>=2.0.40,<2.1",
+    "structlog>=25.1",
+    "uvicorn>=0.35",
+]
+
+[dependency-groups]
+dev = [
+    "httpx>=0.28",
+    "mypy>=1.16",
+    "pytest>=8.4",
+    "pytest-asyncio>=1.0",
+    "ruff>=0.12",
+]
+
+[build-system]
+requires = ["uv_build>=0.12,<0.13"]
+build-backend = "uv_build"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM", "ASYNC", "RUF"]
+
+[tool.mypy]
+strict = true
+files = ["src"]
+plugins = ["pydantic.mypy"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-ra"
