@@ -17,6 +17,20 @@ class Settings(BaseSettings):
     # Keep replicas x pool size well under Postgres max_connections (default 100).
     db_max_overflow: int = Field(default=0, ge=0)
 
+    # Until API keys arrive (Week 5) every request is attributed to this tenant.
+    default_tenant_name: str = "default"
+
+    # Worker
+    worker_queues: str = "default"  # comma separated
+    worker_slots: int = Field(default=20, ge=1)
+    worker_poll_interval: float = Field(default=0.25, gt=0)
+    worker_max_idle_backoff: float = Field(default=0.5, gt=0)
+    lease_seconds: int = Field(default=30, ge=1)
+
+    @property
+    def queues(self) -> list[str]:
+        return [q.strip() for q in self.worker_queues.split(",") if q.strip()]
+
 
 @lru_cache
 def get_settings() -> Settings:
