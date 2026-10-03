@@ -61,6 +61,15 @@ services:
       timeout: 5s
       retries: 10
 
+  worker:
+    <<: *app
+    command: ["python", "-m", "hopper.worker"]   # exec form: Python receives SIGTERM
+    stop_grace_period: 30s
+    deploy: { replicas: 3 }                      # scale further with: up -d --scale worker=N
+    depends_on:
+      postgres: { condition: service_healthy }
+      migrate: { condition: service_completed_successfully }
+
 volumes:
   pgdata: {}
   redisdata: {}
