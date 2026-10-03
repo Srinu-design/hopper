@@ -1,5 +1,7 @@
 # Hopper
 
+[![ci](https://github.com/Srinu-design/hopper/actions/workflows/ci.yml/badge.svg)](https://github.com/Srinu-design/hopper/actions/workflows/ci.yml)
+
 A multi-tenant job queue and scheduler on PostgreSQL: send a job over HTTP; it runs at least once,
 retries with backoff, parks in a dead-letter queue if it keeps failing, and can be replayed.
 
