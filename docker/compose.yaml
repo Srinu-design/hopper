@@ -64,8 +64,15 @@ services:
   worker:
     <<: *app
     command: ["python", "-m", "hopper.worker"]   # exec form: Python receives SIGTERM
-    stop_grace_period: 30s
+    stop_grace_period: 30s                       # > SHUTDOWN_GRACE_SECONDS (25), so SIGKILL never comes first
     deploy: { replicas: 3 }                      # scale further with: up -d --scale worker=N
+    depends_on:
+      postgres: { condition: service_healthy }
+      migrate: { condition: service_completed_successfully }
+
+  scheduler:
+    <<: *app
+    command: ["python", "-m", "hopper.scheduler"]   # the reaper now, cron from Week 5
     depends_on:
       postgres: { condition: service_healthy }
       migrate: { condition: service_completed_successfully }

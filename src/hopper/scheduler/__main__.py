@@ -1,39 +1,31 @@
 import asyncio
 import contextlib
-import os
 import signal
-import socket
-import uuid
 
 from hopper.config import get_settings
 from hopper.db import create_engine
 from hopper.logging import configure_logging
 from hopper.queue.postgres import PostgresBroker
-from hopper.worker.loop import Worker
+from hopper.scheduler.reaper import Reaper
 
 
 async def main() -> None:
+    """The scheduler process. Week 4: the reaper loop. The cron loop joins it in Week 5."""
     settings = get_settings()
     configure_logging(settings.log_level)
     engine = create_engine(settings)
-    worker = Worker(
+    reaper = Reaper(
         PostgresBroker(engine),
-        worker_id=f"{socket.gethostname()}-{os.getpid()}-{uuid.uuid4().hex[:6]}",
-        queues=settings.queues,
-        slots=settings.worker_slots,
-        poll_interval=settings.worker_poll_interval,
-        max_idle_backoff=settings.worker_max_idle_backoff,
-        lease_seconds=settings.lease_seconds,
-        heartbeat_interval=settings.heartbeat_seconds,
-        shutdown_grace=settings.shutdown_grace_seconds,
+        interval=settings.reaper_interval_seconds,
+        batch_size=settings.reaper_batch_size,
     )
     loop = asyncio.get_running_loop()
     for sig in (signal.SIGTERM, signal.SIGINT):
         # Not supported on Windows event loops; the container runs Linux.
         with contextlib.suppress(NotImplementedError):
-            loop.add_signal_handler(sig, worker.stop)
+            loop.add_signal_handler(sig, reaper.stop)
     try:
-        await worker.run()
+        await reaper.run()
     finally:
         await engine.dispose()
 
