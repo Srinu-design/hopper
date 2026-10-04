@@ -2,16 +2,39 @@ import pytest
 from pydantic import ValidationError
 
 from hopper.tasks import registry
-from hopper.tasks.builtin import FlakyPayload, SleepPayload, flaky, sleep
+from hopper.tasks.builtin import (
+    FailAlwaysPayload,
+    FlakyPayload,
+    SleepPayload,
+    fail_always,
+    flaky,
+    sleep,
+)
+from hopper.tasks.errors import PermanentError
 from hopper.tasks.registry import TaskPayload
 
 
 def test_builtin_tasks_are_registered() -> None:
-    assert {"sleep", "flaky"} <= set(registry.task_names())
+    assert {"sleep", "flaky", "fail_always"} <= set(registry.task_names())
     spec = registry.get_task("sleep")
     assert spec is not None
     assert spec.payload_model is SleepPayload
     assert (spec.max_attempts, spec.timeout_seconds) == (5, 30)
+    assert (spec.backoff_base, spec.backoff_cap) == (2.0, 600.0)
+
+
+@pytest.mark.parametrize(
+    "policy",
+    [
+        {"max_attempts": 0},
+        {"timeout": 0},
+        {"backoff_base": -1},
+        {"backoff_base": 10, "backoff_cap": 5},
+    ],
+)
+def test_invalid_retry_policy_is_rejected(policy: dict[str, float]) -> None:
+    with pytest.raises(ValueError, match="invalid retry policy"):
+        registry.task("never_registered", payload=SleepPayload, **policy)  # type: ignore[arg-type]
 
 
 def test_unknown_task_is_none() -> None:
@@ -47,3 +70,10 @@ async def test_flaky_never_fails_at_p0_and_always_fails_at_p1() -> None:
         assert await flaky(FlakyPayload(p=0)) == {"ok": True}
     with pytest.raises(RuntimeError):
         await flaky(FlakyPayload(p=1))
+
+
+async def test_fail_always_is_retryable_unless_permanent() -> None:
+    with pytest.raises(RuntimeError):
+        await fail_always(FailAlwaysPayload())
+    with pytest.raises(PermanentError):
+        await fail_always(FailAlwaysPayload(permanent=True))

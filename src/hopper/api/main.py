@@ -7,7 +7,7 @@ import redis.asyncio as redis_asyncio
 import structlog
 from fastapi import FastAPI, Request, Response
 
-from hopper.api import health, jobs
+from hopper.api import dlq, health, jobs
 from hopper.api.body_limit import BodySizeLimitMiddleware
 from hopper.api.errors import install_error_handlers
 from hopper.config import get_settings
@@ -57,6 +57,7 @@ def create_app() -> FastAPI:
     install_error_handlers(app)
     app.include_router(health.router)
     app.include_router(jobs.router)
+    app.include_router(dlq.router)
     return app
 
 
