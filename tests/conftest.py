@@ -1,12 +1,13 @@
+import asyncio
 import os
 import uuid
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Iterator
 
 import httpx
 import pytest
 from fastapi import FastAPI
 from sqlalchemy import text
-from sqlalchemy.engine import make_url
+from sqlalchemy.engine import URL, make_url
 from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 
 from hopper.api.main import create_app
@@ -18,28 +19,84 @@ os.environ.setdefault("DATABASE_URL", "postgresql+asyncpg://hopper:hopper@127.0.
 os.environ.setdefault("REDIS_URL", "redis://127.0.0.1:6379/0")
 
 
-@pytest.fixture
-async def scratch_db_url() -> AsyncIterator[str]:
-    """A throwaway database, so tests may migrate up and down without touching dev data."""
-    base = make_url(os.environ["DATABASE_URL"])
-    name = f"hopper_test_{uuid.uuid4().hex[:12]}"
-    admin = create_async_engine(base.set(database="postgres"), isolation_level="AUTOCOMMIT")
-    async with admin.connect() as conn:
-        await conn.execute(text(f'CREATE DATABASE "{name}"'))
+def _admin_url() -> URL:
+    return make_url(os.environ["DATABASE_URL"]).set(database="postgres")
+
+
+def _db_url(name: str) -> str:
+    return (
+        make_url(os.environ["DATABASE_URL"])
+        .set(database=name)
+        .render_as_string(hide_password=False)
+    )
+
+
+async def _create_db(name: str, template: str | None = None) -> None:
+    admin = create_async_engine(_admin_url(), isolation_level="AUTOCOMMIT")
     try:
-        yield base.set(database=name).render_as_string(hide_password=False)
-    finally:
         async with admin.connect() as conn:
-            await conn.execute(text(f'DROP DATABASE IF EXISTS "{name}" WITH (FORCE)'))
+            clause = f' TEMPLATE "{template}"' if template else ""
+            await conn.execute(text(f'CREATE DATABASE "{name}"{clause}'))
+    finally:
         await admin.dispose()
 
 
+async def _drop_db(name: str) -> None:
+    admin = create_async_engine(_admin_url(), isolation_level="AUTOCOMMIT")
+    try:
+        async with admin.connect() as conn:
+            await conn.execute(text(f'DROP DATABASE IF EXISTS "{name}" WITH (FORCE)'))
+    finally:
+        await admin.dispose()
+
+
+def _new_name() -> str:
+    return f"hopper_test_{uuid.uuid4().hex[:12]}"
+
+
+@pytest.fixture(scope="session")
+def migrated_template() -> Iterator[str]:
+    """Migrate once per session with the real alembic CLI; tests clone this database.
+
+    CREATE DATABASE ... TEMPLATE copies it in milliseconds, so each test gets a fresh,
+    fully migrated database without paying for an alembic subprocess every time.
+    """
+    name = f"{_new_name()}_tmpl"
+    asyncio.run(_create_db(name))
+    try:
+        result = run_alembic(_db_url(name), "upgrade", "head")
+        assert result.returncode == 0, result.stderr
+        yield name
+    finally:
+        asyncio.run(_drop_db(name))
+
+
 @pytest.fixture
-async def migrated_engine(scratch_db_url: str) -> AsyncIterator[AsyncEngine]:
-    result = run_alembic(scratch_db_url, "upgrade", "head")
-    assert result.returncode == 0, result.stderr
+async def scratch_db_url() -> AsyncIterator[str]:
+    """An empty throwaway database, for tests that run migrations themselves."""
+    name = _new_name()
+    await _create_db(name)
+    try:
+        yield _db_url(name)
+    finally:
+        await _drop_db(name)
+
+
+@pytest.fixture
+async def migrated_db_url(migrated_template: str) -> AsyncIterator[str]:
+    """A throwaway database already at alembic head, cloned from the session template."""
+    name = _new_name()
+    await _create_db(name, template=migrated_template)
+    try:
+        yield _db_url(name)
+    finally:
+        await _drop_db(name)
+
+
+@pytest.fixture
+async def migrated_engine(migrated_db_url: str) -> AsyncIterator[AsyncEngine]:
     # Pool sized for the concurrency tests (10 claimers at once).
-    engine = create_async_engine(scratch_db_url, pool_size=12, max_overflow=0)
+    engine = create_async_engine(migrated_db_url, pool_size=12, max_overflow=0)
     try:
         yield engine
     finally:
@@ -48,10 +105,10 @@ async def migrated_engine(scratch_db_url: str) -> AsyncIterator[AsyncEngine]:
 
 @pytest.fixture
 async def api_app(
-    migrated_engine: AsyncEngine, scratch_db_url: str, monkeypatch: pytest.MonkeyPatch
+    migrated_engine: AsyncEngine, migrated_db_url: str, monkeypatch: pytest.MonkeyPatch
 ) -> AsyncIterator[FastAPI]:
     """The real FastAPI app, lifespan running, pointed at the migrated scratch database."""
-    monkeypatch.setenv("DATABASE_URL", scratch_db_url)
+    monkeypatch.setenv("DATABASE_URL", migrated_db_url)
     get_settings.cache_clear()
     app = create_app()
     async with app.router.lifespan_context(app):

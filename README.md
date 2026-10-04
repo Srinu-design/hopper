@@ -5,9 +5,10 @@
 A multi-tenant job queue and scheduler on PostgreSQL: send a job over HTTP; it runs at least once,
 retries with backoff, parks in a dead-letter queue if it keeps failing, and can be replayed.
 
-> **Status: Week 2 of 8 (queue core).** Jobs can be enqueued over HTTP, claimed by concurrent workers with
-> `FOR UPDATE SKIP LOCKED`, run, and acked. Retries, the dead-letter queue, leases, scheduling, auth and the
-> rest arrive in the milestones below. Nothing here claims behaviour that is not built and tested yet.
+> **Status: Week 3 of 8 (failure handling).** Jobs are enqueued over HTTP (optionally with an
+> `Idempotency-Key`), claimed by concurrent workers with `FOR UPDATE SKIP LOCKED`, retried with full-jitter
+> backoff, and parked in a dead-letter queue you can list and replay. Leases, scheduling, auth and the rest
+> arrive in the milestones below. Nothing here claims behaviour that is not built and tested yet.
 
 The demo video, headline numbers, architecture diagram and live links will go at the top of this file in
 Week 8, once there is something measured to show.
@@ -25,9 +26,19 @@ curl localhost:8000/readyz   # {"status":"ok","checks":{"postgres":"ok","redis":
 # enqueue a job, then check on it (use the id from the first response)
 curl -X POST localhost:8000/v1/jobs -H 'content-type: application/json' -d '{"task":"sleep","payload":{"ms":100}}'
 curl localhost:8000/v1/jobs/<id>   # status, result and attempt history
+
+# safe to retry: the same Idempotency-Key and body return the same job (200, Idempotent-Replayed: true)
+curl -X POST localhost:8000/v1/jobs -H 'content-type: application/json' -H 'Idempotency-Key: order-42' -d '{"task":"sleep","payload":{"ms":100}}'
+
+# fill the dead-letter queue, look at it, replay
+curl -X POST localhost:8000/v1/jobs -H 'content-type: application/json' -d '{"task":"fail_always","payload":{"permanent":true}}'
+curl localhost:8000/v1/dlq                          # ?queue=&task=&since=&limit=&cursor=
+curl -X POST localhost:8000/v1/jobs/<id>/replay     # one job, runs now
+curl -X POST localhost:8000/v1/dlq/replay -H 'content-type: application/json' -d '{"filter":{"task":"fail_always"},"spread_seconds":60}'
 ```
 
-Built-in tasks so far: `sleep` (`{"ms": 100}`) and `flaky` (`{"p": 0.3}` fails with that probability).
+Built-in tasks so far: `sleep` (`{"ms": 100}`), `flaky` (`{"p": 0.3}` fails with that probability) and
+`fail_always` (`{}` retries until it is dead; `{"permanent": true}` goes to the DLQ at once).
 Until API keys arrive in Week 5 every request runs as one configured default tenant, so do not expose
 the API publicly yet. Scale workers with `docker compose -f docker/compose.yaml --env-file .env up -d --scale worker=N`.
 
@@ -73,7 +84,7 @@ not `localhost`: on Windows `localhost` resolves to `::1` first and the publishe
 |---|---|---|
 | 1 | Skeleton: repo, uv, ruff and mypy, Dockerfile, Compose, Alembic schema, `/healthz`, CI | done |
 | 2 | Queue core: enqueue, `SKIP LOCKED` claim, fenced ack, worker loop | done |
-| 3 | Failure handling: retries, DLQ and replay, idempotency keys | |
+| 3 | Failure handling: retries, DLQ and replay, idempotency keys | done |
 | 4 | Reliability: leases, heartbeats, reaper, graceful shutdown | |
 | 5 | Scheduling and tenancy: delayed and cron jobs, API keys, JWT, `http` task | |
 | 6 | Limits and observability: token bucket, backpressure, metrics, Grafana | |
@@ -102,6 +113,28 @@ not `localhost`: on Windows `localhost` resolves to `::1` first and the publishe
   API to worker to `succeeded` end-to-end test (`tests/e2e/`).
 - Known gaps by design: a job whose handler fails or times out is not acked and stays `running`. Retries arrive
   in Week 3 and lease reclaim in Week 4.
+
+### Week 3
+- **Retries with full jitter.** After failed attempt *n* the job is requeued with
+  `run_at = now() + uniform(0, min(cap, base * 2^(n-1)))`; defaults base 2 s, cap 600 s, 5 attempts, and each task
+  can override all three. A handler can raise `RetryableError(retry_after=...)` and the larger delay wins. The
+  failure is one fenced `UPDATE` (`NACK` in `src/hopper/queue/sql.py`) that also writes the attempt row.
+- **Retryable vs permanent.** Timeouts (`timed_out`), unknown tasks and unexpected exceptions retry. `PermanentError`
+  and a payload that fails validation go to the DLQ at once. Out of attempts also means dead.
+- **Dead-letter queue.** Dead jobs keep their payload, `last_error` and full attempt history. `GET /v1/dlq` lists
+  them newest first (filters `queue`, `task`, `since`; keyset pagination). `POST /v1/jobs/{id}/replay` requeues one
+  now (409 if it is not dead, so replay is a no-op the second time). `POST /v1/dlq/replay` requeues up to 1,000 by
+  ids or filter and spreads `run_at` over `spread_seconds` (default 60) so a replay does not stampede.
+- **Idempotency keys.** `Idempotency-Key` on `POST /v1/jobs`: the same key and an equivalent body (SHA-256 of the
+  canonical JSON) return the original job with 200 and `Idempotent-Replayed: true`; a different body returns 422
+  `idempotency_key_reused`. 50 concurrent requests with one key create exactly one job.
+- `fail_always` built-in task; the job JSON now includes `dead_at` and `replay_count`.
+- Tests: jitter bounds on every retry, dead after `max_attempts`, permanent errors, Retry-After, stale-token nack,
+  DLQ filters, pagination and batching, replay idempotency, the idempotency-key cases, and an end-to-end
+  fail, dead, replay, succeeded run (`tests/e2e/test_dead_letter_and_replay.py`). Each test now clones a database
+  migrated once per session, which took the suite from about 140 s to about 40 s.
+- Choice made: the guide's backoff table implies 6 attempts by default, but the schema default is 5; Hopper uses 5
+  everywhere so the column default and the task default agree.
 
 ## Docs
 
