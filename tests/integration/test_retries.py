@@ -13,6 +13,7 @@ from hopper.tasks.errors import PermanentError, RetryableError
 from hopper.tasks.registry import TaskPayload, task
 from tests.helpers import (
     LEASE,
+    attempts_of,
     insert_job,
     job_row,
     make_worker,
@@ -60,14 +61,6 @@ async def make_ready(engine: AsyncEngine, job_id: uuid.UUID) -> None:
     """Pretend the retry delay has passed."""
     async with engine.begin() as conn:
         await conn.execute(text("UPDATE jobs SET run_at = now() WHERE id = :i"), {"i": job_id})
-
-
-async def attempts_of(engine: AsyncEngine, job_id: uuid.UUID) -> list[dict[str, Any]]:
-    async with engine.connect() as conn:
-        rows = await conn.execute(
-            text("SELECT * FROM job_attempts WHERE job_id = :i ORDER BY id"), {"i": job_id}
-        )
-        return [dict(r._mapping) for r in rows]
 
 
 async def test_each_retry_run_at_is_inside_the_full_jitter_window(

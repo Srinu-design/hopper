@@ -1,6 +1,7 @@
 from functools import lru_cache
+from typing import Self
 
-from pydantic import Field
+from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -25,7 +26,24 @@ class Settings(BaseSettings):
     worker_slots: int = Field(default=20, ge=1)
     worker_poll_interval: float = Field(default=0.25, gt=0)
     worker_max_idle_backoff: float = Field(default=0.5, gt=0)
+    # A crashed worker's jobs are back in the queue within lease + reaper interval (~35 s).
     lease_seconds: int = Field(default=30, ge=1)
+    # Every in-flight lease is renewed this often, in one statement: lease / 3, so a lease
+    # survives two missed heartbeats.
+    heartbeat_seconds: float = Field(default=10.0, gt=0)
+    # On SIGTERM: wait this long for in-flight jobs, then release the rest. Must stay under
+    # Compose's stop_grace_period (30 s) so Docker's SIGKILL never arrives first.
+    shutdown_grace_seconds: float = Field(default=25.0, ge=0)
+
+    # Scheduler: the reaper requeues jobs whose lease ran out.
+    reaper_interval_seconds: float = Field(default=5.0, gt=0)
+    reaper_batch_size: int = Field(default=500, ge=1)
+
+    @model_validator(mode="after")
+    def _heartbeat_inside_lease(self) -> Self:
+        if self.heartbeat_seconds >= self.lease_seconds:
+            raise ValueError("HEARTBEAT_SECONDS must be shorter than LEASE_SECONDS")
+        return self
 
     @property
     def queues(self) -> list[str]:
