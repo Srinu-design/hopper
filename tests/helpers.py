@@ -11,6 +11,7 @@ import uuid
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from datetime import timedelta
+from decimal import Decimal
 from pathlib import Path
 from typing import Any
 
@@ -48,9 +49,26 @@ class TenantCreds:
     signing_secret: bytes
 
 
-async def make_tenant(engine: AsyncEngine, name: str) -> TenantCreds:
-    """A tenant and one API key, written straight to the database (no admin API round trip)."""
-    tenant, _ = await store.create_tenant(engine, name=name)
+async def make_tenant(
+    engine: AsyncEngine,
+    name: str,
+    *,
+    rate_per_sec: float = 10_000,
+    burst: int = 10_000,
+    max_queue_depth: int = 100_000,
+) -> TenantCreds:
+    """A tenant and one API key, written straight to the database (no admin API round trip).
+
+    The default limits are high so that tests about other things never meet a 429; the
+    rate-limit and backpressure tests pass their own.
+    """
+    tenant, _ = await store.create_tenant(
+        engine,
+        name=name,
+        rate_per_sec=Decimal(str(rate_per_sec)),
+        burst=burst,
+        max_queue_depth=max_queue_depth,
+    )
     new = keys.generate(get_settings().api_key_pepper.get_secret_value().encode())
     assert await store.create_api_key(engine, tenant_id=tenant.id, name="test", key=new)
     return TenantCreds(tenant.id, name, new.plaintext, tenant.signing_secret)

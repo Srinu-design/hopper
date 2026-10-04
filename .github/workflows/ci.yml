@@ -19,6 +19,19 @@ jobs:
       - run: uv run ruff format --check .
       - run: uv run mypy src
 
+  # The Prometheus config must load, and every alert must fire (and stay quiet) exactly when
+  # its unit test says so. Same image version as Compose.
+  alerts:
+    runs-on: ubuntu-latest
+    env:
+      PROMTOOL: >-
+        docker run --rm -w /etc/prometheus -v ${{ github.workspace }}/deploy/prometheus:/etc/prometheus:ro
+        --entrypoint promtool prom/prometheus:v3.15.0
+    steps:
+      - uses: actions/checkout@v7
+      - run: $PROMTOOL check config prometheus.yml
+      - run: $PROMTOOL test rules alerts_test.yml
+
   test:
     runs-on: ubuntu-latest
     services:
@@ -46,7 +59,7 @@ jobs:
       - run: uv run pytest -q
 
   image:
-    needs: [lint, test]
+    needs: [lint, alerts, test]
     runs-on: ubuntu-latest
     permissions: { contents: read, packages: write }
     steps:

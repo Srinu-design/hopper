@@ -4,6 +4,7 @@ import contextlib
 import structlog
 from sqlalchemy.ext.asyncio import AsyncEngine
 
+from hopper.metrics import JOBS_ENQUEUED, queue_label, task_label
 from hopper.queue.schedules import fire_due
 
 log = structlog.get_logger()
@@ -44,6 +45,8 @@ class CronLoop:
         while True:
             fired = await fire_due(self._engine, limit=self._batch_size)
             for f in fired:
+                if f.job_id is not None:
+                    JOBS_ENQUEUED.labels(queue_label(f.queue), task_label(f.task)).inc()
                 log.info(
                     "schedule_fired",
                     schedule_id=str(f.schedule_id),
