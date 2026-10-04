@@ -10,6 +10,16 @@ import structlog
 from pydantic import ValidationError
 from structlog.typing import FilteringBoundLogger
 
+from hopper.metrics import (
+    ACKS_REJECTED,
+    JOB_ATTEMPTS,
+    JOB_RUN_SECONDS,
+    JOB_WAIT_SECONDS,
+    JOBS_DEAD,
+    WORKER_INFLIGHT,
+    queue_label,
+    task_label,
+)
 from hopper.queue.broker import Broker, ClaimedJob, FailureOutcome
 from hopper.tasks import registry
 from hopper.tasks.context import JobContext, running
@@ -165,8 +175,9 @@ class Worker:
             log.exception("release_failed", jobs=len(jobs))
             return
         for job in jobs:
-            jlog = log.bind(job_id=str(job.id), attempt=job.attempt, worker_id=self.worker_id)
+            jlog = _job_logger(job, self.worker_id)
             if job.id in released:
+                JOB_ATTEMPTS.labels(queue_label(job.queue), task_label(job.task), "released").inc()
                 jlog.info("job_released")
             else:
                 jlog.warning("release_rejected_lease_lost")
@@ -226,10 +237,12 @@ class Worker:
     def _spawn(self, job: ClaimedJob) -> None:
         task = asyncio.create_task(self.process(job), name=f"job-{job.id}")
         self._running[job.id] = _Running(job, task)
+        WORKER_INFLIGHT.set(len(self._running))
         task.add_done_callback(lambda _: self._on_done(job.id))
 
     def _on_done(self, job_id: UUID) -> None:
         self._running.pop(job_id, None)
+        WORKER_INFLIGHT.set(len(self._running))
         self._slot_freed.set()
 
     def _mark_finishing(self, job: ClaimedJob) -> None:
@@ -252,33 +265,34 @@ class Worker:
 
     async def process(self, job: ClaimedJob) -> None:
         """Run one claimed job to the end: ack on success, nack (retry or DLQ) on failure."""
-        jlog = log.bind(
-            job_id=str(job.id),
-            tenant_id=str(job.tenant_id),
-            attempt=job.attempt,
-            worker_id=self.worker_id,
-            task=job.task,
-        )
+        jlog = _job_logger(job, self.worker_id)
+        queue, task = queue_label(job.queue), task_label(job.task)
+        JOB_WAIT_SECONDS.labels(queue).observe(job.wait_seconds)
+        jlog.info("job_claimed", waited=round(job.wait_seconds, 4))
         spec = registry.get_task(job.task)
         started = time.monotonic()
         try:
             result = await self._execute(job, spec)
         except Exception as exc:
             self._mark_finishing(job)
+            JOB_RUN_SECONDS.labels(queue, task).observe(time.monotonic() - started)
             await self._fail(job, spec, exc, jlog)
             return
         self._mark_finishing(job)
+        elapsed = time.monotonic() - started
+        JOB_RUN_SECONDS.labels(queue, task).observe(elapsed)
         try:
             acked = await self._broker.ack(job, self.worker_id, result)
         except Exception:
             # The job stays running without heartbeats; the reaper requeues it.
             jlog.exception("ack_failed")
             return
-        elapsed = round(time.monotonic() - started, 4)
         if acked:
-            jlog.info("job_succeeded", seconds=elapsed)
+            JOB_ATTEMPTS.labels(queue, task, "succeeded").inc()
+            jlog.info("job_succeeded", seconds=round(elapsed, 4))
         else:
-            jlog.warning("ack_rejected_lease_lost", seconds=elapsed)
+            ACKS_REJECTED.inc()
+            jlog.warning("ack_rejected_lease_lost", seconds=round(elapsed, 4))
 
     async def _execute(
         self, job: ClaimedJob, spec: registry.TaskSpec | None
@@ -333,8 +347,28 @@ class Worker:
             jlog.exception("nack_failed", error=error)
             return
         if status is None:
+            ACKS_REJECTED.inc()
             jlog.warning("nack_rejected_lease_lost", error=error)
-        elif status == "dead":
+            return
+        queue, task = queue_label(job.queue), task_label(job.task)
+        JOB_ATTEMPTS.labels(queue, task, outcome).inc()
+        if status == "dead":
+            JOBS_DEAD.labels(queue, task).inc()
             jlog.warning("job_dead", outcome=outcome, permanent=permanent, error=error)
         else:
             jlog.info("job_retry_scheduled", outcome=outcome, delay=round(delay, 3), error=error)
+
+
+def _job_logger(job: ClaimedJob, worker_id: str) -> FilteringBoundLogger:
+    """Every line about a job carries the ids needed to follow it: the job, its tenant, the
+    attempt, this worker, and the request id of the API call that enqueued it."""
+    bound: FilteringBoundLogger = log.bind(
+        job_id=str(job.id),
+        tenant_id=str(job.tenant_id),
+        attempt=job.attempt,
+        worker_id=worker_id,
+        queue=job.queue,
+        task=job.task,
+        request_id=job.request_id,
+    )
+    return bound

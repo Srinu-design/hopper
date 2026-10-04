@@ -28,7 +28,9 @@ async def _check_redis(request: Request) -> None:
 
 @router.get("/readyz")
 async def readyz(request: Request, response: Response) -> dict[str, Any]:
-    """Readiness: Postgres and Redis are reachable."""
+    """Readiness: Postgres is reachable. Redis is checked and reported, but without it the
+    API still serves (rate limits fall back to in-process buckets, ADR-0008), so a Redis
+    outage answers 200 "degraded" instead of taking every replica out of rotation."""
     checks = {"postgres": _check_postgres, "redis": _check_redis}
     results: dict[str, str] = {}
     for name, check in checks.items():
@@ -38,7 +40,9 @@ async def readyz(request: Request, response: Response) -> dict[str, Any]:
         except Exception as exc:
             log.warning("readiness_check_failed", dependency=name, error=repr(exc))
             results[name] = "unavailable"
-    ready = all(v == "ok" for v in results.values())
-    if not ready:
+    if results["postgres"] != "ok":
         response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
-    return {"status": "ok" if ready else "unavailable", "checks": results}
+        overall = "unavailable"
+    else:
+        overall = "ok" if results["redis"] == "ok" else "degraded"
+    return {"status": overall, "checks": results}

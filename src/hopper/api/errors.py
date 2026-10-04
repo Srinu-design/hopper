@@ -1,4 +1,7 @@
-"""One error shape for every response: {"error": {"code", "message", "request_id"}}."""
+"""One error shape for every response: {"error": {"code", "message", "request_id"}}.
+
+Some errors add fields of their own inside "error", such as retry_after_ms on a 429.
+"""
 
 from typing import Any
 
@@ -19,12 +22,14 @@ class ApiError(Exception):
         message: str,
         *,
         headers: dict[str, str] | None = None,
+        details: dict[str, Any] | None = None,
     ) -> None:
         super().__init__(message)
         self.status_code = status_code
         self.code = code
         self.message = message
         self.headers = headers
+        self.details = details
 
 
 def _response(
@@ -33,16 +38,17 @@ def _response(
     code: str,
     message: str,
     headers: dict[str, str] | None = None,
+    details: dict[str, Any] | None = None,
 ) -> JSONResponse:
     request_id = getattr(request.state, "request_id", None)
-    body: dict[str, Any] = {"error": {"code": code, "message": message, "request_id": request_id}}
-    return JSONResponse(body, status_code=status_code, headers=headers)
+    error = {"code": code, "message": message, "request_id": request_id, **(details or {})}
+    return JSONResponse({"error": error}, status_code=status_code, headers=headers)
 
 
 def install_error_handlers(app: FastAPI) -> None:
     @app.exception_handler(ApiError)
     async def api_error(request: Request, exc: ApiError) -> JSONResponse:
-        return _response(request, exc.status_code, exc.code, exc.message, exc.headers)
+        return _response(request, exc.status_code, exc.code, exc.message, exc.headers, exc.details)
 
     @app.exception_handler(StarletteHTTPException)
     async def http_error(request: Request, exc: StarletteHTTPException) -> JSONResponse:

@@ -1,0 +1,12 @@
+# Loads every dashboard JSON in this folder. Edits in the UI cannot be saved over it: change
+# hopper.json in the repo instead (or export from the UI and commit the export).
+apiVersion: 1
+providers:
+  - name: hopper
+    folder: Hopper
+    type: file
+    disableDeletion: true
+    allowUiUpdates: false
+    updateIntervalSeconds: 30
+    options:
+      path: /etc/grafana/provisioning/dashboards

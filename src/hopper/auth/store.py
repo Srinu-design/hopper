@@ -39,9 +39,13 @@ SELECT id, :prefix, :key_hash, :name FROM tenants WHERE id = :tenant_id
 RETURNING id, tenant_id, prefix, name, created_at, last_used_at, revoked_at
 """
 
+# The tenant's limits come back with the key, so they are cached with it and rate limiting
+# costs no extra query per request.
 GET_API_KEY_BY_PREFIX = """
-SELECT id, tenant_id, key_hash, revoked_at IS NOT NULL AS revoked
-FROM api_keys WHERE prefix = :prefix
+SELECT k.id, k.tenant_id, k.key_hash, k.revoked_at IS NOT NULL AS revoked,
+       t.rate_per_sec, t.burst, t.max_queue_depth
+FROM api_keys k JOIN tenants t ON t.id = k.tenant_id
+WHERE k.prefix = :prefix
 """
 
 # At most one write a minute per key, whichever API replica gets there first.
@@ -94,6 +98,9 @@ class KeyRecord:
     tenant_id: UUID
     key_hash: bytes
     revoked: bool
+    rate_per_sec: Decimal
+    burst: int
+    max_queue_depth: int
 
 
 async def _insert_user(
