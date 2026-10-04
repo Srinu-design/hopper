@@ -72,7 +72,8 @@ services:
 
   scheduler:
     <<: *app
-    command: ["python", "-m", "hopper.scheduler"]   # the reaper now, cron from Week 5
+    command: ["python", "-m", "hopper.scheduler"]   # cron loop + reaper loop
+    deploy: { replicas: 2 }                         # safe without leader election: SKIP LOCKED
     depends_on:
       postgres: { condition: service_healthy }
       migrate: { condition: service_completed_successfully }

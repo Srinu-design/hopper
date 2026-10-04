@@ -9,6 +9,7 @@ import sys
 import time
 import uuid
 from collections.abc import Awaitable, Callable
+from dataclasses import dataclass
 from datetime import timedelta
 from pathlib import Path
 from typing import Any
@@ -16,6 +17,8 @@ from typing import Any
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine
 
+from hopper.auth import keys, store
+from hopper.config import get_settings
 from hopper.queue.postgres import PostgresBroker
 from hopper.worker.loop import Worker
 
@@ -35,6 +38,22 @@ def run_alembic(database_url: str, *args: str) -> subprocess.CompletedProcess[st
 
 
 LEASE = 30.0
+
+
+@dataclass(frozen=True)
+class TenantCreds:
+    id: uuid.UUID
+    name: str
+    api_key: str
+    signing_secret: bytes
+
+
+async def make_tenant(engine: AsyncEngine, name: str) -> TenantCreds:
+    """A tenant and one API key, written straight to the database (no admin API round trip)."""
+    tenant, _ = await store.create_tenant(engine, name=name)
+    new = keys.generate(get_settings().api_key_pepper.get_secret_value().encode())
+    assert await store.create_api_key(engine, tenant_id=tenant.id, name="test", key=new)
+    return TenantCreds(tenant.id, name, new.plaintext, tenant.signing_secret)
 
 
 async def seed_tenant(engine: AsyncEngine, name: str = "t") -> uuid.UUID:

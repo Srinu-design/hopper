@@ -45,6 +45,7 @@ class PostgresBroker:
                     max_attempts=r.max_attempts,
                     timeout_seconds=r.timeout_seconds,
                     lease_token=r.lease_token,
+                    signing_secret=r.signing_secret,
                 )
                 for r in rows
             ]
