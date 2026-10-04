@@ -4,20 +4,20 @@ from datetime import UTC, datetime, timedelta
 from typing import Annotated, Any, Literal, Self
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Header, Query, Request, Response
+from fastapi import APIRouter, Header, Query, Request, Response
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, model_validator
 
 from hopper.api.errors import ApiError
+from hopper.api.limits import EnqueueTenant, ReadTenant
 from hopper.api.pagination import decode_cursor, encode_cursor
 from hopper.api.schemas import JobOut, JobSummary, job_out
 from hopper.api.validation import checked_task
-from hopper.auth.tenant import current_tenant_id
+from hopper.metrics import JOBS_ENQUEUED, queue_label, task_label
 from hopper.queue.dlq import DeadFilter, replay
 from hopper.queue.jobs import JobFilter, cancel_job, get_job, insert_job, list_jobs
 
 router = APIRouter(prefix="/v1/jobs", tags=["jobs"])
 
-TenantId = Annotated[UUID, Depends(current_tenant_id)]
 QUEUE_PATTERN = r"^[A-Za-z0-9_.-]{1,64}$"
 MAX_DELAY = timedelta(days=30)
 JobStatus = Literal["queued", "running", "succeeded", "dead", "cancelled"]
@@ -76,7 +76,7 @@ async def enqueue(
     body: EnqueueRequest,
     request: Request,
     response: Response,
-    tenant_id: TenantId,
+    tenant_id: EnqueueTenant,
     idempotency_key: Annotated[
         str | None,
         Header(alias="Idempotency-Key", min_length=1, max_length=255, pattern=r"^[\x21-\x7e]+$"),
@@ -100,8 +100,10 @@ async def enqueue(
         request_hash=digest if idempotency_key is not None else None,
         run_at=body.run_at,
         delay_seconds=body.delay_seconds or 0.0,
+        request_id=request.state.request_id,
     )
     if created:
+        JOBS_ENQUEUED.labels(queue_label(body.queue), task_label(body.task)).inc()
         return job_out(job, [])
     if job["request_hash"] != digest:
         raise ApiError(
@@ -118,7 +120,7 @@ async def enqueue(
 @router.get("", response_model=JobPage)
 async def list_tenant_jobs(
     request: Request,
-    tenant_id: TenantId,
+    tenant_id: ReadTenant,
     status: JobStatus | None = None,
     queue: Annotated[str | None, Query(pattern=QUEUE_PATTERN)] = None,
     limit: Annotated[int, Query(ge=1, le=200)] = 50,
@@ -139,12 +141,12 @@ async def list_tenant_jobs(
 
 
 @router.get("/{job_id}", response_model=JobOut)
-async def read_job(job_id: UUID, request: Request, tenant_id: TenantId) -> JobOut:
+async def read_job(job_id: UUID, request: Request, tenant_id: ReadTenant) -> JobOut:
     return await _load(request, tenant_id, job_id)
 
 
 @router.post("/{job_id}/cancel", response_model=JobOut)
-async def cancel(job_id: UUID, request: Request, tenant_id: TenantId) -> JobOut:
+async def cancel(job_id: UUID, request: Request, tenant_id: ReadTenant) -> JobOut:
     """Cancel a job that is still waiting. A running job cannot be cancelled (409)."""
     cancelled = await cancel_job(request.app.state.engine, tenant_id=tenant_id, job_id=job_id)
     job = await _load(request, tenant_id, job_id)  # 404 if it is not this tenant's job
@@ -156,7 +158,7 @@ async def cancel(job_id: UUID, request: Request, tenant_id: TenantId) -> JobOut:
 
 
 @router.post("/{job_id}/replay", response_model=JobOut)
-async def replay_job(job_id: UUID, request: Request, tenant_id: TenantId) -> JobOut:
+async def replay_job(job_id: UUID, request: Request, tenant_id: EnqueueTenant) -> JobOut:
     """Requeue one dead job now, with a fresh set of attempts."""
     replayed, _ = await replay(
         request.app.state.engine,

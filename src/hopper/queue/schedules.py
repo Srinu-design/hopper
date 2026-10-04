@@ -117,6 +117,8 @@ async def delete_schedule(engine: AsyncEngine, *, tenant_id: UUID, schedule_id: 
 class Fired:
     schedule_id: UUID
     tenant_id: UUID
+    queue: str
+    task: str
     fire_time: datetime
     job_id: UUID | None  # None: this tick's job already existed (the idempotency key held)
     next_run_at: datetime | None  # None: the schedule was switched off
@@ -146,7 +148,7 @@ async def fire_due(engine: AsyncEngine, *, limit: int) -> list[Fired]:
             except Exception:
                 log.exception("schedule_disabled_bad_expression", schedule_id=str(s.id))
                 await conn.execute(text(sql.DISABLE_SCHEDULE), {"id": s.id})
-                fired.append(Fired(s.id, s.tenant_id, s.next_run_at, None, None))
+                fired.append(Fired(s.id, s.tenant_id, s.queue, s.task, s.next_run_at, None, None))
                 continue
             spec = registry.get_task(s.task)
             inserted = (
@@ -169,10 +171,11 @@ async def fire_due(engine: AsyncEngine, *, limit: int) -> list[Fired]:
                         "run_at": None,
                         "delay_seconds": 0.0,
                         "schedule_id": s.id,
+                        "request_id": None,
                     },
                 )
             ).first()
             await conn.execute(text(sql.ADVANCE_SCHEDULE), {"id": s.id, "next_run_at": upcoming})
             job_id = inserted.id if inserted else None
-            fired.append(Fired(s.id, s.tenant_id, s.next_run_at, job_id, upcoming))
+            fired.append(Fired(s.id, s.tenant_id, s.queue, s.task, s.next_run_at, job_id, upcoming))
     return fired

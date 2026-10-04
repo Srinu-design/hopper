@@ -21,6 +21,10 @@ class ClaimedJob:
     lease_token: UUID
     # The tenant's key for signing http task requests; never logged or printed.
     signing_secret: bytes = field(default=b"", repr=False)
+    # The enqueue call's X-Request-ID (None for cron jobs), for log correlation.
+    request_id: str | None = None
+    # How long the job waited between becoming ready (run_at) and this claim.
+    wait_seconds: float = 0.0
 
 
 @dataclass(frozen=True, slots=True)
@@ -28,11 +32,13 @@ class ReapedJob:
     """A job whose lease ran out, as the reaper left it: 'queued' again, or 'dead'."""
 
     id: UUID
+    tenant_id: UUID
     queue: str
     task: str
     status: str
     attempt: int
     lease_owner: str
+    request_id: str | None = None
 
 
 class Broker(Protocol):

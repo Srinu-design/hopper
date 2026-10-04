@@ -3,6 +3,7 @@ import contextlib
 
 import structlog
 
+from hopper.metrics import JOB_ATTEMPTS, JOBS_DEAD, LEASES_RECLAIMED, queue_label, task_label
 from hopper.queue.postgres import PostgresBroker
 
 log = structlog.get_logger()
@@ -44,15 +45,22 @@ class Reaper:
         while True:
             reaped = await self._broker.reap(self._batch_size)
             for job in reaped:
+                queue, task = queue_label(job.queue), task_label(job.task)
+                JOB_ATTEMPTS.labels(queue, task, "lease_expired").inc()
+                LEASES_RECLAIMED.labels(queue).inc()
+                if job.status == "dead":
+                    JOBS_DEAD.labels(queue, task).inc()
                 # dead here means a poison pill: it took its worker down on every attempt.
                 emit = log.warning if job.status == "dead" else log.info
                 emit(
                     "lease_reclaimed",
                     job_id=str(job.id),
+                    tenant_id=str(job.tenant_id),
+                    request_id=job.request_id,
                     queue=job.queue,
                     task=job.task,
                     attempt=job.attempt,
-                    lease_owner=job.lease_owner,
+                    worker_id=job.lease_owner,  # the worker that lost the lease
                     status=job.status,
                 )
             total += len(reaped)

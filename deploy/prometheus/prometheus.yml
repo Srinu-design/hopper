@@ -1,0 +1,37 @@
+# Prometheus for the Compose stack. Every Hopper process serves /metrics on the internal port
+# 9100; nothing here is published outside the Compose network except Prometheus's own UI on
+# 127.0.0.1 in development.
+global:
+  scrape_interval: 5s
+  evaluation_interval: 5s
+
+rule_files:
+  - alerts.yml
+
+# Docker's DNS answers a service name with one A record per replica, so a scaled service
+# (docker compose up --scale worker=8) is discovered without a fixed target list.
+scrape_configs:
+  - job_name: api
+    dns_sd_configs:
+      - names: [api]
+        type: A
+        port: 9100
+        refresh_interval: 10s
+
+  - job_name: worker
+    dns_sd_configs:
+      - names: [worker]
+        type: A
+        port: 9100
+        refresh_interval: 10s
+
+  - job_name: scheduler
+    dns_sd_configs:
+      - names: [scheduler]
+        type: A
+        port: 9100
+        refresh_interval: 10s
+
+  - job_name: prometheus
+    static_configs:
+      - targets: [localhost:9090]

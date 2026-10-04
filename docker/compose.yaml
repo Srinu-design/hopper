@@ -72,12 +72,47 @@ services:
 
   scheduler:
     <<: *app
-    command: ["python", "-m", "hopper.scheduler"]   # cron loop + reaper loop
+    command: ["python", "-m", "hopper.scheduler"]   # cron, reaper and queue-depth loops
     deploy: { replicas: 2 }                         # safe without leader election: SKIP LOCKED
     depends_on:
       postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
       migrate: { condition: service_completed_successfully }
+
+  # Every app container serves metrics on port 9100 inside the network (never published).
+  # Prometheus finds each replica through Docker's DNS; Grafana is provisioned from the repo.
+  prometheus:
+    image: prom/prometheus:v3.15.0
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=7d
+    volumes:
+      - ../deploy/prometheus:/etc/prometheus:ro
+      - promdata:/prometheus
+    ports: ["127.0.0.1:${PROMETHEUS_PORT:-9090}:9090"]   # dev only; never published on a server
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:13.2.3
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+      # Anyone who can reach Grafana can look, nobody can edit without logging in.
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /etc/grafana/provisioning/dashboards/hopper.json
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
+    volumes:
+      - ../deploy/grafana/provisioning:/etc/grafana/provisioning:ro
+      - grafanadata:/var/lib/grafana
+    ports: ["127.0.0.1:${GRAFANA_PORT:-3000}:3000"]      # dev only
+    depends_on: [prometheus]
+    restart: unless-stopped
 
 volumes:
   pgdata: {}
   redisdata: {}
+  promdata: {}
+  grafanadata: {}

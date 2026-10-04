@@ -1,0 +1,140 @@
+# Unit tests for alerts.yml:  promtool test rules alerts_test.yml  (CI runs it; see make rules)
+# Each case feeds synthetic series and checks which alerts are firing (not just pending).
+rule_files:
+  - alerts.yml
+
+evaluation_interval: 1m
+
+tests:
+  # QueueBacklog: over 60 s from minute 1, so pending until minute 6. Both schedulers report
+  # the same gauge; max by queue makes it one alert. A healthy queue never fires.
+  - interval: 1m
+    input_series:
+      - series: 'hopper_oldest_ready_job_age_seconds{job="scheduler", instance="a:9100", queue="default"}'
+        values: "10 70 130 190 250 310 370 430 490"
+      - series: 'hopper_oldest_ready_job_age_seconds{job="scheduler", instance="b:9100", queue="default"}'
+        values: "10 70 130 190 250 310 370 430 490"
+      - series: 'hopper_oldest_ready_job_age_seconds{job="scheduler", instance="a:9100", queue="other"}'
+        values: "5x8"
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: QueueBacklog
+        exp_alerts: []
+      - eval_time: 6m
+        alertname: QueueBacklog
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              queue: default
+            exp_annotations:
+              summary: "Queue default: the oldest ready job has waited over 60 s"
+              description: "For 5 minutes. Check that workers are up and not saturated (hopper_worker_inflight)."
+
+  # HighFailureRate: 30 failed per 60 succeeded is 33%. The flood of released runs would dilute
+  # that to 3% if released counted, so this also proves released is left out.
+  - interval: 1m
+    input_series:
+      - series: 'hopper_job_attempts_total{job="worker", instance="w1", queue="default", task="http", outcome="succeeded"}'
+        values: "0+60x20"
+      - series: 'hopper_job_attempts_total{job="worker", instance="w1", queue="default", task="http", outcome="failed"}'
+        values: "0+20x20"
+      - series: 'hopper_job_attempts_total{job="scheduler", instance="s1", queue="default", task="http", outcome="lease_expired"}'
+        values: "0+10x20"
+      - series: 'hopper_job_attempts_total{job="worker", instance="w1", queue="default", task="http", outcome="released"}'
+        values: "0+1000x20"
+    alert_rule_test:
+      - eval_time: 3m
+        alertname: HighFailureRate
+        exp_alerts: []
+      - eval_time: 10m
+        alertname: HighFailureRate
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+            exp_annotations:
+              summary: "Over 20% of job runs are failing"
+              description: "For 5 minutes. Look at last_error in GET /v1/dlq and the job_retry_scheduled log lines."
+
+  # A healthy failure rate (5 in 65, 8%) does not fire, however many runs a deploy releases:
+  # counted as failures, those releases would make it 64%.
+  - interval: 1m
+    input_series:
+      - series: 'hopper_job_attempts_total{job="worker", instance="w1", queue="default", task="http", outcome="succeeded"}'
+        values: "0+60x20"
+      - series: 'hopper_job_attempts_total{job="worker", instance="w1", queue="default", task="http", outcome="failed"}'
+        values: "0+5x20"
+      - series: 'hopper_job_attempts_total{job="worker", instance="w1", queue="default", task="http", outcome="released"}'
+        values: "0+100x20"
+    alert_rule_test:
+      - eval_time: 15m
+        alertname: HighFailureRate
+        exp_alerts: []
+
+  # DLQGrowing: 2 dead a minute is about 20 in 10 minutes; one every 2 minutes is about 5.
+  - interval: 1m
+    input_series:
+      - series: 'hopper_jobs_dead_total{job="worker", instance="w1", queue="default", task="fail_always"}'
+        values: "0+2x15"
+    alert_rule_test:
+      - eval_time: 10m
+        alertname: DLQGrowing
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+            exp_annotations:
+              summary: "More than 10 jobs went to the dead-letter queue in 10 minutes"
+              description: "List them with GET /v1/dlq; replay with POST /v1/dlq/replay once the cause is fixed."
+  - interval: 1m
+    input_series:
+      - series: 'hopper_jobs_dead_total{job="worker", instance="w1", queue="default", task="fail_always"}'
+        values: "0+0.5x15"
+    alert_rule_test:
+      - eval_time: 10m
+        alertname: DLQGrowing
+        exp_alerts: []
+
+  # NoWorkers: the only worker goes down at minute 2; firing after 1 more minute. The scheduler
+  # stays up, so NoScheduler stays quiet.
+  - interval: 1m
+    input_series:
+      - series: 'up{job="worker", instance="10.0.0.5:9100"}'
+        values: "1 1 0 0 0 0"
+      - series: 'up{job="scheduler", instance="10.0.0.9:9100"}'
+        values: "1x5"
+    alert_rule_test:
+      - eval_time: 2m
+        alertname: NoWorkers
+        exp_alerts: []
+      - eval_time: 4m
+        alertname: NoWorkers
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+            exp_annotations:
+              summary: "No worker is up"
+              description: "Nothing runs jobs; queued jobs wait, and backpressure starts refusing enqueues at the depth limits."
+      - eval_time: 4m
+        alertname: NoScheduler
+        exp_alerts: []
+
+  # NoScheduler: one of two schedulers down is fine; both down fires.
+  - interval: 1m
+    input_series:
+      - series: 'up{job="scheduler", instance="a:9100"}'
+        values: "1 0 0 0 0 0 0"
+      - series: 'up{job="scheduler", instance="b:9100"}'
+        values: "1 1 1 0 0 0 0"
+      - series: 'up{job="worker", instance="w:9100"}'
+        values: "1x6"
+    alert_rule_test:
+      - eval_time: 2m
+        alertname: NoScheduler
+        exp_alerts: []
+      - eval_time: 5m
+        alertname: NoScheduler
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+            exp_annotations:
+              summary: "No scheduler is up"
+              description: "Cron, lease reclaim and the queue-depth count have stopped."

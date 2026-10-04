@@ -120,12 +120,13 @@ async def test_a_cached_key_stays_valid_elsewhere_until_the_cache_expires(
         cache_seconds=60,
         clock=lambda: now[0],
     )
-    assert await replica.authenticate(tenant.api_key) == tenant.id
+    caller = await replica.authenticate(tenant.api_key)
+    assert caller is not None and caller.tenant_id == tenant.id
     async with api_app.state.engine.begin() as conn:
         await conn.execute(text("UPDATE api_keys SET revoked_at = now()"))
 
     now[0] += 59
-    assert await replica.authenticate(tenant.api_key) == tenant.id  # the documented trade-off
+    assert await replica.authenticate(tenant.api_key) == caller  # the documented trade-off
     now[0] += 2
     assert await replica.authenticate(tenant.api_key) is None
 

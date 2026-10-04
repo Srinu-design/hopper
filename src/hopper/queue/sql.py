@@ -5,6 +5,8 @@
 # statement; after commit the lease protects the job. A fresh lease_token on every claim
 # is the fencing token for all later writes. The tenant's signing secret comes back with the
 # job (a primary-key lookup) so the http task can sign its request without another query.
+# wait_seconds is how long the job sat ready (run_at to claim), for the queue-wait metric;
+# both ends come from the database clock.
 CLAIM = """
 WITH next AS (
   SELECT id FROM jobs
@@ -23,7 +25,8 @@ SET status = 'running',
 FROM next
 WHERE j.id = next.id
 RETURNING j.id, j.tenant_id, j.queue, j.task, j.payload, j.attempts, j.max_attempts,
-          j.timeout_seconds, j.lease_token,
+          j.timeout_seconds, j.lease_token, j.request_id,
+          extract(epoch FROM j.started_at - j.run_at) AS wait_seconds,
           (SELECT signing_secret FROM tenants t WHERE t.id = j.tenant_id) AS signing_secret
 """
 
@@ -100,13 +103,13 @@ WITH expired AS (
       lease_owner = NULL, lease_token = NULL, lease_expires_at = NULL
   FROM expired
   WHERE j.id = expired.id
-  RETURNING j.id, j.queue, j.task, j.status, j.attempts, j.started_at, j.last_error,
-            coalesce(expired.lease_owner, 'unknown') AS lease_owner
+  RETURNING j.id, j.tenant_id, j.queue, j.task, j.status, j.attempts, j.started_at,
+            j.last_error, j.request_id, coalesce(expired.lease_owner, 'unknown') AS lease_owner
 ), attempt AS (
   INSERT INTO job_attempts (job_id, attempt, worker_id, started_at, finished_at, outcome, error)
   SELECT id, attempts, lease_owner, started_at, now(), 'lease_expired', last_error FROM reaped
 )
-SELECT id, queue, task, status, attempts, lease_owner FROM reaped
+SELECT id, tenant_id, queue, task, status, attempts, lease_owner, request_id FROM reaped
 """
 
 # Release on graceful shutdown: hand unfinished jobs back without an attempt penalty. The
@@ -130,14 +133,15 @@ SELECT id FROM released
 
 # Enqueue. With an idempotency key, a repeat insert hits jobs_idem_uidx and returns no row;
 # the caller then loads the existing job and compares request hashes. A delayed job is just a
-# future run_at: an absolute time, or now() + delay from the database clock.
+# future run_at: an absolute time, or now() + delay from the database clock. request_id is the
+# enqueue call's X-Request-ID, carried into every worker log line for the job.
 INSERT_JOB = """
 INSERT INTO jobs (tenant_id, queue, task, payload, priority, max_attempts, timeout_seconds,
-                  idempotency_key, request_hash, run_at, schedule_id)
+                  idempotency_key, request_hash, run_at, schedule_id, request_id)
 VALUES (:tenant_id, :queue, :task, CAST(:payload AS jsonb), :priority, :max_attempts,
         :timeout_seconds, :idempotency_key, :request_hash,
         coalesce(CAST(:run_at AS timestamptz), now() + make_interval(secs => :delay_seconds)),
-        :schedule_id)
+        :schedule_id, :request_id)
 ON CONFLICT (tenant_id, idempotency_key) WHERE idempotency_key IS NOT NULL DO NOTHING
 RETURNING *
 """
@@ -252,3 +256,25 @@ UPDATE schedules SET last_run_at = next_run_at, next_run_at = :next_run_at WHERE
 # A stored expression that no longer computes (it cannot happen through the API) must not
 # stall every other schedule: it is switched off and logged.
 DISABLE_SCHEDULE = "UPDATE schedules SET enabled = false WHERE id = :id"
+
+# Queue depth, counted once a second by each scheduler for the depth gauges and backpressure.
+# Each query reads one partial index (jobs_ready_idx, jobs_lease_idx, jobs_dead_idx), so the
+# cost grows with the backlog, not with the millions of finished rows in jobs. The per-tenant
+# grouping is what backpressure needs; the gauges sum it per queue.
+QUEUED_DEPTH = """
+SELECT tenant_id, queue,
+       count(*) FILTER (WHERE run_at <= now()) AS ready,
+       count(*) FILTER (WHERE run_at > now()) AS delayed,
+       coalesce(extract(epoch FROM now() - min(run_at) FILTER (WHERE run_at <= now())), 0)
+         AS oldest_ready_seconds
+FROM jobs WHERE status = 'queued'
+GROUP BY tenant_id, queue
+"""
+
+RUNNING_AND_DEAD_DEPTH = """
+SELECT queue, 'running' AS state, count(*) AS jobs FROM jobs WHERE status = 'running'
+GROUP BY queue
+UNION ALL
+SELECT queue, 'dead' AS state, count(*) AS jobs FROM jobs WHERE status = 'dead'
+GROUP BY queue
+"""

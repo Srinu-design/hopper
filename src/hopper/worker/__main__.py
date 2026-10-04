@@ -5,6 +5,7 @@ import signal
 import socket
 import uuid
 
+from hopper import metrics
 from hopper.config import get_settings
 from hopper.db import create_engine
 from hopper.logging import configure_logging
@@ -40,9 +41,11 @@ async def main() -> None:
         # Not supported on Windows event loops; the container runs Linux.
         with contextlib.suppress(NotImplementedError):
             loop.add_signal_handler(sig, worker.stop)
+    stop_metrics = metrics.serve(settings.metrics_port)
     try:
         await worker.run()
     finally:
+        stop_metrics()
         await http.aclose()
         await engine.dispose()
 

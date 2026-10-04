@@ -1,6 +1,7 @@
 """People managing Hopper: log in for a JWT, create tenants, create and revoke API keys."""
 
 import base64
+import hashlib
 from datetime import datetime
 from decimal import Decimal
 from typing import Annotated, Literal
@@ -10,6 +11,7 @@ from fastapi import APIRouter, Query, Request, Response
 from pydantic import BaseModel, ConfigDict, Field
 
 from hopper.api.errors import ApiError
+from hopper.api.limits import take_token
 from hopper.auth import keys, passwords, store, tokens
 from hopper.auth.admin import AdminUser, PlatformAdmin
 from hopper.config import get_settings
@@ -18,6 +20,9 @@ router = APIRouter(tags=["admin"])
 
 EMAIL_PATTERN = r"^[^@\s]{1,64}@[^@\s]+\.[^@\s]+$"
 NAME_PATTERN = r"^[A-Za-z0-9_.-]{1,64}$"
+# Password guessing: 10 attempts at once per email, then one every 6 s (10 a minute).
+LOGIN_BURST = 10
+LOGIN_RATE_PER_SEC = 10 / 60
 
 
 class TokenRequest(BaseModel):
@@ -95,7 +100,18 @@ def _tenant_scope(admin: tokens.Admin, requested: UUID | None) -> UUID | None:
 @router.post("/auth/token", response_model=TokenOut)
 async def issue_token(body: TokenRequest, request: Request) -> TokenOut:
     settings = get_settings()
-    user = await store.get_user_by_email(request.app.state.engine, body.email.strip().lower())
+    email = body.email.strip().lower()
+    # One bucket per email, known or not, so a 429 says nothing about which emails exist.
+    # The key holds a hash, not the address. Trade-off: someone hammering an email can delay
+    # its owner's login by seconds (ADR-0008).
+    await take_token(
+        request,
+        "login",
+        f"login:{hashlib.sha256(email.encode()).hexdigest()[:32]}",
+        capacity=LOGIN_BURST,
+        rate=LOGIN_RATE_PER_SEC,
+    )
+    user = await store.get_user_by_email(request.app.state.engine, email)
     # verify_password runs even for an unknown email, so both failures take the same time.
     ok = await passwords.verify_password(user.password_hash if user else None, body.password)
     if user is None or not ok:
