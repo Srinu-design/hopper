@@ -27,6 +27,7 @@ RETURNING j.id, j.tenant_id, j.queue, j.task, j.payload, j.attempts, j.max_attem
 
 # Ack: fenced on the lease token and written together with the attempt row. Zero rows
 # means the lease was lost (expired and reclaimed): the caller logs it and does nothing else.
+# The same fencing guards nack, heartbeat and release below.
 ACK = """
 WITH done AS (
   UPDATE jobs
@@ -64,6 +65,65 @@ WITH failed AS (
   SELECT id, attempts, :worker_id, started_at, now(), :outcome, :error FROM failed
 )
 SELECT status FROM failed
+"""
+
+# Heartbeat: renew the lease on every job a worker is running, in one statement. Each row
+# is fenced on its own token, so the ids that come back are exactly the leases the worker
+# still holds; a job missing from the result was reclaimed and must never be acked.
+HEARTBEAT = """
+UPDATE jobs j
+SET lease_expires_at = now() + make_interval(secs => :lease_seconds)
+FROM unnest(CAST(:ids AS uuid[]), CAST(:tokens AS uuid[])) AS t(id, token)
+WHERE j.id = t.id AND j.status = 'running' AND j.lease_token = t.token
+RETURNING j.id
+"""
+
+# Reaper: a lease that ran out means the worker died or stalled. The expired run counts as
+# an attempt (the claim already added it), so a job that crashes its worker every time (a
+# poison pill) ends up dead instead of looping forever. SKIP LOCKED lets two reapers run at
+# once, and the attempt row is written in the same statement. jobs_lease_idx covers the scan.
+REAP = """
+WITH expired AS (
+  SELECT id, lease_owner FROM jobs
+  WHERE status = 'running' AND lease_expires_at < now()
+  ORDER BY lease_expires_at
+  LIMIT :limit
+  FOR UPDATE SKIP LOCKED
+), reaped AS (
+  UPDATE jobs j
+  SET status = CASE WHEN j.attempts >= j.max_attempts THEN 'dead' ELSE 'queued' END,
+      dead_at = CASE WHEN j.attempts >= j.max_attempts THEN now() END,
+      run_at = now(),
+      last_error = 'lease expired on ' || coalesce(expired.lease_owner, 'unknown'),
+      lease_owner = NULL, lease_token = NULL, lease_expires_at = NULL
+  FROM expired
+  WHERE j.id = expired.id
+  RETURNING j.id, j.queue, j.task, j.status, j.attempts, j.started_at, j.last_error,
+            coalesce(expired.lease_owner, 'unknown') AS lease_owner
+), attempt AS (
+  INSERT INTO job_attempts (job_id, attempt, worker_id, started_at, finished_at, outcome, error)
+  SELECT id, attempts, lease_owner, started_at, now(), 'lease_expired', last_error FROM reaped
+)
+SELECT id, queue, task, status, attempts, lease_owner FROM reaped
+"""
+
+# Release on graceful shutdown: hand unfinished jobs back without an attempt penalty. The
+# run is still recorded, as 'released' under the attempt number it had, and the next claim
+# reuses that number. Fenced per job like the heartbeat.
+RELEASE = """
+WITH released AS (
+  UPDATE jobs j
+  SET status = 'queued', attempts = j.attempts - 1, run_at = now(),
+      lease_owner = NULL, lease_token = NULL, lease_expires_at = NULL
+  FROM unnest(CAST(:ids AS uuid[]), CAST(:tokens AS uuid[])) AS t(id, token)
+  WHERE j.id = t.id AND j.status = 'running' AND j.lease_token = t.token
+  RETURNING j.id, j.attempts, j.started_at
+), attempt AS (
+  INSERT INTO job_attempts (job_id, attempt, worker_id, started_at, finished_at, outcome, error)
+  SELECT id, attempts + 1, :worker_id, started_at, now(), 'released', 'worker shutting down'
+  FROM released
+)
+SELECT id FROM released
 """
 
 # Enqueue. With an idempotency key, a repeat insert hits jobs_idem_uidx and returns no row;

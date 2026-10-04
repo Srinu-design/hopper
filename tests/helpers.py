@@ -8,6 +8,7 @@ import subprocess
 import sys
 import time
 import uuid
+from collections.abc import Awaitable, Callable
 from datetime import timedelta
 from pathlib import Path
 from typing import Any
@@ -78,7 +79,15 @@ async def job_row(engine: AsyncEngine, job_id: uuid.UUID) -> dict[str, Any]:
     return dict(row._mapping)
 
 
-def make_worker(engine: AsyncEngine, name: str = "w1", slots: int = 10) -> Worker:
+def make_worker(
+    engine: AsyncEngine,
+    name: str = "w1",
+    slots: int = 10,
+    *,
+    lease_seconds: float = LEASE,
+    heartbeat_interval: float | None = None,
+    shutdown_grace: float = 25.0,
+) -> Worker:
     return Worker(
         PostgresBroker(engine),
         worker_id=name,
@@ -86,6 +95,50 @@ def make_worker(engine: AsyncEngine, name: str = "w1", slots: int = 10) -> Worke
         slots=slots,
         poll_interval=0.02,
         max_idle_backoff=0.1,
+        lease_seconds=lease_seconds,
+        heartbeat_interval=heartbeat_interval,
+        shutdown_grace=shutdown_grace,
+    )
+
+
+async def wait_for(
+    condition: Callable[[], Awaitable[bool]], timeout: float = 10.0, interval: float = 0.02
+) -> None:
+    """Poll an async condition until it is true."""
+    deadline = time.monotonic() + timeout
+    while not await condition():
+        assert time.monotonic() < deadline, "condition not met in time"
+        await asyncio.sleep(interval)
+
+
+def status_in(
+    engine: AsyncEngine, job_id: uuid.UUID, *statuses: str
+) -> Callable[[], Awaitable[bool]]:
+    """A wait_for condition: the job's status is one of `statuses`."""
+
+    async def check() -> bool:
+        return (await job_row(engine, job_id))["status"] in statuses
+
+    return check
+
+
+async def attempts_of(engine: AsyncEngine, job_id: uuid.UUID) -> list[dict[str, Any]]:
+    async with engine.connect() as conn:
+        rows = await conn.execute(
+            text("SELECT * FROM job_attempts WHERE job_id = :i ORDER BY id"), {"i": job_id}
+        )
+        return [dict(r._mapping) for r in rows]
+
+
+def start_worker_process(database_url: str, **settings: str) -> subprocess.Popen[bytes]:
+    """Start a real `python -m hopper.worker` process, as the Compose worker container does."""
+    env = {**os.environ, "DATABASE_URL": database_url, "LOG_LEVEL": "WARNING", **settings}
+    return subprocess.Popen(
+        [sys.executable, "-m", "hopper.worker"],
+        cwd=ROOT,
+        env=env,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.PIPE,
     )
 
 
