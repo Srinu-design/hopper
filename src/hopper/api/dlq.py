@@ -1,13 +1,10 @@
-import base64
-import binascii
-from datetime import datetime
 from typing import Annotated, Self
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query, Request
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, model_validator
 
-from hopper.api.errors import ApiError
+from hopper.api.pagination import decode_cursor, encode_cursor
 from hopper.api.schemas import JobSummary
 from hopper.auth.tenant import current_tenant_id
 from hopper.queue import dlq
@@ -51,18 +48,6 @@ class ReplayResult(BaseModel):
     replayed: int
     job_ids: list[UUID]
     has_more: bool  # more dead jobs match: call again to replay the next batch
-
-
-def encode_cursor(dead_at: datetime, job_id: UUID) -> str:
-    return base64.urlsafe_b64encode(f"{dead_at.isoformat()}|{job_id}".encode()).decode()
-
-
-def decode_cursor(cursor: str) -> tuple[datetime, UUID]:
-    try:
-        dead_at, job_id = base64.urlsafe_b64decode(cursor.encode()).decode().split("|")
-        return datetime.fromisoformat(dead_at), UUID(job_id)
-    except (binascii.Error, UnicodeDecodeError, ValueError) as exc:
-        raise ApiError(422, "invalid_cursor", "cursor is not valid") from exc
 
 
 @router.get("", response_model=DlqPage)

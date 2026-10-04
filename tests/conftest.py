@@ -12,11 +12,13 @@ from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 
 from hopper.api.main import create_app
 from hopper.config import get_settings
-from tests.helpers import run_alembic
+from tests.helpers import TenantCreds, make_tenant, run_alembic
 
 # Tests default to the local Compose stack; CI overrides these via the environment.
 os.environ.setdefault("DATABASE_URL", "postgresql+asyncpg://hopper:hopper@127.0.0.1:5432/hopper")
 os.environ.setdefault("REDIS_URL", "redis://127.0.0.1:6379/0")
+os.environ.setdefault("API_KEY_PEPPER", "test-pepper-not-a-secret")
+os.environ.setdefault("JWT_SECRET", "test-jwt-secret-not-a-secret-0123456789")
 
 
 def _admin_url() -> URL:
@@ -116,8 +118,40 @@ async def api_app(
     get_settings.cache_clear()
 
 
+def _client(app: FastAPI, bearer: str | None = None) -> httpx.AsyncClient:
+    headers = {"Authorization": f"Bearer {bearer}"} if bearer else {}
+    transport = httpx.ASGITransport(app=app)
+    return httpx.AsyncClient(transport=transport, base_url="http://test", headers=headers)
+
+
 @pytest.fixture
-async def client(api_app: FastAPI) -> AsyncIterator[httpx.AsyncClient]:
-    transport = httpx.ASGITransport(app=api_app)
-    async with httpx.AsyncClient(transport=transport, base_url="http://test") as c:
+async def tenant(api_app: FastAPI) -> TenantCreds:
+    """Tenant A, with an API key. `client` acts as this tenant."""
+    return await make_tenant(api_app.state.engine, "acme")
+
+
+@pytest.fixture
+async def other_tenant(api_app: FastAPI) -> TenantCreds:
+    """Tenant B, for isolation tests."""
+    return await make_tenant(api_app.state.engine, "globex")
+
+
+@pytest.fixture
+async def client(api_app: FastAPI, tenant: TenantCreds) -> AsyncIterator[httpx.AsyncClient]:
+    async with _client(api_app, tenant.api_key) as c:
+        yield c
+
+
+@pytest.fixture
+async def other_client(
+    api_app: FastAPI, other_tenant: TenantCreds
+) -> AsyncIterator[httpx.AsyncClient]:
+    async with _client(api_app, other_tenant.api_key) as c:
+        yield c
+
+
+@pytest.fixture
+async def anon_client(api_app: FastAPI) -> AsyncIterator[httpx.AsyncClient]:
+    """No credentials at all."""
+    async with _client(api_app) as c:
         yield c

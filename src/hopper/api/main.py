@@ -7,9 +7,10 @@ import redis.asyncio as redis_asyncio
 import structlog
 from fastapi import FastAPI, Request, Response
 
-from hopper.api import dlq, health, jobs
+from hopper.api import admin, dlq, health, jobs, schedules
 from hopper.api.body_limit import BodySizeLimitMiddleware
 from hopper.api.errors import install_error_handlers
+from hopper.auth.api_keys import ApiKeyAuthenticator
 from hopper.config import get_settings
 from hopper.db import create_engine
 from hopper.logging import configure_logging
@@ -20,9 +21,15 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     # Engine and Redis client are lazy: no connection is opened until first use,
     # so the process starts (and /healthz is green) even if a dependency is down.
     settings = get_settings()
+    settings.require_api_secrets()
     configure_logging(settings.log_level)
     app.state.engine = create_engine(settings)
     app.state.redis = redis_asyncio.from_url(settings.redis_url)
+    app.state.api_keys = ApiKeyAuthenticator(
+        app.state.engine,
+        settings.api_key_pepper.get_secret_value().encode(),
+        cache_seconds=settings.api_key_cache_seconds,
+    )
     try:
         yield
     finally:
@@ -50,7 +57,7 @@ async def request_id_middleware(
 
 
 def create_app() -> FastAPI:
-    app = FastAPI(title="Hopper", version="0.2.0", lifespan=lifespan)
+    app = FastAPI(title="Hopper", version="0.5.0", lifespan=lifespan)
     # Added last = outermost, so the request id exists before anything else runs.
     app.add_middleware(BodySizeLimitMiddleware)
     app.middleware("http")(request_id_middleware)
@@ -58,6 +65,8 @@ def create_app() -> FastAPI:
     app.include_router(health.router)
     app.include_router(jobs.router)
     app.include_router(dlq.router)
+    app.include_router(schedules.router)
+    app.include_router(admin.router)
     return app
 
 

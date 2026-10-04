@@ -16,3 +16,21 @@ def test_heartbeat_must_be_shorter_than_the_lease(monkeypatch: pytest.MonkeyPatc
     monkeypatch.setenv("HEARTBEAT_SECONDS", "10")
     with pytest.raises(ValidationError, match="HEARTBEAT_SECONDS must be shorter"):
         Settings()
+
+
+@pytest.mark.parametrize(
+    ("pepper", "jwt_secret", "problem"),
+    [
+        ("", "x" * 32, "API_KEY_PEPPER"),
+        ("short", "x" * 32, "API_KEY_PEPPER"),
+        ("p" * 16, "", "JWT_SECRET"),
+        ("p" * 16, "x" * 31, "JWT_SECRET"),
+    ],
+)
+def test_the_api_refuses_to_start_without_real_secrets(
+    monkeypatch: pytest.MonkeyPatch, pepper: str, jwt_secret: str, problem: str
+) -> None:
+    monkeypatch.setenv("API_KEY_PEPPER", pepper)
+    monkeypatch.setenv("JWT_SECRET", jwt_secret)
+    with pytest.raises(RuntimeError, match=problem):
+        Settings().require_api_secrets()

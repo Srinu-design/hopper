@@ -8,14 +8,13 @@ from fastapi import FastAPI
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine
 
-from hopper.queue.jobs import get_or_create_tenant
-from tests.helpers import job_row
+from tests.helpers import TenantCreds, job_row
 
 
 @pytest.fixture
-async def tenant_id(api_app: FastAPI) -> uuid.UUID:
-    """The tenant every request runs as until API keys arrive (Week 5)."""
-    return await get_or_create_tenant(api_app.state.engine, "default")
+def tenant_id(tenant: TenantCreds) -> uuid.UUID:
+    """The tenant `client` authenticates as."""
+    return tenant.id
 
 
 @pytest.fixture
