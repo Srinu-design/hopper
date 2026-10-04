@@ -12,6 +12,7 @@ from structlog.typing import FilteringBoundLogger
 
 from hopper.queue.broker import Broker, ClaimedJob, FailureOutcome
 from hopper.tasks import registry
+from hopper.tasks.context import JobContext, running
 from hopper.tasks.errors import PermanentError, RetryableError
 from hopper.worker.backoff import full_jitter_delay
 
@@ -291,10 +292,14 @@ class Worker:
             first = exc.errors()[0]
             where = ".".join(str(part) for part in first["loc"]) or "payload"
             raise PermanentError(f"invalid payload: {where}: {first['msg']}") from exc
+        context = JobContext(
+            job.id, job.tenant_id, job.attempt, job.max_attempts, job.signing_secret
+        )
         deadline = asyncio.timeout(job.timeout_seconds)
         try:
-            async with deadline:
-                return await spec.handler(payload)
+            with running(context):
+                async with deadline:
+                    return await spec.handler(payload)
         except TimeoutError as exc:
             if deadline.expired():  # our deadline, not a TimeoutError raised by the handler
                 raise JobTimedOut(f"timed out after {job.timeout_seconds}s") from exc

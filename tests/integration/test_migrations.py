@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 
 from tests.helpers import run_alembic
 
-EXPECTED_TABLES = {"tenants", "api_keys", "schedules", "jobs", "job_attempts"}
+EXPECTED_TABLES = {"tenants", "api_keys", "schedules", "jobs", "job_attempts", "users"}
 EXPECTED_INDEXES = {
     "jobs_ready_idx",
     "jobs_lease_idx",
@@ -14,6 +14,7 @@ EXPECTED_INDEXES = {
     "jobs_idem_uidx",
     "schedules_due_idx",
     "job_attempts_job_idx",
+    "api_keys_tenant_idx",
 }
 
 
@@ -113,3 +114,45 @@ async def test_downgrade_then_upgrade_round_trips(scratch_db_url: str) -> None:
     for args in (("upgrade", "head"), ("downgrade", "base"), ("upgrade", "head")):
         result = run_alembic(scratch_db_url, *args)
         assert result.returncode == 0, result.stderr
+
+
+async def test_every_tenant_gets_its_own_signing_secret(migrated_engine: AsyncEngine) -> None:
+    async with migrated_engine.begin() as conn:
+        secrets = (
+            (
+                await conn.execute(
+                    text("INSERT INTO tenants (name) VALUES ('a'), ('b') RETURNING signing_secret")
+                )
+            )
+            .scalars()
+            .all()
+        )
+    assert [len(s) for s in secrets] == [32, 32]
+    assert secrets[0] != secrets[1]
+
+
+@pytest.mark.parametrize(
+    ("email", "role", "with_tenant"),
+    [
+        ("root@x.test", "platform_admin", True),  # a platform admin belongs to no tenant
+        ("boss@x.test", "owner", False),  # an owner belongs to exactly one
+        ("Boss@X.test", "owner", True),  # emails are stored lowercase
+        ("who@x.test", "superuser", False),
+    ],
+)
+async def test_users_table_refuses_inconsistent_rows(
+    migrated_engine: AsyncEngine, email: str, role: str, with_tenant: bool
+) -> None:
+    async with migrated_engine.begin() as conn:
+        tenant_id = (
+            await conn.execute(text("INSERT INTO tenants (name) VALUES ('t') RETURNING id"))
+        ).scalar_one()
+    with pytest.raises(IntegrityError):
+        async with migrated_engine.begin() as conn:
+            await conn.execute(
+                text(
+                    "INSERT INTO users (email, password_hash, role, tenant_id) "
+                    "VALUES (:e, 'x', :r, :t)"
+                ),
+                {"e": email, "r": role, "t": tenant_id if with_tenant else None},
+            )

@@ -1,5 +1,5 @@
 from collections.abc import Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, Literal, Protocol
 from uuid import UUID
 
@@ -19,6 +19,8 @@ class ClaimedJob:
     max_attempts: int
     timeout_seconds: int
     lease_token: UUID
+    # The tenant's key for signing http task requests; never logged or printed.
+    signing_secret: bytes = field(default=b"", repr=False)
 
 
 @dataclass(frozen=True, slots=True)

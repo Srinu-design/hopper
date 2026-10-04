@@ -9,6 +9,7 @@ from hopper.config import get_settings
 from hopper.db import create_engine
 from hopper.logging import configure_logging
 from hopper.queue.postgres import PostgresBroker
+from hopper.tasks import http
 from hopper.worker.loop import Worker
 
 
@@ -16,6 +17,13 @@ async def main() -> None:
     settings = get_settings()
     configure_logging(settings.log_level)
     engine = create_engine(settings)
+    await http.configure(
+        http.HttpSettings(
+            allow_private=settings.http_allow_private_networks,
+            connect_timeout=settings.http_connect_timeout,
+            read_timeout=settings.http_read_timeout,
+        )
+    )
     worker = Worker(
         PostgresBroker(engine),
         worker_id=f"{socket.gethostname()}-{os.getpid()}-{uuid.uuid4().hex[:6]}",
@@ -35,6 +43,7 @@ async def main() -> None:
     try:
         await worker.run()
     finally:
+        await http.aclose()
         await engine.dispose()
 
 

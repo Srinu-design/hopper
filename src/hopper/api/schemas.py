@@ -25,6 +25,7 @@ class JobSummary(BaseModel):
     max_attempts: int
     timeout_seconds: int
     replay_count: int
+    schedule_id: UUID | None  # set when the cron loop created the job
     run_at: datetime
     created_at: datetime
     started_at: datetime | None
