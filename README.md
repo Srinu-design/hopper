@@ -5,12 +5,12 @@
 A multi-tenant job queue and scheduler on PostgreSQL: send a job over HTTP; it runs at least once,
 retries with backoff, parks in a dead-letter queue if it keeps failing, and can be replayed.
 
-> **Status: Week 4 of 8 (reliability).** Jobs are enqueued over HTTP (optionally with an
-> `Idempotency-Key`), claimed by concurrent workers with `FOR UPDATE SKIP LOCKED` under a heartbeated lease,
-> retried with full-jitter backoff, and parked in a dead-letter queue you can list and replay. A killed worker's
-> job is picked up by another worker within about 35 s, and SIGTERM drains a worker without losing work.
-> Scheduling, auth and the rest arrive in the milestones below. Nothing here claims behaviour that is not built
-> and tested yet.
+> **Status: Week 5 of 8 (scheduling and tenancy).** Tenants enqueue jobs over HTTP with an API key (now, after
+> a delay, at a set time, or on a cron schedule), optionally with an `Idempotency-Key`. Workers claim them with
+> `FOR UPDATE SKIP LOCKED` under a heartbeated lease, retry with full-jitter backoff, and park failures in a
+> dead-letter queue you can list and replay. The `http` task calls a tenant's URL behind an SSRF guard and signs
+> every request. Rate limits, metrics and the rest arrive in the milestones below. Nothing here claims behaviour
+> that is not built and tested yet.
 
 The demo video, headline numbers, architecture diagram and live links will go at the top of this file in
 Week 8, once there is something measured to show.
@@ -20,38 +20,67 @@ Week 8, once there is something measured to show.
 Requirements: Docker with the Compose plugin. For development also [uv](https://docs.astral.sh/uv/).
 
 ```bash
-cp .env.example .env
-make up                      # Postgres + Redis, migrations, then the API, 3 workers and the scheduler
+cp .env.example .env         # includes development-only secrets; generate your own for anything real
+make up                      # Postgres + Redis, migrations, then the API, 3 workers and 2 schedulers
 curl localhost:8000/healthz  # {"status":"ok"}
 curl localhost:8000/readyz   # {"status":"ok","checks":{"postgres":"ok","redis":"ok"}}
 
-# enqueue a job, then check on it (use the id from the first response)
-curl -X POST localhost:8000/v1/jobs -H 'content-type: application/json' -d '{"task":"sleep","payload":{"ms":100}}'
-curl localhost:8000/v1/jobs/<id>   # status, result and attempt history
+# 1. create the first platform admin (asks for a password, 12+ characters)
+docker compose -f docker/compose.yaml --env-file .env run --rm api python -m hopper.bootstrap --email admin@example.com
+
+# 2. log in, and create a tenant with its owner. The response's signing_secret is shown once:
+#    keep it to verify the Hopper-Signature header on http task calls.
+curl -X POST localhost:8000/auth/token -H 'content-type: application/json' -d '{"email":"admin@example.com","password":"<password>"}'
+curl -X POST localhost:8000/admin/tenants -H 'Authorization: Bearer <admin token>' -H 'content-type: application/json' \
+  -d '{"name":"acme","owner":{"email":"ops@acme.example","password":"<owner password>"}}'
+
+# 3. as the owner, create an API key (shown once) and use it for everything under /v1
+curl -X POST localhost:8000/auth/token -H 'content-type: application/json' -d '{"email":"ops@acme.example","password":"<owner password>"}'
+curl -X POST localhost:8000/admin/api-keys -H 'Authorization: Bearer <owner token>' -H 'content-type: application/json' -d '{"name":"my app"}'
+KEY='Authorization: Bearer hop_live_...'   # the "key" field from the response
+J='content-type: application/json'
+
+# enqueue a job now, after a delay, or at a set time (at most 30 days out), then check on it
+curl -X POST localhost:8000/v1/jobs -H "$KEY" -H "$J" -d '{"task":"sleep","payload":{"ms":100}}'
+curl -X POST localhost:8000/v1/jobs -H "$KEY" -H "$J" -d '{"task":"sleep","payload":{"ms":100},"delay_seconds":30}'
+curl -X POST localhost:8000/v1/jobs -H "$KEY" -H "$J" -d '{"task":"sleep","payload":{"ms":100},"run_at":"2026-12-01T09:00:00+05:30"}'
+curl localhost:8000/v1/jobs/<id> -H "$KEY"                   # status, result and attempt history
+curl "localhost:8000/v1/jobs?status=queued" -H "$KEY"        # newest first; ?queue=&limit=&cursor=
+curl -X POST localhost:8000/v1/jobs/<id>/cancel -H "$KEY"    # only while still queued
 
 # safe to retry: the same Idempotency-Key and body return the same job (200, Idempotent-Replayed: true)
-curl -X POST localhost:8000/v1/jobs -H 'content-type: application/json' -H 'Idempotency-Key: order-42' -d '{"task":"sleep","payload":{"ms":100}}'
+curl -X POST localhost:8000/v1/jobs -H "$KEY" -H "$J" -H 'Idempotency-Key: order-42' -d '{"task":"sleep","payload":{"ms":100}}'
+
+# cron: five fields, in the schedule's own time zone; PATCH turns it off and on
+curl -X POST localhost:8000/v1/schedules -H "$KEY" -H "$J" \
+  -d '{"name":"morning-report","cron":"0 9 * * 1-5","timezone":"Asia/Kolkata","task":"sleep","payload":{"ms":10}}'
+curl localhost:8000/v1/schedules -H "$KEY"
+curl -X PATCH localhost:8000/v1/schedules/<id> -H "$KEY" -H "$J" -d '{"enabled":false}'
+
+# the http task: Hopper calls your URL with the body, signed, and retries on 408, 429 and 5xx
+curl -X POST localhost:8000/v1/jobs -H "$KEY" -H "$J" -d '{"task":"http","payload":{"url":"https://example.com/","method":"GET"}}'
 
 # fill the dead-letter queue, look at it, replay
-curl -X POST localhost:8000/v1/jobs -H 'content-type: application/json' -d '{"task":"fail_always","payload":{"permanent":true}}'
-curl localhost:8000/v1/dlq                          # ?queue=&task=&since=&limit=&cursor=
-curl -X POST localhost:8000/v1/jobs/<id>/replay     # one job, runs now
-curl -X POST localhost:8000/v1/dlq/replay -H 'content-type: application/json' -d '{"filter":{"task":"fail_always"},"spread_seconds":60}'
+curl -X POST localhost:8000/v1/jobs -H "$KEY" -H "$J" -d '{"task":"fail_always","payload":{"permanent":true}}'
+curl localhost:8000/v1/dlq -H "$KEY"                         # ?queue=&task=&since=&limit=&cursor=
+curl -X POST localhost:8000/v1/jobs/<id>/replay -H "$KEY"    # one job, runs now
+curl -X POST localhost:8000/v1/dlq/replay -H "$KEY" -H "$J" -d '{"filter":{"task":"fail_always"},"spread_seconds":60}'
 
 # crash recovery: kill -9 the worker running a job, and another worker finishes it within about 35 s
-curl -X POST localhost:8000/v1/jobs -H 'content-type: application/json' -d '{"task":"sleep","payload":{"ms":20000}}'
+curl -X POST localhost:8000/v1/jobs -H "$KEY" -H "$J" -d '{"task":"sleep","payload":{"ms":20000}}'
 docker compose -f docker/compose.yaml --env-file .env exec postgres psql -U hopper -c "select id, lease_owner from jobs where status = 'running'"
 docker kill <container id>         # the part of lease_owner before the first dash, e.g. 6a07c0d4678c
-curl localhost:8000/v1/jobs/<id>   # attempt_history: lease_expired on the dead worker, then succeeded elsewhere
+curl localhost:8000/v1/jobs/<id> -H "$KEY"   # attempt_history: lease_expired on the dead worker, then succeeded
 
 # graceful shutdown: running jobs get up to 25 s, the rest go back to the queue with no attempt used
 docker compose -f docker/compose.yaml --env-file .env stop worker
 ```
 
-Built-in tasks so far: `sleep` (`{"ms": 100}`), `flaky` (`{"p": 0.3}` fails with that probability) and
-`fail_always` (`{}` retries until it is dead; `{"permanent": true}` goes to the DLQ at once).
-Until API keys arrive in Week 5 every request runs as one configured default tenant, so do not expose
-the API publicly yet. Scale workers with `docker compose -f docker/compose.yaml --env-file .env up -d --scale worker=N`.
+Built-in tasks: `sleep` (`{"ms": 100}`), `flaky` (`{"p": 0.3}` fails with that probability), `fail_always`
+(`{}` retries until it is dead; `{"permanent": true}` goes to the DLQ at once) and `http` (`{"url", "method",
+"headers", "body"}`; 8 attempts, 10 s backoff base, 1 h cap, 15 s timeout). Admin tokens last 15 minutes. Rate
+limits and backpressure arrive in Week 6 and HTTPS in Week 7, so keep the API on localhost until then. Scale
+workers with `docker compose -f docker/compose.yaml --env-file .env up -d --scale worker=N`.
 
 Without `make` (for example on Windows), run what `make up` runs:
 
@@ -82,7 +111,7 @@ not `localhost`: on Windows `localhost` resolves to `::1` first and the publishe
 
 | Path | Contents |
 |---|---|
-| `src/hopper/` | `api/` (routers), `auth/`, `ratelimit/`, `queue/` (Broker interface and all queue SQL), `worker/` (run loop, heartbeats, shutdown), `scheduler/` (reaper; cron in Week 5), `tasks/`, `config.py`, `logging.py`, `db.py` |
+| `src/hopper/` | `api/` (routers), `auth/` (API keys, passwords, JWT, tenant context), `ratelimit/`, `queue/` (Broker interface and all queue SQL), `worker/` (run loop, heartbeats, shutdown), `scheduler/` (cron loop, reaper), `tasks/` (registry, built-ins, `http`), `bootstrap.py` (first admin), `config.py`, `logging.py`, `db.py` |
 | `migrations/` | Alembic revisions. Hand-written SQL, backward compatible with the previous release |
 | `docker/` | `Dockerfile` (one image, every role) and `compose.yaml` |
 | `tests/` | `unit/`, `integration/`, `e2e/` |
@@ -97,7 +126,7 @@ not `localhost`: on Windows `localhost` resolves to `::1` first and the publishe
 | 2 | Queue core: enqueue, `SKIP LOCKED` claim, fenced ack, worker loop | done |
 | 3 | Failure handling: retries, DLQ and replay, idempotency keys | done |
 | 4 | Reliability: leases, heartbeats, reaper, graceful shutdown | done |
-| 5 | Scheduling and tenancy: delayed and cron jobs, API keys, JWT, `http` task | |
+| 5 | Scheduling and tenancy: delayed and cron jobs, API keys, JWT, `http` task | done |
 | 6 | Limits and observability: token bucket, backpressure, metrics, Grafana | |
 | 7 | Delivery: GHCR, EC2, deploy with rollback | |
 | 8 | Proof and write-up: load tests, chaos test, design doc, demo | |
@@ -182,8 +211,59 @@ not `localhost`: on Windows `localhost` resolves to `::1` first and the publishe
 - Choice made: release refunds the attempt, so frequent deploys never push a job into the DLQ; a lease expiry does
   not, which is what bounds poison pills. Lease numbers and the alternatives are in ADR-0003.
 
+### Week 5
+- **Tenants and API keys.** Every `/v1` call needs `Authorization: Bearer hop_live_<prefix>_<secret>`, and the
+  tenant comes only from the key. Keys store just the prefix and `HMAC-SHA256(pepper, secret)`, are compared in
+  constant time, cached per API process for 60 s, and record `last_used_at` at most once a minute. The Week 1 to 4
+  "default tenant" placeholder is gone.
+- **Admins.** `python -m hopper.bootstrap` creates the first platform admin. `POST /auth/token` checks an Argon2id
+  password (unknown email and wrong password look the same) and returns a 15-minute HS256 JWT with `iss` and `aud`.
+  Platform admins create tenants (`POST /admin/tenants`, optionally with the owner); owners create, list and revoke
+  their own API keys (`/admin/api-keys`). Revoking evicts the key from that replica's cache at once.
+- **Isolation.** Another tenant's job, schedule or key answers 404, never 403. One test calls every id route with
+  tenant B's key against tenant A's rows and checks nothing changed; another fails when a new route is added without
+  being classified; every protected route is checked to reject anonymous calls.
+- **Delayed jobs.** `delay_seconds` (database clock) or `run_at` (any offset, stored as the same instant), at most 30
+  days out; a past `run_at` runs now. Also `GET /v1/jobs` (status and queue filters, keyset pagination on
+  `(created_at, id)`) and `POST /v1/jobs/{id}/cancel` (409 unless still queued).
+- **Cron.** `/v1/schedules` (create, list, get, `PATCH` enable or disable, delete). The scheduler's cron loop runs
+  every second: `SKIP LOCKED` on due schedules, then the job insert (key `cron:<schedule>:<due time>`) and the move of
+  `next_run_at` in one transaction. Misfire policy: fire once, then jump ahead. Five-field expressions only (nothing
+  more often than once a minute), croniter strict mode, IANA time zones, and wall-clock DST handling: a daily 01:30
+  fires once on the autumn change, and 02:30 runs at 03:30 on the spring change. Compose runs 2 schedulers.
+- **The `http` task.** Calls the tenant's URL with a JSON body. The SSRF guard is an httpcore network backend that
+  resolves the host, refuses any private, loopback, link-local (169.254.169.254), shared, reserved or multicast
+  answer, and dials the address it checked (no DNS rebinding window), while TLS still verifies the real host name.
+  No redirects, no credentials in URLs, 5 s connect and 10 s read timeouts, at most 64 KB of the response read.
+  Each request carries `Hopper-Job-Id`, `Hopper-Attempt`, `Idempotency-Key: <job id>` and
+  `Hopper-Signature: t=<unix>,v1=<HMAC-SHA256(tenant secret, "t.body")>`. 2xx succeeds; 408, 429, 5xx, timeouts
+  and connection errors retry (honouring `Retry-After`, capped at 1 h); other 4xx and 3xx go to the DLQ.
+- **Migration 0002** (backward compatible): a `users` table, a per-tenant `signing_secret` with a random default,
+  and `jobs.schedule_id` set to NULL when its schedule is deleted.
+- **Checked on the Docker stack.** The bootstrap CLI, admin login, tenant and owner creation and an owner's API key
+  all worked through the real API; the owner got 403 on `/admin/tenants`. An `http` GET to `https://example.com/`
+  succeeded with 200 through the guard; `http://postgres:5432/` was refused (it resolves to 172.18.0.7) and went to
+  the DLQ after one attempt; `http://169.254.169.254/` was rejected at enqueue with 422. A `* * * * *` schedule fired
+  three ticks, 0.1 to 0.9 s after each minute, once each, shared between the two schedulers (1, 2, 1) with no
+  duplicate. A 20 s delayed job started 20.14 s after it was enqueued. A second tenant got 404 on the first
+  tenant's job and an empty job list.
+- Tests: 284 (up from 116), on Windows and in a Linux container. They cover key format and verification, the 60 s
+  cache trade-off, `alg: none`, HS512, expired, wrong-audience and forged JWTs, the admin flow, isolation on every
+  route, delays and cancel, cron (two loops on one due schedule make one job, 60 schedules shared without doubling,
+  misfire, the idempotency-key safety net, DST in New York), and the `http` task against a real local server
+  (signature verified by the receiver, retry, DLQ, redirect, timeout, size cap, and the guard on the real client).
+  One end-to-end test goes from the bootstrap CLI to a signed webhook. Nine guarantees were also broken on purpose
+  to confirm a test fails for each.
+- New settings: `API_KEY_PEPPER` and `JWT_SECRET` (required; the API refuses to start without them),
+  `JWT_TTL_SECONDS`, `API_KEY_CACHE_SECONDS`, `HTTP_ALLOW_PRIVATE_NETWORKS` (local demos only),
+  `HTTP_CONNECT_TIMEOUT`, `HTTP_READ_TIMEOUT`, `CRON_INTERVAL_SECONDS`, `CRON_BATCH_SIZE`.
+- Choices made: the signature covers a timestamp as well as the body (`t.body`), so receivers can reject replays;
+  `PATCH` on a schedule only enables or disables it (delete and recreate to change its timing).
+
 ## Docs
 
 - [ADR-0001: PostgreSQL as the job queue](docs/adr/0001-postgres-as-queue.md)
 - [ADR-0003: Leases with heartbeats and fencing tokens](docs/adr/0003-leases-heartbeats-fencing.md)
+- [ADR-0007: Cron without leader election; a missed tick fires once](docs/adr/0007-cron-without-leader-election.md)
+- [ADR-0010: API keys hashed with HMAC-SHA256 and a pepper; JWT only for admins](docs/adr/0010-api-keys-and-admin-jwt.md)
 - [AI usage notes](docs/ai-usage.md)

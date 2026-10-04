@@ -1,23 +1,36 @@
-"""Tenant context for requests.
+"""Tenant context for /v1 requests.
 
-PLACEHOLDER until Week 5: every request is attributed to one configured tenant. The tenant must
-come from the credential (API key), never from the request, so this is a dependency that the
-API-key auth replaces without touching any route. Do not deploy publicly before that swap.
+The tenant always comes from the credential (the API key), never from the request body,
+path or query, so a client cannot act as another tenant by changing an id.
 """
 
 from uuid import UUID
 
+import structlog
 from fastapi import Request
 
-from hopper.config import get_settings
-from hopper.queue.jobs import get_or_create_tenant
+from hopper.api.errors import ApiError
+
+
+def bearer_token(request: Request) -> str | None:
+    scheme, _, credential = request.headers.get("authorization", "").partition(" ")
+    if scheme.lower() != "bearer" or not credential.strip():
+        return None
+    return credential.strip()
 
 
 async def current_tenant_id(request: Request) -> UUID:
-    tenant_id: UUID | None = getattr(request.app.state, "default_tenant_id", None)
+    presented = bearer_token(request)
+    tenant_id: UUID | None = None
+    if presented is not None:
+        tenant_id = await request.app.state.api_keys.authenticate(presented)
     if tenant_id is None:
-        tenant_id = await get_or_create_tenant(
-            request.app.state.engine, get_settings().default_tenant_name
+        # One answer for missing, malformed, unknown, revoked and wrong keys.
+        raise ApiError(
+            401,
+            "unauthorized",
+            "a valid API key is required: Authorization: Bearer hop_live_...",
+            headers={"WWW-Authenticate": "Bearer"},
         )
-        request.app.state.default_tenant_id = tenant_id
+    structlog.contextvars.bind_contextvars(tenant_id=str(tenant_id))
     return tenant_id
