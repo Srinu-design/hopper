@@ -2,21 +2,41 @@ import asyncio
 import contextlib
 import random
 import time
+from typing import Any
 
 import structlog
+from pydantic import ValidationError
+from structlog.typing import FilteringBoundLogger
 
-from hopper.queue.broker import Broker, ClaimedJob
+from hopper.queue.broker import Broker, ClaimedJob, FailureOutcome
 from hopper.tasks import registry
+from hopper.tasks.errors import PermanentError, RetryableError
+from hopper.worker.backoff import full_jitter_delay
 
 log = structlog.get_logger()
+
+_MAX_ERROR_CHARS = 2000
+
+
+class UnknownTaskError(Exception):
+    pass
+
+
+class JobTimedOut(Exception):
+    pass
 
 
 class Worker:
     """Claims jobs in batches, runs each as its own asyncio task, acks only after success.
 
     Intake is bounded by `slots`: the claim LIMIT is always the number of free slots, so the
-    worker never holds more jobs than it can run. A failed handler is never acked (at-least-once);
-    retries, leases and release-on-shutdown arrive in later weeks.
+    worker never holds more jobs than it can run. A failed run is never acked (at-least-once):
+    it is nacked, which retries it after a full-jitter backoff delay or, for a permanent error
+    or the last attempt, moves it to the dead-letter queue. Leases and release-on-shutdown
+    arrive in Week 4.
+
+    Retryable: timeouts, unknown tasks, RetryableError and any unexpected exception.
+    Permanent: PermanentError and a payload that fails the task's validation.
     """
 
     def __init__(
@@ -100,7 +120,7 @@ class Worker:
         return total, saturated
 
     def _spawn(self, job: ClaimedJob) -> None:
-        task = asyncio.create_task(self._run_job(job), name=f"job-{job.id}")
+        task = asyncio.create_task(self.process(job), name=f"job-{job.id}")
         self._inflight.add(task)
         task.add_done_callback(self._on_done)
 
@@ -121,32 +141,85 @@ class Worker:
         with contextlib.suppress(TimeoutError):
             await asyncio.wait_for(self._stopping.wait(), timeout=jittered)
 
-    async def _run_job(self, job: ClaimedJob) -> None:
+    async def process(self, job: ClaimedJob) -> None:
+        """Run one claimed job to the end: ack on success, nack (retry or DLQ) on failure."""
         jlog = log.bind(
             job_id=str(job.id),
             tenant_id=str(job.tenant_id),
             attempt=job.attempt,
             worker_id=self.worker_id,
+            task=job.task,
         )
         spec = registry.get_task(job.task)
-        if spec is None:
-            jlog.error("unknown_task", task=job.task)
-            return
         started = time.monotonic()
         try:
-            payload = spec.payload_model.model_validate(job.payload)
-            result = await asyncio.wait_for(spec.handler(payload), timeout=job.timeout_seconds)
+            result = await self._execute(job, spec)
         except Exception as exc:
-            # Never ack a failed run. Week 3 turns this into a retry or a dead-letter.
-            jlog.warning("job_failed", task=job.task, error=repr(exc))
+            await self._fail(job, spec, exc, jlog)
             return
         try:
             acked = await self._broker.ack(job, self.worker_id, result)
         except Exception:
-            jlog.exception("ack_failed", task=job.task)
+            # The job stays running; lease expiry (Week 4) hands it to another worker.
+            jlog.exception("ack_failed")
             return
         elapsed = round(time.monotonic() - started, 4)
         if acked:
-            jlog.info("job_succeeded", task=job.task, seconds=elapsed)
+            jlog.info("job_succeeded", seconds=elapsed)
         else:
-            jlog.warning("ack_rejected_lease_lost", task=job.task, seconds=elapsed)
+            jlog.warning("ack_rejected_lease_lost", seconds=elapsed)
+
+    async def _execute(
+        self, job: ClaimedJob, spec: registry.TaskSpec | None
+    ) -> dict[str, Any] | None:
+        if spec is None:
+            # Retryable: during a rolling deploy an older worker can claim a newer task.
+            raise UnknownTaskError(f"no handler registered for task {job.task!r}")
+        try:
+            payload = spec.payload_model.model_validate(job.payload)
+        except ValidationError as exc:
+            first = exc.errors()[0]
+            where = ".".join(str(part) for part in first["loc"]) or "payload"
+            raise PermanentError(f"invalid payload: {where}: {first['msg']}") from exc
+        deadline = asyncio.timeout(job.timeout_seconds)
+        try:
+            async with deadline:
+                return await spec.handler(payload)
+        except TimeoutError as exc:
+            if deadline.expired():  # our deadline, not a TimeoutError raised by the handler
+                raise JobTimedOut(f"timed out after {job.timeout_seconds}s") from exc
+            raise
+
+    async def _fail(
+        self,
+        job: ClaimedJob,
+        spec: registry.TaskSpec | None,
+        exc: Exception,
+        jlog: FilteringBoundLogger,
+    ) -> None:
+        permanent = isinstance(exc, PermanentError)
+        outcome: FailureOutcome = "timed_out" if isinstance(exc, JobTimedOut) else "failed"
+        base = spec.backoff_base if spec else registry.DEFAULT_BACKOFF_BASE
+        cap = spec.backoff_cap if spec else registry.DEFAULT_BACKOFF_CAP
+        delay = full_jitter_delay(job.attempt, base, cap)
+        if isinstance(exc, RetryableError) and exc.retry_after is not None:
+            delay = max(delay, exc.retry_after)
+        error = f"{type(exc).__name__}: {exc}"[:_MAX_ERROR_CHARS]
+        try:
+            status = await self._broker.nack(
+                job,
+                self.worker_id,
+                error=error,
+                outcome=outcome,
+                delay_seconds=delay,
+                permanent=permanent,
+            )
+        except Exception:
+            jlog.exception("nack_failed", error=error)
+            return
+        if status is None:
+            jlog.warning("nack_rejected_lease_lost", error=error)
+        elif status == "dead":
+            jlog.warning("job_dead", outcome=outcome, permanent=permanent, error=error)
+        else:
+            jlog.info("job_retry_scheduled", outcome=outcome, delay=round(delay, 3), error=error)

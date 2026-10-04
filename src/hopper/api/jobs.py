@@ -1,16 +1,21 @@
-from datetime import datetime
+import hashlib
+import json
 from typing import Annotated, Any
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Header, Request, Response
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from hopper.api.errors import ApiError
+from hopper.api.schemas import JobOut, job_out
 from hopper.auth.tenant import current_tenant_id
+from hopper.queue.dlq import DeadFilter, replay
 from hopper.queue.jobs import get_job, insert_job
 from hopper.tasks import registry
 
 router = APIRouter(prefix="/v1/jobs", tags=["jobs"])
+
+TenantId = Annotated[UUID, Depends(current_tenant_id)]
 
 
 class EnqueueRequest(BaseModel):
@@ -22,43 +27,33 @@ class EnqueueRequest(BaseModel):
     priority: int = Field(default=0, ge=-100, le=100)  # higher runs first
 
 
-class AttemptOut(BaseModel):
-    attempt: int
-    worker_id: str
-    started_at: datetime
-    finished_at: datetime | None
-    outcome: str
-    error: str | None
+def request_hash(body: EnqueueRequest) -> bytes:
+    """SHA-256 of the canonical request: defaults filled in, keys sorted, no whitespace.
+
+    Two requests that mean the same job hash the same even if one spells out a default.
+    """
+    canonical = json.dumps(body.model_dump(mode="json"), sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(canonical.encode()).digest()
 
 
-class JobOut(BaseModel):
-    id: UUID
-    task: str
-    queue: str
-    priority: int
-    status: str
-    payload: dict[str, Any]
-    attempts: int
-    max_attempts: int
-    timeout_seconds: int
-    run_at: datetime
-    created_at: datetime
-    started_at: datetime | None
-    finished_at: datetime | None
-    last_error: str | None
-    result: dict[str, Any] | None
-    attempt_history: list[AttemptOut] = Field(default_factory=list)
-
-
-def _out(job: dict[str, Any], attempts: list[dict[str, Any]]) -> JobOut:
-    return JobOut.model_validate({**job, "attempt_history": attempts})
+async def _load(request: Request, tenant_id: UUID, job_id: UUID) -> JobOut:
+    found = await get_job(request.app.state.engine, tenant_id=tenant_id, job_id=job_id)
+    if found is None:
+        # Same answer for "no such job" and "someone else's job", so ids never leak.
+        raise ApiError(404, "not_found", "job not found")
+    return job_out(*found)
 
 
 @router.post("", status_code=201, response_model=JobOut)
 async def enqueue(
     body: EnqueueRequest,
     request: Request,
-    tenant_id: Annotated[UUID, Depends(current_tenant_id)],
+    response: Response,
+    tenant_id: TenantId,
+    idempotency_key: Annotated[
+        str | None,
+        Header(alias="Idempotency-Key", min_length=1, max_length=255, pattern=r"^[\x21-\x7e]+$"),
+    ] = None,
 ) -> JobOut:
     # Bodies over 256 KB never get this far: BodySizeLimitMiddleware answers 413.
     spec = registry.get_task(body.task)
@@ -75,7 +70,8 @@ async def enqueue(
         where = ".".join(str(part) for part in first["loc"]) or "payload"
         raise ApiError(422, "invalid_payload", f"{where}: {first['msg']}") from exc
 
-    job = await insert_job(
+    digest = request_hash(body)
+    job, created = await insert_job(
         request.app.state.engine,
         tenant_id=tenant_id,
         queue=body.queue,
@@ -84,19 +80,39 @@ async def enqueue(
         priority=body.priority,
         max_attempts=spec.max_attempts,
         timeout_seconds=spec.timeout_seconds,
+        idempotency_key=idempotency_key,
+        request_hash=digest if idempotency_key is not None else None,
     )
-    return _out(job, [])
+    if created:
+        return job_out(job, [])
+    if job["request_hash"] != digest:
+        raise ApiError(
+            422,
+            "idempotency_key_reused",
+            "this Idempotency-Key was already used for a different request",
+        )
+    # The same request again (a client retry): return the job it created, as it is now.
+    response.status_code = 200
+    response.headers["Idempotent-Replayed"] = "true"
+    return await _load(request, tenant_id, job["id"])
 
 
 @router.get("/{job_id}", response_model=JobOut)
-async def read_job(
-    job_id: UUID,
-    request: Request,
-    tenant_id: Annotated[UUID, Depends(current_tenant_id)],
-) -> JobOut:
-    found = await get_job(request.app.state.engine, tenant_id=tenant_id, job_id=job_id)
-    if found is None:
-        # Same answer for "no such job" and "someone else's job", so ids never leak.
-        raise ApiError(404, "not_found", "job not found")
-    job, attempts = found
-    return _out(job, attempts)
+async def read_job(job_id: UUID, request: Request, tenant_id: TenantId) -> JobOut:
+    return await _load(request, tenant_id, job_id)
+
+
+@router.post("/{job_id}/replay", response_model=JobOut)
+async def replay_job(job_id: UUID, request: Request, tenant_id: TenantId) -> JobOut:
+    """Requeue one dead job now, with a fresh set of attempts."""
+    replayed, _ = await replay(
+        request.app.state.engine,
+        tenant_id=tenant_id,
+        where=DeadFilter(ids=[job_id]),
+        spread_seconds=0,
+    )
+    job = await _load(request, tenant_id, job_id)  # 404 if it is not this tenant's job
+    if not replayed:
+        # Nothing changed: replaying a job that is no longer dead is a no-op.
+        raise ApiError(409, "not_dead", f"job is {job.status}, not dead")
+    return job

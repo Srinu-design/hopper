@@ -1,6 +1,5 @@
 import asyncio
 import time
-import uuid
 from typing import Any
 
 import pytest
@@ -11,7 +10,7 @@ from hopper.queue.postgres import PostgresBroker
 from hopper.tasks.builtin import SleepPayload
 from hopper.tasks.registry import task
 from hopper.worker.loop import Worker
-from tests.integration.test_claim import seed_jobs, seed_tenant
+from tests.helpers import counts, insert_job, make_worker, run_until, seed_jobs, seed_tenant
 
 _probe = {"current": 0, "max": 0}
 
@@ -26,54 +25,6 @@ async def probe(payload: SleepPayload) -> dict[str, Any] | None:
     finally:
         _probe["current"] -= 1
     return None
-
-
-def make_worker(engine: AsyncEngine, name: str = "w1", slots: int = 10) -> Worker:
-    return Worker(
-        PostgresBroker(engine),
-        worker_id=name,
-        queues=["default"],
-        slots=slots,
-        poll_interval=0.02,
-        max_idle_backoff=0.1,
-    )
-
-
-async def counts(engine: AsyncEngine) -> dict[str, int]:
-    async with engine.connect() as conn:
-        rows = await conn.execute(text("SELECT status, count(*) FROM jobs GROUP BY status"))
-        return {status: n for status, n in rows}
-
-
-async def run_until(
-    workers: list[Worker], engine: AsyncEngine, done: Any, timeout: float = 20.0
-) -> None:
-    """Run workers until done(counts) is true, then stop them and wait for them to exit."""
-    runners = [asyncio.create_task(w.run()) for w in workers]
-    deadline = time.monotonic() + timeout
-    try:
-        while not done(await counts(engine)):
-            assert time.monotonic() < deadline, f"timed out; counts={await counts(engine)}"
-            await asyncio.sleep(0.05)
-    finally:
-        for w in workers:
-            w.stop()
-        await asyncio.gather(*runners)
-
-
-async def insert_job(engine: AsyncEngine, tenant_id: uuid.UUID, **cols: Any) -> uuid.UUID:
-    cols = {"queue": "default", "payload": '{"ms": 0}', **cols}
-    names = ", ".join(["tenant_id", *cols])
-    params = ", ".join(
-        [":tenant_id", *(f"CAST(:{c} AS jsonb)" if c == "payload" else f":{c}" for c in cols)]
-    )
-    async with engine.begin() as conn:
-        row = await conn.execute(
-            text(f"INSERT INTO jobs ({names}) VALUES ({params}) RETURNING id"),
-            {"tenant_id": tenant_id, **cols},
-        )
-        job_id: uuid.UUID = row.scalar_one()
-    return job_id
 
 
 async def test_worker_drains_the_queue(migrated_engine: AsyncEngine) -> None:
@@ -124,7 +75,7 @@ async def test_in_flight_jobs_never_exceed_the_slot_limit(migrated_engine: Async
     assert _probe["max"] == 5  # saturated the slots, never went over
 
 
-async def test_failed_handler_is_not_acked_and_does_not_stop_the_worker(
+async def test_failed_handler_is_nacked_for_retry_and_the_worker_carries_on(
     migrated_engine: AsyncEngine,
 ) -> None:
     tenant_id = await seed_tenant(migrated_engine)
@@ -135,41 +86,52 @@ async def test_failed_handler_is_not_acked_and_does_not_stop_the_worker(
     await run_until([worker], migrated_engine, lambda c: c.get("succeeded") == 20)
 
     async with migrated_engine.connect() as conn:
-        status = (
-            await conn.execute(text("SELECT status FROM jobs WHERE id = :i"), {"i": bad})
-        ).scalar_one()
-        attempts = (
+        job = (
             await conn.execute(
-                text("SELECT count(*) FROM job_attempts WHERE job_id = :i"), {"i": bad}
+                text("SELECT status, run_at > now() AS later, last_error FROM jobs WHERE id = :i"),
+                {"i": bad},
             )
-        ).scalar_one()
-    assert status == "running"  # never acked; Week 3/4 will retry or reclaim it
-    assert attempts == 0
+        ).one()
+        outcomes = (
+            (
+                await conn.execute(
+                    text("SELECT outcome FROM job_attempts WHERE job_id = :i"), {"i": bad}
+                )
+            )
+            .scalars()
+            .all()
+        )
+    # flaky uses the default 2 s backoff base, so it may have run more than once by now,
+    # but it is never acked and is always either waiting to retry or running again.
+    assert job.status in {"queued", "running"}
+    assert job.last_error == "RuntimeError: flaky task failed"
+    assert outcomes and set(outcomes) == {"failed"}
 
 
-async def test_handler_timeout_is_not_acked(migrated_engine: AsyncEngine) -> None:
+async def test_handler_timeout_is_retried_as_timed_out(migrated_engine: AsyncEngine) -> None:
     tenant_id = await seed_tenant(migrated_engine)
     slow = await insert_job(
         migrated_engine, tenant_id, task="sleep", payload='{"ms": 5000}', timeout_seconds=1
     )
-    await seed_jobs(migrated_engine, tenant_id, 3)
     worker = make_worker(migrated_engine)
-    runner = asyncio.create_task(worker.run())
-    try:
-        deadline = time.monotonic() + 5
-        while (await counts(migrated_engine)).get("succeeded") != 3:
-            assert time.monotonic() < deadline
-            await asyncio.sleep(0.05)
-        await asyncio.sleep(1.3)  # past the 1 s timeout, well before the 5 s sleep ends
-        assert worker.inflight == 0  # the timed-out handler was cancelled, freeing its slot
-    finally:
-        worker.stop()
-        await runner
+    started = time.monotonic()
+
+    await run_until(
+        [worker], migrated_engine, lambda c: c == {"queued": 1} and time.monotonic() - started > 0.5
+    )
+
+    assert time.monotonic() - started < 4  # cancelled at the 1 s deadline, not after 5 s
     async with migrated_engine.connect() as conn:
-        status = (
-            await conn.execute(text("SELECT status FROM jobs WHERE id = :i"), {"i": slow})
+        last_error = (
+            await conn.execute(text("SELECT last_error FROM jobs WHERE id = :i"), {"i": slow})
         ).scalar_one()
-    assert status == "running"  # never acked
+        outcome = (
+            await conn.execute(
+                text("SELECT outcome FROM job_attempts WHERE job_id = :i"), {"i": slow}
+            )
+        ).scalar_one()
+    assert outcome == "timed_out"
+    assert last_error == "JobTimedOut: timed out after 1s"
 
 
 async def test_stop_waits_for_in_flight_jobs_then_returns(migrated_engine: AsyncEngine) -> None:

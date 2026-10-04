@@ -1,58 +1,13 @@
 import asyncio
-import json
 import uuid
 from dataclasses import replace
 from datetime import timedelta
-from typing import Any
 
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 from hopper.queue.postgres import PostgresBroker
-
-LEASE = 30.0
-
-
-async def seed_tenant(engine: AsyncEngine, name: str = "t") -> uuid.UUID:
-    async with engine.begin() as conn:
-        result = await conn.execute(
-            text("INSERT INTO tenants (name) VALUES (:n) RETURNING id"), {"n": name}
-        )
-        tenant_id: uuid.UUID = result.scalar_one()
-    return tenant_id
-
-
-async def seed_jobs(
-    engine: AsyncEngine,
-    tenant_id: uuid.UUID,
-    count: int,
-    *,
-    queue: str = "default",
-    priority: int = 0,
-    run_at_offset: timedelta = timedelta(0),
-) -> None:
-    async with engine.begin() as conn:
-        await conn.execute(
-            text(
-                "INSERT INTO jobs (tenant_id, queue, task, payload, priority, run_at) "
-                "SELECT :t, :q, 'sleep', CAST(:p AS jsonb), :prio, now() + :off "
-                "FROM generate_series(1, :n)"
-            ),
-            {
-                "t": tenant_id,
-                "q": queue,
-                "p": json.dumps({"ms": 0}),
-                "prio": priority,
-                "off": run_at_offset,
-                "n": count,
-            },
-        )
-
-
-async def job_row(engine: AsyncEngine, job_id: uuid.UUID) -> dict[str, Any]:
-    async with engine.connect() as conn:
-        row = (await conn.execute(text("SELECT * FROM jobs WHERE id = :i"), {"i": job_id})).one()
-    return dict(row._mapping)
+from tests.helpers import LEASE, job_row, seed_jobs, seed_tenant
 
 
 async def test_no_double_claim_under_concurrency(migrated_engine: AsyncEngine) -> None:

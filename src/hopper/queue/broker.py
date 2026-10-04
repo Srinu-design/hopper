@@ -1,6 +1,8 @@
 from dataclasses import dataclass
-from typing import Any, Protocol
+from typing import Any, Literal, Protocol
 from uuid import UUID
+
+FailureOutcome = Literal["failed", "timed_out"]
 
 
 @dataclass(frozen=True, slots=True)
@@ -21,7 +23,7 @@ class ClaimedJob:
 class Broker(Protocol):
     """What a worker needs from a queue backend.
 
-    Heartbeat, nack and release join this interface in the weeks that introduce them.
+    Heartbeat and release join this interface in Week 4.
     """
 
     async def claim(
@@ -32,4 +34,18 @@ class Broker(Protocol):
 
     async def ack(self, job: ClaimedJob, worker_id: str, result: dict[str, Any] | None) -> bool:
         """Mark the job succeeded. False means the lease was lost and nothing changed."""
+        ...
+
+    async def nack(
+        self,
+        job: ClaimedJob,
+        worker_id: str,
+        *,
+        error: str,
+        outcome: FailureOutcome,
+        delay_seconds: float,
+        permanent: bool,
+    ) -> str | None:
+        """Record a failed run. Returns the new status ('queued' to retry after delay_seconds,
+        or 'dead'), or None if the lease was lost and nothing changed."""
         ...

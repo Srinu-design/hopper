@@ -5,7 +5,7 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 from hopper.queue import sql
-from hopper.queue.broker import ClaimedJob
+from hopper.queue.broker import ClaimedJob, FailureOutcome
 
 # Parameters go in as JSON text with CAST(... AS jsonb); the asyncpg driver decodes jsonb
 # results into Python objects on the way out, so no json.loads is needed on reads.
@@ -61,3 +61,30 @@ class PostgresBroker:
                 )
             ).first()
         return row is not None
+
+    async def nack(
+        self,
+        job: ClaimedJob,
+        worker_id: str,
+        *,
+        error: str,
+        outcome: FailureOutcome,
+        delay_seconds: float,
+        permanent: bool,
+    ) -> str | None:
+        async with self._engine.begin() as conn:
+            status: str | None = (
+                await conn.execute(
+                    text(sql.NACK),
+                    {
+                        "id": job.id,
+                        "token": job.lease_token,
+                        "worker_id": worker_id,
+                        "error": error,
+                        "outcome": outcome,
+                        "delay_seconds": float(delay_seconds),
+                        "permanent": permanent,
+                    },
+                )
+            ).scalar_one_or_none()
+        return status
