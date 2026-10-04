@@ -1,11 +1,13 @@
 import json
+from collections.abc import Sequence
 from typing import Any
+from uuid import UUID
 
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 from hopper.queue import sql
-from hopper.queue.broker import ClaimedJob, FailureOutcome
+from hopper.queue.broker import ClaimedJob, FailureOutcome, ReapedJob
 
 # Parameters go in as JSON text with CAST(... AS jsonb); the asyncpg driver decodes jsonb
 # results into Python objects on the way out, so no json.loads is needed on reads.
@@ -88,3 +90,48 @@ class PostgresBroker:
                 )
             ).scalar_one_or_none()
         return status
+
+    async def heartbeat(self, jobs: Sequence[ClaimedJob], lease_seconds: float) -> set[UUID]:
+        if not jobs:
+            return set()
+        async with self._engine.begin() as conn:
+            rows = await conn.execute(
+                text(sql.HEARTBEAT),
+                {
+                    "ids": [job.id for job in jobs],
+                    "tokens": [job.lease_token for job in jobs],
+                    "lease_seconds": float(lease_seconds),
+                },
+            )
+            return set(rows.scalars())
+
+    async def release(self, jobs: Sequence[ClaimedJob], worker_id: str) -> set[UUID]:
+        if not jobs:
+            return set()
+        async with self._engine.begin() as conn:
+            rows = await conn.execute(
+                text(sql.RELEASE),
+                {
+                    "ids": [job.id for job in jobs],
+                    "tokens": [job.lease_token for job in jobs],
+                    "worker_id": worker_id,
+                },
+            )
+            return set(rows.scalars())
+
+    async def reap(self, limit: int) -> list[ReapedJob]:
+        """Reclaim up to `limit` jobs whose lease expired. Not part of Broker: the reaper in
+        the scheduler process calls it, never a worker."""
+        async with self._engine.begin() as conn:
+            rows = await conn.execute(text(sql.REAP), {"limit": limit})
+            return [
+                ReapedJob(
+                    id=r.id,
+                    queue=r.queue,
+                    task=r.task,
+                    status=r.status,
+                    attempt=r.attempts,
+                    lease_owner=r.lease_owner,
+                )
+                for r in rows
+            ]

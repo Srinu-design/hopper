@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Any, Literal, Protocol
 from uuid import UUID
@@ -20,16 +21,29 @@ class ClaimedJob:
     lease_token: UUID
 
 
-class Broker(Protocol):
-    """What a worker needs from a queue backend.
+@dataclass(frozen=True, slots=True)
+class ReapedJob:
+    """A job whose lease ran out, as the reaper left it: 'queued' again, or 'dead'."""
 
-    Heartbeat and release join this interface in Week 4.
-    """
+    id: UUID
+    queue: str
+    task: str
+    status: str
+    attempt: int
+    lease_owner: str
+
+
+class Broker(Protocol):
+    """What a worker needs from a queue backend."""
 
     async def claim(
         self, queue: str, worker_id: str, limit: int, lease_seconds: float
     ) -> list[ClaimedJob]:
         """Atomically take up to `limit` ready jobs; no job is returned to two callers."""
+        ...
+
+    async def heartbeat(self, jobs: Sequence[ClaimedJob], lease_seconds: float) -> set[UUID]:
+        """Extend the lease on each job. Returns the ids whose lease is still held."""
         ...
 
     async def ack(self, job: ClaimedJob, worker_id: str, result: dict[str, Any] | None) -> bool:
@@ -48,4 +62,9 @@ class Broker(Protocol):
     ) -> str | None:
         """Record a failed run. Returns the new status ('queued' to retry after delay_seconds,
         or 'dead'), or None if the lease was lost and nothing changed."""
+        ...
+
+    async def release(self, jobs: Sequence[ClaimedJob], worker_id: str) -> set[UUID]:
+        """Hand unfinished jobs back to the queue without using up an attempt.
+        Returns the ids released; a job whose lease was already lost is left alone."""
         ...
