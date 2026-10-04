@@ -336,7 +336,8 @@ not `localhost`: on Windows `localhost` resolves to `::1` first and the publishe
 - Choices made:
   - `/readyz` no longer fails on Redis alone (the guide lists Redis as a readiness check), because rate limiting
     fails open without it.
-  - A sixth alert, `NoScheduler`, since without a scheduler there is no cron, no reaper and no depth count.
+  - A fifth alert beyond the guide's four, `NoScheduler`, since without a scheduler there is no cron, no reaper
+    and no depth count.
   - The Redis client uses a blocking connection pool: redis-py's default pool fails at once when busy, and a test
     showed that turned a burst into a fallback that let 300 requests through a limit of 100 (ADR-0008).
 
