@@ -19,6 +19,13 @@ os.environ.setdefault("DATABASE_URL", "postgresql+asyncpg://hopper:hopper@127.0.
 os.environ.setdefault("REDIS_URL", "redis://127.0.0.1:6379/0")
 os.environ.setdefault("API_KEY_PEPPER", "test-pepper-not-a-secret")
 os.environ.setdefault("JWT_SECRET", "test-jwt-secret-not-a-secret-0123456789")
+# No metrics port in tests: many apps and worker processes start, and tests read the registry.
+os.environ.setdefault("METRICS_PORT", "0")
+# Production's 0.25 s Redis timeout assumes a quiet local network. A busy test machine opening
+# a hundred connections at once through Docker Desktop's port proxy can take longer, and a
+# timeout there sends the limiter to its fallback, which is not what these tests are about.
+# The fallback tests use a closed port, which fails at once whatever the timeout.
+os.environ.setdefault("REDIS_TIMEOUT_SECONDS", "2")
 
 
 def _admin_url() -> URL:
@@ -109,8 +116,13 @@ async def migrated_engine(migrated_db_url: str) -> AsyncIterator[AsyncEngine]:
 async def api_app(
     migrated_engine: AsyncEngine, migrated_db_url: str, monkeypatch: pytest.MonkeyPatch
 ) -> AsyncIterator[FastAPI]:
-    """The real FastAPI app, lifespan running, pointed at the migrated scratch database."""
+    """The real FastAPI app, lifespan running, pointed at the migrated scratch database.
+
+    Its Redis keys get a namespace of their own, so rate-limit buckets and the depth snapshot
+    never mix with another test's, or with a dev stack using the same Redis.
+    """
     monkeypatch.setenv("DATABASE_URL", migrated_db_url)
+    monkeypatch.setenv("REDIS_NAMESPACE", f"test-{uuid.uuid4().hex[:12]}")
     get_settings.cache_clear()
     app = create_app()
     async with app.router.lifespan_context(app):

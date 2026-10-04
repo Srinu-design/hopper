@@ -156,3 +156,29 @@ async def test_users_table_refuses_inconsistent_rows(
                 ),
                 {"e": email, "r": role, "t": tenant_id if with_tenant else None},
             )
+
+
+async def test_jobs_carry_the_enqueue_request_id(migrated_engine: AsyncEngine) -> None:
+    async with migrated_engine.connect() as conn:
+        column = (
+            await conn.execute(
+                text(
+                    "SELECT data_type, is_nullable, column_default FROM information_schema.columns "
+                    "WHERE table_name = 'jobs' AND column_name = 'request_id'"
+                )
+            )
+        ).one()
+    # Nullable with no default: adding it rewrote nothing, and the Week 5 release never sees it.
+    assert tuple(column) == ("text", "YES", None)
+
+
+@pytest.mark.parametrize(
+    "limits", ["rate_per_sec = 0", "rate_per_sec = -1", "burst = 0", "max_queue_depth = 0"]
+)
+async def test_tenant_limits_must_be_positive(migrated_engine: AsyncEngine, limits: str) -> None:
+    """The token bucket divides by rate_per_sec; zero must never reach it."""
+    async with migrated_engine.begin() as conn:
+        await conn.execute(text("INSERT INTO tenants (name) VALUES ('t')"))
+    with pytest.raises(IntegrityError, match="tenants_limits_check"):
+        async with migrated_engine.begin() as conn:
+            await conn.execute(text(f"UPDATE tenants SET {limits}"))

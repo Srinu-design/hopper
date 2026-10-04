@@ -30,6 +30,7 @@ async def insert_job(
     request_hash: bytes | None = None,
     run_at: datetime | None = None,
     delay_seconds: float = 0.0,
+    request_id: str | None = None,
 ) -> tuple[dict[str, Any], bool]:
     """Insert a job. Returns (job, created).
 
@@ -50,6 +51,7 @@ async def insert_job(
         "run_at": run_at,
         "delay_seconds": float(delay_seconds),
         "schedule_id": None,
+        "request_id": request_id,
     }
     # Two rounds cover the rare case where the conflicting job is deleted between our
     # INSERT and SELECT (retention), which frees the key for a fresh insert.

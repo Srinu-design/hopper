@@ -48,11 +48,31 @@ class Settings(BaseSettings):
     http_connect_timeout: float = Field(default=5.0, gt=0)
     http_read_timeout: float = Field(default=10.0, gt=0)
 
-    # Scheduler: the reaper requeues jobs whose lease ran out; the cron loop fires schedules.
+    # Scheduler: the reaper requeues jobs whose lease ran out; the cron loop fires schedules;
+    # the depth loop counts the queues for metrics and publishes them to Redis for backpressure.
     reaper_interval_seconds: float = Field(default=5.0, gt=0)
     reaper_batch_size: int = Field(default=500, ge=1)
     cron_interval_seconds: float = Field(default=1.0, gt=0)
     cron_batch_size: int = Field(default=100, ge=1)
+    depth_interval_seconds: float = Field(default=1.0, gt=0)
+
+    # Redis holds rate-limit buckets and the cached queue depth, never job state. Timeouts are
+    # short: a slow or dead Redis must cost a request milliseconds, not seconds (ADR-0008).
+    redis_timeout_seconds: float = Field(default=0.25, gt=0)
+    # Requests beyond this many at once wait (up to the timeout) for a free connection.
+    redis_max_connections: int = Field(default=50, ge=1)
+    # Prefix for every Redis key, so several stacks or test runs can share one Redis.
+    redis_namespace: str = Field(default="hopper", pattern=r"^[A-Za-z0-9_.-]{1,64}$")
+    # After a Redis error, decide in process for this long before trying Redis again.
+    redis_retry_seconds: float = Field(default=5.0, ge=0)
+
+    # Backpressure (ADR-0009). Each tenant's own limit is tenants.max_queue_depth; this one
+    # caps queued jobs across all tenants.
+    global_max_queue_depth: int = Field(default=1_000_000, ge=1)
+    backpressure_retry_after_seconds: int = Field(default=5, ge=1)
+
+    # Every process serves Prometheus metrics on this internal port; 0 turns it off.
+    metrics_port: int = Field(default=9100, ge=0, le=65535)
 
     @model_validator(mode="after")
     def _heartbeat_inside_lease(self) -> Self:

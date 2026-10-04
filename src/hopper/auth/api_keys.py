@@ -1,6 +1,7 @@
 import math
 import time
 from collections.abc import Callable
+from dataclasses import dataclass
 from uuid import UUID
 
 import structlog
@@ -13,13 +14,24 @@ log = structlog.get_logger()
 _TOUCH_EVERY_SECONDS = 60.0
 
 
+@dataclass(frozen=True, slots=True)
+class Caller:
+    """The tenant behind a verified API key, with the limits the API enforces on it."""
+
+    tenant_id: UUID
+    rate_per_sec: float  # token bucket refill, per route class
+    burst: int  # token bucket capacity
+    max_queue_depth: int  # backpressure: queued jobs allowed before enqueues get 429
+
+
 class ApiKeyAuthenticator:
-    """Turns a presented API key into its tenant id, or None.
+    """Turns a presented API key into its Caller (tenant and limits), or None.
 
     A key record is cached per process for `cache_seconds`, so a busy client costs one
     database read a minute instead of one per request. The cache holds the stored hash, not
     the secret, so every request is still verified with a constant-time compare. Trade-off:
-    a revoked key keeps working on each API replica until its cache entry expires.
+    a revoked key keeps working on each API replica until its cache entry expires, and a
+    change to the tenant's limits takes as long to apply.
     """
 
     def __init__(
@@ -37,7 +49,7 @@ class ApiKeyAuthenticator:
         self._cache: dict[str, tuple[store.KeyRecord, float]] = {}
         self._touched: dict[UUID, float] = {}
 
-    async def authenticate(self, presented: str) -> UUID | None:
+    async def authenticate(self, presented: str) -> Caller | None:
         parsed = keys.parse(presented)
         if parsed is None:
             return None
@@ -56,7 +68,9 @@ class ApiKeyAuthenticator:
         if record.revoked or not keys.matches(self._pepper, secret, record.key_hash):
             return None
         await self._touch(record.id, now)
-        return record.tenant_id
+        return Caller(
+            record.tenant_id, float(record.rate_per_sec), record.burst, record.max_queue_depth
+        )
 
     def evict(self, prefix: str) -> None:
         """Forget a cached key now, so a revocation applies on this replica at once."""

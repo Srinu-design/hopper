@@ -41,8 +41,8 @@ records are cached in each API process for 60 s, and `last_used_at` is written a
 - Tenant isolation: every repository function takes `tenant_id`; another tenant's id gets 404, not 403. One test
   calls every id route with tenant B's key against tenant A's rows, and another fails when a new route is added
   without being classified, so isolation cannot be forgotten.
-- Rate limiting of `/auth/token` arrives with the token bucket in Week 6; until then, password guessing is limited
-  only by Argon2's cost.
+- `/auth/token` is rate-limited per email since Week 6 (10 attempts at once, then one every 6 s; ADR-0008), on top
+  of Argon2's cost.
 
 ## When we would revisit
 

@@ -1,17 +1,16 @@
 from typing import Annotated, Self
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query, Request
+from fastapi import APIRouter, Query, Request
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, model_validator
 
+from hopper.api.limits import EnqueueTenant, ReadTenant
 from hopper.api.pagination import decode_cursor, encode_cursor
 from hopper.api.schemas import JobSummary
-from hopper.auth.tenant import current_tenant_id
 from hopper.queue import dlq
 
 router = APIRouter(prefix="/v1/dlq", tags=["dlq"])
 
-TenantId = Annotated[UUID, Depends(current_tenant_id)]
 QUEUE_PATTERN = r"^[A-Za-z0-9_.-]{1,64}$"
 
 
@@ -53,7 +52,7 @@ class ReplayResult(BaseModel):
 @router.get("", response_model=DlqPage)
 async def list_dlq(
     request: Request,
-    tenant_id: TenantId,
+    tenant_id: ReadTenant,
     queue: Annotated[str | None, Query(pattern=QUEUE_PATTERN)] = None,
     task: Annotated[str | None, Query(min_length=1, max_length=64)] = None,
     since: AwareDatetime | None = None,
@@ -74,7 +73,9 @@ async def list_dlq(
 
 
 @router.post("/replay", response_model=ReplayResult)
-async def replay_dlq(body: ReplayRequest, request: Request, tenant_id: TenantId) -> ReplayResult:
+async def replay_dlq(
+    body: ReplayRequest, request: Request, tenant_id: EnqueueTenant
+) -> ReplayResult:
     """Requeue up to 1,000 dead jobs, spreading their run_at over spread_seconds."""
     where = (
         dlq.DeadFilter(ids=body.ids)

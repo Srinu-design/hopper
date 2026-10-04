@@ -58,3 +58,24 @@ async def test_healthz_stays_green_when_dependencies_are_down(
 ) -> None:
     resp = await broken_client.get("/healthz")
     assert resp.status_code == 200
+
+
+@pytest.fixture
+async def redis_down_client(monkeypatch: pytest.MonkeyPatch) -> AsyncIterator[httpx.AsyncClient]:
+    monkeypatch.setenv("REDIS_URL", "redis://127.0.0.1:1/0")
+    get_settings.cache_clear()
+    async for c in _client():
+        yield c
+
+
+async def test_readyz_stays_200_degraded_when_only_redis_is_down(
+    redis_down_client: httpx.AsyncClient,
+) -> None:
+    """Without Redis the API still serves (rate limits fall back in process, ADR-0008), so a
+    load balancer must not take every replica out of rotation."""
+    resp = await redis_down_client.get("/readyz")
+    assert resp.status_code == 200
+    assert resp.json() == {
+        "status": "degraded",
+        "checks": {"postgres": "ok", "redis": "unavailable"},
+    }

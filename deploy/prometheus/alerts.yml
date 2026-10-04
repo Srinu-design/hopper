@@ -1,0 +1,59 @@
+# Alert rules, checked in CI with `promtool check config` and unit-tested with
+# `promtool test rules alerts_test.yml`. They show in Prometheus (Alerts page) and Grafana;
+# routing them to a pager needs Alertmanager, which this stack does not run yet.
+groups:
+  - name: hopper
+    rules:
+      # Jobs are ready but nobody takes them: workers are down, stuck or too few. Two
+      # schedulers report the same gauge, hence max by queue.
+      - alert: QueueBacklog
+        expr: max by (queue) (hopper_oldest_ready_job_age_seconds) > 60
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Queue {{ $labels.queue }}: the oldest ready job has waited over 60 s"
+          description: "For 5 minutes. Check that workers are up and not saturated (hopper_worker_inflight)."
+
+      # Share of finished runs that failed, timed out or lost their lease. Released runs
+      # (graceful shutdown) are not failures and are left out of both sides.
+      - alert: HighFailureRate
+        expr: |
+          sum(rate(hopper_job_attempts_total{outcome!="succeeded", outcome!="released"}[5m]))
+            /
+          sum(rate(hopper_job_attempts_total{outcome!="released"}[5m]))
+            > 0.2
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Over 20% of job runs are failing"
+          description: "For 5 minutes. Look at last_error in GET /v1/dlq and the job_retry_scheduled log lines."
+
+      - alert: DLQGrowing
+        expr: sum(increase(hopper_jobs_dead_total[10m])) > 10
+        labels:
+          severity: warning
+        annotations:
+          summary: "More than 10 jobs went to the dead-letter queue in 10 minutes"
+          description: "List them with GET /v1/dlq; replay with POST /v1/dlq/replay once the cause is fixed."
+
+      - alert: NoWorkers
+        expr: absent(up{job="worker"} == 1)
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "No worker is up"
+          description: "Nothing runs jobs; queued jobs wait, and backpressure starts refusing enqueues at the depth limits."
+
+      # The scheduler runs cron, the reaper and the depth count. Without it no cron job fires,
+      # a crashed worker's jobs are never reclaimed, and backpressure stops after 15 s.
+      - alert: NoScheduler
+        expr: absent(up{job="scheduler"} == 1)
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "No scheduler is up"
+          description: "Cron, lease reclaim and the queue-depth count have stopped."

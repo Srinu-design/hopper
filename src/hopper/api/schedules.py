@@ -4,18 +4,17 @@ from datetime import datetime
 from typing import Annotated, Any
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query, Request, Response
+from fastapi import APIRouter, Query, Request, Response
 from pydantic import BaseModel, ConfigDict, Field
 
 from hopper.api.errors import ApiError
+from hopper.api.limits import ReadTenant
 from hopper.api.validation import checked_task
-from hopper.auth.tenant import current_tenant_id
 from hopper.queue import schedules
 from hopper.scheduler.crontab import cron_error, timezone_error
 
 router = APIRouter(prefix="/v1/schedules", tags=["schedules"])
 
-TenantId = Annotated[UUID, Depends(current_tenant_id)]
 NAME_PATTERN = r"^[A-Za-z0-9_.-]{1,64}$"
 
 
@@ -68,7 +67,7 @@ def _check(body: ScheduleIn) -> None:
 
 
 @router.post("", status_code=201, response_model=ScheduleOut)
-async def create(body: ScheduleIn, request: Request, tenant_id: TenantId) -> ScheduleOut:
+async def create(body: ScheduleIn, request: Request, tenant_id: ReadTenant) -> ScheduleOut:
     _check(body)
     row = await schedules.create_schedule(
         request.app.state.engine,
@@ -89,7 +88,7 @@ async def create(body: ScheduleIn, request: Request, tenant_id: TenantId) -> Sch
 @router.get("", response_model=SchedulePage)
 async def list_all(
     request: Request,
-    tenant_id: TenantId,
+    tenant_id: ReadTenant,
     limit: Annotated[int, Query(ge=1, le=200)] = 50,
     cursor: Annotated[str | None, Query(max_length=64)] = None,
 ) -> SchedulePage:
@@ -104,7 +103,7 @@ async def list_all(
 
 
 @router.get("/{schedule_id}", response_model=ScheduleOut)
-async def read(schedule_id: UUID, request: Request, tenant_id: TenantId) -> ScheduleOut:
+async def read(schedule_id: UUID, request: Request, tenant_id: ReadTenant) -> ScheduleOut:
     row = await schedules.get_schedule(
         request.app.state.engine, tenant_id=tenant_id, schedule_id=schedule_id
     )
@@ -115,7 +114,7 @@ async def read(schedule_id: UUID, request: Request, tenant_id: TenantId) -> Sche
 
 @router.patch("/{schedule_id}", response_model=ScheduleOut)
 async def update(
-    schedule_id: UUID, body: SchedulePatch, request: Request, tenant_id: TenantId
+    schedule_id: UUID, body: SchedulePatch, request: Request, tenant_id: ReadTenant
 ) -> ScheduleOut:
     """Enable or disable. Enabling restarts the clock from now: no stale tick fires."""
     row = await schedules.set_enabled(
@@ -127,7 +126,7 @@ async def update(
 
 
 @router.delete("/{schedule_id}", status_code=204)
-async def delete(schedule_id: UUID, request: Request, tenant_id: TenantId) -> Response:
+async def delete(schedule_id: UUID, request: Request, tenant_id: ReadTenant) -> Response:
     """Jobs the schedule already created are kept."""
     deleted = await schedules.delete_schedule(
         request.app.state.engine, tenant_id=tenant_id, schedule_id=schedule_id
