@@ -133,7 +133,7 @@ not `localhost`: on Windows `localhost` resolves to `::1` first and the publishe
 
 | Path | Contents |
 |---|---|
-| `src/hopper/` | `api/` (routers, rate limits and backpressure, HTTP metrics), `auth/` (API keys, passwords, JWT, tenant context), `ratelimit/` (`token_bucket.lua`, the limiter and its in-process fallback, the depth gate), `queue/` (Broker interface and all queue SQL), `worker/` (run loop, heartbeats, shutdown), `scheduler/` (cron, reaper and queue-depth loops), `tasks/` (registry, built-ins, `http`), `bootstrap.py` (first admin, deploy smoke key), `metrics.py`, `config.py`, `logging.py`, `db.py` |
+| `src/hopper/` | `api/` (routers, rate limits and backpressure, HTTP metrics), `auth/` (API keys, passwords, JWT, tenant context), `ratelimit/` (`token_bucket.lua`, the limiter and its in-process fallback, the depth gate), `queue/` (Broker interface and all queue SQL), `worker/` (run loop, heartbeats, shutdown), `scheduler/` (cron, reaper, queue-depth and retention loops), `tasks/` (registry, built-ins, `http`), `bootstrap.py` (first admin, deploy smoke key), `metrics.py`, `config.py`, `logging.py`, `db.py` |
 | `migrations/` | Alembic revisions. Hand-written SQL, backward compatible with the previous release |
 | `docker/` | `Dockerfile` (one image, every role, carrying its deploy bundle), `compose.yaml` (development) and `compose.prod.yaml` (the server) |
 | `deploy/` | `deploy.sh` (deploy, smoke test, rollback), `smoke.py`, `host-setup.sh` (one-time server setup), `rehearse.sh` and `rehearse-local.sh`, `broken/` (releases broken on purpose for drills), `Caddyfile`, `prometheus/` (config, alerts and their tests), `grafana/provisioning/` (data source, dashboard JSON) |
@@ -457,6 +457,23 @@ not `localhost`: on Windows `localhost` resolves to `::1` first and the publishe
   - every `ssh` in the workflows passes `--` before the host.
 - Not done yet, because it needs an AWS account: launching the instance, the GitHub secrets, the first real deploy
   and recording the drill. [docs/deploy.md](docs/deploy.md) walks through each step.
+
+### Before Week 8
+- **Retention** (found in a full check after Week 7). The guide's schema rules call for a loop that deletes finished
+  jobs after 7 days in batches of 1,000, which also frees their idempotency keys. It was never built, so `jobs`,
+  `job_attempts` and the keys would have grown forever, and a comment in `queue/jobs.py` already relied on it. Each
+  scheduler now runs it every hour (`src/hopper/scheduler/retention.py`): one `SKIP LOCKED` statement deletes up to
+  1,000 `succeeded` or `cancelled` jobs that finished more than 7 days ago, their attempt rows go with them, and a
+  pass repeats until a batch comes back short. Dead jobs are never deleted: they are the DLQ. No migration: with no
+  index on `finished_at` a pass may scan the table, which on 200,000 jobs took 8 ms for a full batch and 37 ms when
+  there was nothing to delete.
+- A comment in `alerts_test.yml` pointed to `make rules`; the target is `make alerts`.
+- Tests: 434 (up from 425). Old succeeded and cancelled jobs are deleted with their attempts, while queued, running,
+  dead and recent jobs stay (even a dead job carrying an old finish time). A deleted job's idempotency key can be used
+  again. Also: batches, five concurrent passes deleting 300 jobs once each, a stop ending a long pass after the
+  current batch, the hourly loop stopping at once, and `RETENTION_DAYS=0` refused. Three bugs were put in on purpose,
+  and a test failed for each.
+- New settings: `RETENTION_DAYS` (7, at least 1), `RETENTION_INTERVAL_SECONDS` (3600), `RETENTION_BATCH_SIZE` (1,000).
 
 ## Docs
 
