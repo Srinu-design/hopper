@@ -15,6 +15,11 @@ if config.config_file_name is not None:
 # Schema is hand-written SQL, so there is no SQLAlchemy metadata to autogenerate from.
 target_metadata = None
 
+# Migrations run against the live database while the previous release serves (ADR-0011). An
+# ALTER that waits for a lock queues every later query on its table behind it, which would
+# stall the API and the workers: give up after this long instead, and the deploy stops.
+LOCK_TIMEOUT = "5s"
+
 
 def run_migrations_offline() -> None:
     context.configure(
@@ -24,12 +29,14 @@ def run_migrations_offline() -> None:
         dialect_opts={"paramstyle": "named"},
     )
     with context.begin_transaction():
+        context.execute(f"SET LOCAL lock_timeout = '{LOCK_TIMEOUT}'")
         context.run_migrations()
 
 
 def do_run_migrations(connection: Connection) -> None:
     context.configure(connection=connection, target_metadata=target_metadata)
     with context.begin_transaction():
+        context.execute(f"SET LOCAL lock_timeout = '{LOCK_TIMEOUT}'")
         context.run_migrations()
 
 

@@ -56,6 +56,10 @@ process per 5 s, not one per request. `hopper_ratelimit_fallback_total` counts t
   the API logged one warning, not one per request.
 - Worse: during a Redis outage a tenant can get up to (API replicas ×) its limit. A change to a tenant's limits
   takes up to 60 s to apply (the API key cache). Each `/v1` request costs one Redis round trip.
+- The in-process fallback keeps one bucket per tenant and route class, and one per login email. Since anyone can
+  try new emails, its memory is bounded the way the Lua script's is: a bucket that has refilled is the same as no
+  bucket, so refilled ones are forgotten once there are 10,000, and all of them when Redis answers again. (The
+  Week 7 review found that this table never shrank.)
 - The login bucket is per email, not per IP, because behind a proxy (Week 7) the client address needs
   trusted-proxy configuration first. The price: someone who knows an admin's email can keep that admin's login
   waiting for a few seconds at a time by hammering it.

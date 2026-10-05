@@ -68,6 +68,14 @@ WHERE id = :id AND (CAST(:tenant_id AS uuid) IS NULL OR tenant_id = :tenant_id)
 RETURNING prefix
 """
 
+# Only live keys, so a key revoked earlier keeps its revocation time.
+REVOKE_TENANT_API_KEYS = """
+UPDATE api_keys SET revoked_at = now()
+WHERE tenant_id = :tenant_id AND revoked_at IS NULL
+"""
+
+GET_TENANT_ID_BY_NAME = "SELECT id FROM tenants WHERE name = :name"
+
 
 class AlreadyExists(Exception):
     pass
@@ -195,6 +203,21 @@ async def list_api_keys(engine: AsyncEngine, *, tenant_id: UUID | None) -> list[
     async with engine.connect() as conn:
         rows = await conn.execute(text(LIST_API_KEYS), {"tenant_id": tenant_id})
         return [dict(r._mapping) for r in rows]
+
+
+async def get_tenant_id_by_name(engine: AsyncEngine, name: str) -> UUID | None:
+    async with engine.connect() as conn:
+        tenant_id: UUID | None = (
+            await conn.execute(text(GET_TENANT_ID_BY_NAME), {"name": name})
+        ).scalar_one_or_none()
+    return tenant_id
+
+
+async def revoke_tenant_api_keys(engine: AsyncEngine, *, tenant_id: UUID) -> int:
+    """Revoke every live key of one tenant. Returns how many."""
+    async with engine.begin() as conn:
+        result = await conn.execute(text(REVOKE_TENANT_API_KEYS), {"tenant_id": tenant_id})
+    return int(getattr(result, "rowcount", 0))
 
 
 async def revoke_api_key(
