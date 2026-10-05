@@ -278,3 +278,25 @@ UNION ALL
 SELECT queue, 'dead' AS state, count(*) AS jobs FROM jobs WHERE status = 'dead'
 GROUP BY queue
 """
+
+# Retention: succeeded and cancelled jobs are deleted once they finished more than :days ago,
+# which also frees their idempotency keys; their attempt rows go with them (ON DELETE CASCADE).
+# Dead jobs stay: they are the DLQ until a tenant replays them. Each batch is one short
+# transaction, and SKIP LOCKED lets two schedulers delete side by side. No index covers
+# finished_at, so a pass may scan the table; the loop runs hourly, and any old rows will do
+# (no ORDER BY), so a batch stops scanning as soon as it is full.
+DELETE_FINISHED = """
+WITH old AS (
+  SELECT id FROM jobs
+  WHERE status IN ('succeeded', 'cancelled')
+    AND finished_at < now() - make_interval(days => CAST(:days AS integer))
+  LIMIT :limit
+  FOR UPDATE SKIP LOCKED
+), gone AS (
+  DELETE FROM jobs j
+  USING old
+  WHERE j.id = old.id
+  RETURNING j.id
+)
+SELECT count(*) FROM gone
+"""
