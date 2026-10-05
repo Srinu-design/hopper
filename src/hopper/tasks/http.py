@@ -4,7 +4,8 @@ Guard rails:
 - SSRF. Hopper resolves the host itself and checks every address before connecting, then
   connects to an address it checked, so DNS cannot answer differently between the check and
   the connect (DNS rebinding). Private, loopback, link-local (including 169.254.169.254, the
-  cloud metadata endpoint), shared, reserved and multicast addresses are refused.
+  cloud metadata endpoint), shared, reserved and multicast addresses are refused, also when
+  wrapped in IPv6 (IPv4-mapped, 6to4 or NAT64).
 - Only http and https, no credentials in the URL, and redirects are never followed.
 - Hopper-Job-Id, Hopper-Attempt and Idempotency-Key: <job id>, so receivers can drop repeats.
 - Hopper-Signature: t=<unix time>,v1=<hex HMAC-SHA256(tenant secret, "<t>.<body>")>.
@@ -62,10 +63,18 @@ class BlockedAddress(PermanentError):
     """The target is not on the public internet. Retrying cannot help."""
 
 
+# NAT64's well-known prefix (RFC 6052): 64:ff9b::a9fe:a9fe is 169.254.169.254 to a network
+# that translates it, yet Python calls the prefix global.
+_NAT64 = ipaddress.IPv6Network("64:ff9b::/96")
+
+
 def is_blocked(ip: IPAddress) -> bool:
     if isinstance(ip, ipaddress.IPv6Address):
-        # ::ffff:127.0.0.1 and 2002:7f00:1:: are IPv4 addresses in IPv6 clothing.
+        # ::ffff:127.0.0.1, 2002:7f00:1:: and 64:ff9b::7f00:1 are IPv4 addresses in IPv6
+        # clothing: judge the IPv4 address inside.
         embedded = ip.ipv4_mapped or ip.sixtofour
+        if embedded is None and ip in _NAT64:
+            embedded = ipaddress.IPv4Address(int(ip) & 0xFFFFFFFF)
         if embedded is not None:
             ip = embedded
     # is_global is False for private, loopback, link-local, shared (100.64/10) and reserved

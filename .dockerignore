@@ -11,5 +11,6 @@ tests
 docs
 loadtest
 chaos
-deploy
 *.md
+# deploy/ is not ignored: it ships inside the image as the release's deploy bundle (see the
+# Dockerfile). "*.md" above only matches the top level, so deploy's README files ship too.

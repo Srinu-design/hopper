@@ -1,4 +1,5 @@
 from collections.abc import AsyncIterator, Iterator
+from pathlib import Path
 
 import httpx
 import pytest
@@ -79,3 +80,21 @@ async def test_readyz_stays_200_degraded_when_only_redis_is_down(
         "status": "degraded",
         "checks": {"postgres": "ok", "redis": "unavailable"},
     }
+
+
+async def test_a_draining_replica_answers_503_but_keeps_serving(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """deploy.sh drains a replica before replacing it, so the load balancer stops sending it
+    requests first. Draining only fails readiness; the replica still answers everything else."""
+    drain = tmp_path / "draining"
+    monkeypatch.setenv("DRAIN_FILE", str(drain))
+    get_settings.cache_clear()
+    async for c in _client():
+        assert (await c.get("/readyz")).status_code == 200
+        drain.touch()
+        resp = await c.get("/readyz")
+        assert (resp.status_code, resp.json()["status"]) == (503, "draining")
+        assert (await c.get("/healthz")).status_code == 200
+        drain.unlink()
+        assert (await c.get("/readyz")).status_code == 200

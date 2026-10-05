@@ -1,7 +1,10 @@
+import asyncio
+import time
+
 import pytest
 from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.ext.asyncio import AsyncEngine
+from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 
 from tests.helpers import run_alembic
 
@@ -182,3 +185,29 @@ async def test_tenant_limits_must_be_positive(migrated_engine: AsyncEngine, limi
     with pytest.raises(IntegrityError, match="tenants_limits_check"):
         async with migrated_engine.begin() as conn:
             await conn.execute(text(f"UPDATE tenants SET {limits}"))
+
+
+async def test_a_migration_that_cannot_get_its_lock_gives_up_instead_of_stalling(
+    scratch_db_url: str,
+) -> None:
+    """deploy.sh migrates the live database (ADR-0011). An ALTER waiting for a lock queues
+    every later query on the table behind it, which would stall the API and the workers, so
+    the migration gives up after a few seconds and the deploy stops instead."""
+    assert run_alembic(scratch_db_url, "upgrade", "0002").returncode == 0
+    engine = create_async_engine(scratch_db_url)
+    try:
+        async with engine.begin() as conn:
+            # What a long-running query holds: enough to block 0003's ALTER TABLE jobs.
+            await conn.execute(text("LOCK TABLE jobs IN ACCESS SHARE MODE"))
+            started = time.monotonic()
+            blocked = await asyncio.to_thread(
+                run_alembic, scratch_db_url, "upgrade", "head", timeout=60
+            )
+            waited = time.monotonic() - started
+        assert blocked.returncode != 0
+        assert "lock timeout" in blocked.stderr
+        assert waited < 30
+        unblocked = run_alembic(scratch_db_url, "upgrade", "head")  # the lock is gone
+        assert unblocked.returncode == 0, unblocked.stderr
+    finally:
+        await engine.dispose()

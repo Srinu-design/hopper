@@ -1,0 +1,51 @@
+# Caddy: the only public entry point of the production stack (docker/compose.prod.yaml).
+#
+# SITE_ADDRESS is ":80" for plain HTTP on any address, or a domain name whose DNS points at the
+# host, in which case Caddy obtains HTTPS certificates and redirects HTTP to HTTPS by itself.
+# http://localhost always answers plain HTTP, so deploy.sh's smoke test can run on the host
+# whatever the public address is.
+
+(hopper) {
+	encode zstd gzip
+
+	# The read-only dashboard. Grafana serves itself from /grafana/ (GF_SERVER_SERVE_FROM_SUB_PATH).
+	handle /grafana* {
+		reverse_proxy grafana:3000
+	}
+
+	# Everything else is the API, spread over both replicas. Caddy probes /readyz on each every
+	# 2 s and stops sending traffic to one that fails (deploy.sh drains a replica this way
+	# before replacing it), and a request that cannot reach one replica is retried on the other
+	# for up to 10 s. No passive health checks (fail_duration) on purpose: one request refused
+	# during a restart would mark that replica down for the whole window, and if the other
+	# replica's turn came inside it, Caddy would see neither as up (the rehearsal caught exactly
+	# this). The 2 s active probe is the only judge.
+	handle {
+		reverse_proxy api-1:8000 api-2:8000 {
+			lb_policy round_robin
+			lb_try_duration 10s
+			lb_try_interval 250ms
+			health_uri /readyz
+			health_interval 2s
+			health_timeout 2s
+			# A replica that vanishes without draining (a crash) costs a request at most 1 s
+			# before it is retried on the other one.
+			transport http {
+				dial_timeout 1s
+			}
+		}
+	}
+
+	log {
+		output stdout
+		format json
+	}
+}
+
+{$SITE_ADDRESS::80} {
+	import hopper
+}
+
+http://localhost {
+	import hopper
+}

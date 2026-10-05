@@ -1,4 +1,6 @@
+import tempfile
 from functools import lru_cache
+from pathlib import Path
 from typing import Self
 
 from pydantic import Field, SecretStr, model_validator
@@ -73,6 +75,10 @@ class Settings(BaseSettings):
 
     # Every process serves Prometheus metrics on this internal port; 0 turns it off.
     metrics_port: int = Field(default=9100, ge=0, le=65535)
+
+    # While this file exists, /readyz answers 503 "draining" and the API keeps serving: the
+    # load balancer takes the replica out of rotation before deploy.sh replaces it.
+    drain_file: str = str(Path(tempfile.gettempdir()) / "hopper-draining")
 
     @model_validator(mode="after")
     def _heartbeat_inside_lease(self) -> Self:

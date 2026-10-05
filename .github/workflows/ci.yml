@@ -58,8 +58,41 @@ jobs:
       - run: uv run alembic upgrade head
       - run: uv run pytest -q
 
+  # Delivery, rehearsed on a fresh runner as if it were the server: deploy.sh runs a first
+  # deploy and an upgrade, then two releases broken on purpose that must roll back on their
+  # own, then a manual rollback, while every request through Caddy is counted
+  # (deploy/rehearse.sh). An image whose deploy would fail is never pushed.
+  delivery:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30   # a hung rehearsal must not hold a runner for hours
+    steps:
+      - uses: actions/checkout@v7
+      - name: shellcheck
+        run: docker run --rm -v "$PWD:/mnt" -w /mnt koalaman/shellcheck:v0.11.0 deploy/*.sh
+      - name: actionlint
+        run: docker run --rm -v "$PWD:/repo" -w /repo rhysd/actionlint:1.7.12 -color
+      - name: compose.prod.yaml is valid
+        run: |
+          mkdir -p /tmp/hopper && printf 'POSTGRES_PASSWORD=x\nGRAFANA_ADMIN_PASSWORD=x\n' > /tmp/hopper/.env
+          HOPPER_IMAGE=hopper:ci HOPPER_ROOT=/tmp/hopper docker compose \
+            --env-file /tmp/hopper/.env -f docker/compose.prod.yaml config --quiet
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: docker/Dockerfile
+          load: true
+          tags: hopper:ci
+          cache-from: type=gha
+      # good-1 is main's image (the release live in production), so the final rollback runs it
+      # on the schema this change migrated to: the backward-compatibility check.
+      - name: Rehearse deploys, broken releases and rollbacks
+        env:
+          PREVIOUS_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: bash deploy/rehearse.sh hopper:ci "ghcr.io/${GITHUB_REPOSITORY,,}:$PREVIOUS_SHA"
+
   image:
-    needs: [lint, alerts, test]
+    needs: [lint, alerts, test, delivery]
     runs-on: ubuntu-latest
     permissions: { contents: read, packages: write }
     steps:

@@ -1,0 +1,74 @@
+name: deploy
+
+# Deploys main to the EC2 host once CI has passed and pushed its image, and on demand
+# (Actions > deploy > Run workflow) any image tag, or --rollback. deploy.sh on the host does the
+# work: it migrates, replaces the API one replica at a time, smoke-tests the release with a real
+# job, and rolls back on its own if anything fails. This job only asks it to, over SSH with a
+# key that can do nothing else (docs/deploy.md).
+on:
+  workflow_run:
+    workflows: [ci]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Image tag to deploy (a full commit sha from main), or --rollback"
+        required: true
+
+permissions:
+  contents: read
+
+# One deploy at a time, and never cancel one halfway.
+concurrency:
+  group: production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    # After a green CI run for a push to main, or by hand; and only once the server exists:
+    # set the EC2_HOST variable (Settings > Secrets and variables > Actions > Variables).
+    if: >-
+      vars.EC2_HOST != '' && (github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push'))
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: ${{ vars.PUBLIC_URL }}
+    timeout-minutes: 20
+    env:
+      TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.event.workflow_run.head_sha }}
+    steps:
+      - name: SSH key, the server's host key, and the host as "hopper"
+        env:
+          SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.EC2_KNOWN_HOSTS }}
+          EC2_HOST: ${{ vars.EC2_HOST }}
+          EC2_USER: ${{ vars.EC2_USER || 'ubuntu' }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          cat > ~/.ssh/config <<EOF
+          Host hopper
+            HostName $EC2_HOST
+            User $EC2_USER
+            IdentityFile ~/.ssh/deploy_key
+            IdentitiesOnly yes
+            StrictHostKeyChecking yes
+            ConnectTimeout 20
+            ServerAliveInterval 30
+          EOF
+
+      # The tag travels as data (an env var, then SSH_ORIGINAL_COMMAND on the host, where
+      # deploy.sh accepts one word: a tag, --rollback or --status), never as part of a shell
+      # command. "--" ends ssh's own options; without it ssh rejects --rollback as one of them.
+      - name: Deploy ${{ env.TAG }}
+        run: ssh -- hopper "$TAG"
+
+      - name: Public URL answers
+        if: vars.PUBLIC_URL != ''
+        env:
+          PUBLIC_URL: ${{ vars.PUBLIC_URL }}
+        run: curl -fsS --retry 3 --retry-delay 2 "${PUBLIC_URL%/}/readyz"   # with or without a trailing /
