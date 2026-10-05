@@ -26,6 +26,7 @@ dev = [
     "mypy>=1.16",
     "pytest>=8.4",
     "pytest-asyncio>=1.0",
+    "pyyaml>=6.0",
     "ruff>=0.12",
     "types-croniter>=6.2.4.20260711",
 ]

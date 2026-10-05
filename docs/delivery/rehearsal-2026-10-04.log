@@ -1,0 +1,704 @@
+# deploy/rehearse-local.sh hopper:dev (main's image predates the deploy bundle, so good-1 and good-2 are both this branch's image)
+# Run 2026-10-04 (UTC) on Windows 11 + Docker Desktop, inside docker:29.8.2-dind, with the final Week 7 code. Raw output, unedited below this line.
+
+=== 23:45:24 releases: good-1 is hopper:dev, good-2 is hopper:dev; two broken ones are built on good-2
+
+=== 23:45:33 1. first deploy: good-1
+23:45:33 deploy: deploying good-1 (live now: nothing)
+23:45:33 deploy: pulling localhost:5000/hopper:good-1
+23:45:34 deploy: migrating with good-1
+ Network hopper-rehearsal_default Creating 
+ Volume hopper-rehearsal_pgdata Creating 
+ Volume hopper-rehearsal_pgdata Creating 
+ Network hopper-rehearsal_default Creating 
+ Volume hopper-rehearsal_pgdata Created 
+ Volume hopper-rehearsal_pgdata Created 
+ Network hopper-rehearsal_default Created 
+ Network hopper-rehearsal_default Created 
+ Container hopper-rehearsal-postgres-1 Creating 
+ Container hopper-rehearsal-postgres-1 Created 
+ Container hopper-rehearsal-postgres-1 Starting 
+ Container hopper-rehearsal-postgres-1 Started 
+ Container hopper-rehearsal-postgres-1 Waiting 
+ Container hopper-rehearsal-postgres-1 Healthy 
+ Container hopper-rehearsal-migrate-run-bc6b4ab2e7fd Creating 
+ Container hopper-rehearsal-migrate-run-bc6b4ab2e7fd Created 
+INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+INFO  [alembic.runtime.migration] Will assume transactional DDL.
+INFO  [alembic.runtime.migration] Running upgrade  -> 0001, initial schema: tenants, api_keys, schedules, jobs, job_attempts
+INFO  [alembic.runtime.migration] Running upgrade 0001 -> 0002, users for admin login, per-tenant signing secrets, schedules deletable
+INFO  [alembic.runtime.migration] Running upgrade 0002 -> 0003, jobs.request_id for log correlation; tenant limits must be positive
+ Container hopper-rehearsal-migrate-run-0bafca65833f Creating 
+ Container hopper-rehearsal-migrate-run-0bafca65833f Created 
+23:45:43 deploy: created the smoke test's API key (stored in .env)
+ Container hopper-rehearsal-postgres-1 Running 
+ Volume hopper-rehearsal_redisdata Creating 
+ Volume hopper-rehearsal_redisdata Creating 
+ Volume hopper-rehearsal_redisdata Created 
+ Volume hopper-rehearsal_redisdata Created 
+ Container hopper-rehearsal-redis-1 Creating 
+ Container hopper-rehearsal-redis-1 Created 
+ Container hopper-rehearsal-redis-1 Starting 
+ Container hopper-rehearsal-redis-1 Started 
+ Container hopper-rehearsal-redis-1 Waiting 
+ Container hopper-rehearsal-postgres-1 Waiting 
+ Container hopper-rehearsal-postgres-1 Healthy 
+ Container hopper-rehearsal-redis-1 Healthy 
+23:45:49 deploy: starting api-1 on good-1
+ Container hopper-rehearsal-api-1-1 Creating 
+ Container hopper-rehearsal-api-1-1 Created 
+ Container hopper-rehearsal-api-1-1 Starting 
+ Container hopper-rehearsal-api-1-1 Started 
+ Container hopper-rehearsal-api-1-1 Waiting 
+ Container hopper-rehearsal-api-1-1 Healthy 
+23:46:00 deploy: starting api-2 on good-1
+ Container hopper-rehearsal-api-2-1 Creating 
+ Container hopper-rehearsal-api-2-1 Created 
+ Container hopper-rehearsal-api-2-1 Starting 
+ Container hopper-rehearsal-api-2-1 Started 
+ Container hopper-rehearsal-api-2-1 Waiting 
+ Container hopper-rehearsal-api-2-1 Healthy 
+23:46:11 deploy: starting workers, schedulers and the rest on good-1
+ Container hopper-rehearsal-redis-1 Running 
+ Container hopper-rehearsal-api-2-1 Running 
+ Container hopper-rehearsal-api-1-1 Running 
+ Container hopper-rehearsal-postgres-1 Running 
+ Container hopper-rehearsal-worker-3 Creating 
+ Volume hopper-rehearsal_caddy_config Creating 
+ Volume hopper-rehearsal_caddy_config Creating 
+ Volume hopper-rehearsal_grafanadata Creating 
+ Volume hopper-rehearsal_grafanadata Creating 
+ Volume hopper-rehearsal_caddy_data Creating 
+ Volume hopper-rehearsal_caddy_data Creating 
+ Container hopper-rehearsal-scheduler-2 Creating 
+ Container hopper-rehearsal-worker-2 Creating 
+ Volume hopper-rehearsal_promdata Creating 
+ Volume hopper-rehearsal_promdata Creating 
+ Container hopper-rehearsal-worker-1 Creating 
+ Container hopper-rehearsal-scheduler-1 Creating 
+ Volume hopper-rehearsal_caddy_config Created 
+ Volume hopper-rehearsal_caddy_config Created 
+ Volume hopper-rehearsal_grafanadata Created 
+ Volume hopper-rehearsal_grafanadata Created 
+ Volume hopper-rehearsal_caddy_data Created 
+ Volume hopper-rehearsal_caddy_data Created 
+ Volume hopper-rehearsal_promdata Created 
+ Volume hopper-rehearsal_promdata Created 
+ Container hopper-rehearsal-prometheus-1 Creating 
+ Container hopper-rehearsal-scheduler-1 Created 
+ Container hopper-rehearsal-worker-2 Created 
+ Container hopper-rehearsal-scheduler-2 Created 
+ Container hopper-rehearsal-worker-1 Created 
+ Container hopper-rehearsal-worker-3 Created 
+ Container hopper-rehearsal-prometheus-1 Created 
+ Container hopper-rehearsal-grafana-1 Creating 
+ Container hopper-rehearsal-grafana-1 Created 
+ Container hopper-rehearsal-caddy-1 Creating 
+ Container hopper-rehearsal-caddy-1 Created 
+ Container hopper-rehearsal-prometheus-1 Starting 
+ Container hopper-rehearsal-postgres-1 Waiting 
+ Container hopper-rehearsal-redis-1 Waiting 
+ Container hopper-rehearsal-postgres-1 Waiting 
+ Container hopper-rehearsal-postgres-1 Waiting 
+ Container hopper-rehearsal-redis-1 Waiting 
+ Container hopper-rehearsal-redis-1 Waiting 
+ Container hopper-rehearsal-postgres-1 Waiting 
+ Container hopper-rehearsal-prometheus-1 Started 
+ Container hopper-rehearsal-grafana-1 Starting 
+ Container hopper-rehearsal-grafana-1 Started 
+ Container hopper-rehearsal-postgres-1 Healthy 
+ Container hopper-rehearsal-postgres-1 Healthy 
+ Container hopper-rehearsal-redis-1 Healthy 
+ Container hopper-rehearsal-worker-3 Starting 
+ Container hopper-rehearsal-postgres-1 Healthy 
+ Container hopper-rehearsal-redis-1 Healthy 
+ Container hopper-rehearsal-redis-1 Healthy 
+ Container hopper-rehearsal-postgres-1 Healthy 
+ Container hopper-rehearsal-scheduler-2 Starting 
+ Container hopper-rehearsal-caddy-1 Starting 
+ Container hopper-rehearsal-worker-3 Started 
+ Container hopper-rehearsal-worker-1 Starting 
+ Container hopper-rehearsal-worker-1 Started 
+ Container hopper-rehearsal-worker-2 Starting 
+ Container hopper-rehearsal-scheduler-2 Started 
+ Container hopper-rehearsal-scheduler-1 Starting 
+ Container hopper-rehearsal-caddy-1 Started 
+ Container hopper-rehearsal-worker-2 Started 
+ Container hopper-rehearsal-scheduler-1 Started 
+ Container hopper-rehearsal-api-2-1 Waiting 
+ Container hopper-rehearsal-redis-1 Waiting 
+ Container hopper-rehearsal-prometheus-1 Waiting 
+ Container hopper-rehearsal-grafana-1 Waiting 
+ Container hopper-rehearsal-caddy-1 Waiting 
+ Container hopper-rehearsal-api-1-1 Waiting 
+ Container hopper-rehearsal-postgres-1 Waiting 
+ Container hopper-rehearsal-worker-3 Waiting 
+ Container hopper-rehearsal-worker-1 Waiting 
+ Container hopper-rehearsal-worker-2 Waiting 
+ Container hopper-rehearsal-scheduler-2 Waiting 
+ Container hopper-rehearsal-scheduler-1 Waiting 
+ Container hopper-rehearsal-scheduler-2 Healthy 
+ Container hopper-rehearsal-scheduler-1 Healthy 
+ Container hopper-rehearsal-worker-3 Healthy 
+ Container hopper-rehearsal-worker-1 Healthy 
+ Container hopper-rehearsal-worker-2 Healthy 
+ Container hopper-rehearsal-grafana-1 Healthy 
+ Container hopper-rehearsal-api-1-1 Healthy 
+ Container hopper-rehearsal-api-2-1 Healthy 
+ Container hopper-rehearsal-postgres-1 Healthy 
+ Container hopper-rehearsal-caddy-1 Healthy 
+ Container hopper-rehearsal-prometheus-1 Healthy 
+ Container hopper-rehearsal-redis-1 Healthy 
+smoke ok: job 0eac9751-9c96-4895-8489-910fcfecfd06 succeeded 0.55 s after enqueue (smoke-1791157574)
+23:46:15 deploy: done: good-1 is live (42 s)
+    PASS  first deploy succeeds
+    PASS  good-1 is live
+
+=== 23:46:15 2. upgrade: good-2, through the forced command as CI sends it
+23:46:15 deploy: deploying good-2 (live now: good-1)
+23:46:15 deploy: pulling localhost:5000/hopper:good-2
+23:46:15 deploy: migrating with good-2
+ Container hopper-rehearsal-postgres-1 Running 
+ Container hopper-rehearsal-postgres-1 Waiting 
+ Container hopper-rehearsal-postgres-1 Healthy 
+ Container hopper-rehearsal-migrate-run-dfde7abaa7a9 Creating 
+ Container hopper-rehearsal-migrate-run-dfde7abaa7a9 Created 
+INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+INFO  [alembic.runtime.migration] Will assume transactional DDL.
+{"level":"info","ts":1791157578.325099,"msg":"using config from file","file":"/etc/caddy/Caddyfile"}
+{"level":"info","ts":1791157578.326717,"msg":"adapted config to JSON","adapter":"caddyfile"}
+ Container hopper-rehearsal-prometheus-1 Killing 
+ Container hopper-rehearsal-prometheus-1 Killed 
+ Container hopper-rehearsal-postgres-1 Running 
+ Container hopper-rehearsal-redis-1 Running 
+ Container hopper-rehearsal-postgres-1 Waiting 
+ Container hopper-rehearsal-redis-1 Waiting 
+ Container hopper-rehearsal-redis-1 Healthy 
+ Container hopper-rehearsal-postgres-1 Healthy 
+23:46:19 deploy: draining api-1
+23:46:25 deploy: starting api-1 on good-2
+ Container hopper-rehearsal-api-1-1 Recreate 
+ Container hopper-rehearsal-api-1-1 Recreated 
+ Container hopper-rehearsal-api-1-1 Starting 
+ Container hopper-rehearsal-api-1-1 Started 
+ Container hopper-rehearsal-api-1-1 Waiting 
+ Container hopper-rehearsal-api-1-1 Healthy 
+23:46:36 deploy: draining api-2
+23:46:42 deploy: starting api-2 on good-2
+ Container hopper-rehearsal-api-2-1 Recreate 
+ Container hopper-rehearsal-api-2-1 Recreated 
+ Container hopper-rehearsal-api-2-1 Starting 
+ Container hopper-rehearsal-api-2-1 Started 
+ Container hopper-rehearsal-api-2-1 Waiting 
+ Container hopper-rehearsal-api-2-1 Healthy 
+23:46:54 deploy: starting workers, schedulers and the rest on good-2
+ Container hopper-rehearsal-caddy-1 Running 
+ Container hopper-rehearsal-postgres-1 Running 
+ Container hopper-rehearsal-prometheus-1 Running 
+ Container hopper-rehearsal-api-1-1 Running 
+ Container hopper-rehearsal-redis-1 Running 
+ Container hopper-rehearsal-api-2-1 Running 
+ Container hopper-rehearsal-grafana-1 Running 
+ Container hopper-rehearsal-scheduler-1 Recreate 
+ Container hopper-rehearsal-scheduler-2 Recreate 
+ Container hopper-rehearsal-worker-3 Recreate 
+ Container hopper-rehearsal-worker-1 Recreate 
+ Container hopper-rehearsal-worker-2 Recreate 
+ Container hopper-rehearsal-scheduler-1 Recreated 
+ Container hopper-rehearsal-scheduler-2 Recreated 
+ Container hopper-rehearsal-worker-3 Recreated 
+ Container hopper-rehearsal-worker-2 Recreated 
+ Container hopper-rehearsal-worker-1 Recreated 
+ Container hopper-rehearsal-postgres-1 Waiting 
+ Container hopper-rehearsal-postgres-1 Waiting 
+ Container hopper-rehearsal-redis-1 Waiting 
+ Container hopper-rehearsal-postgres-1 Waiting 
+ Container hopper-rehearsal-redis-1 Waiting 
+ Container hopper-rehearsal-redis-1 Waiting 
+ Container hopper-rehearsal-postgres-1 Waiting 
+ Container hopper-rehearsal-postgres-1 Healthy 
+ Container hopper-rehearsal-redis-1 Healthy 
+ Container hopper-rehearsal-redis-1 Healthy 
+ Container hopper-rehearsal-redis-1 Healthy 
+ Container hopper-rehearsal-postgres-1 Healthy 
+ Container hopper-rehearsal-scheduler-2 Starting 
+ Container hopper-rehearsal-postgres-1 Healthy 
+ Container hopper-rehearsal-postgres-1 Healthy 
+ Container hopper-rehearsal-worker-3 Starting 
+ Container hopper-rehearsal-scheduler-2 Started 
+ Container hopper-rehearsal-scheduler-1 Starting 
+ Container hopper-rehearsal-scheduler-1 Started 
+ Container hopper-rehearsal-worker-3 Started 
+ Container hopper-rehearsal-worker-1 Starting 
+ Container hopper-rehearsal-worker-1 Started 
+ Container hopper-rehearsal-worker-2 Starting 
+ Container hopper-rehearsal-worker-2 Started 
+ Container hopper-rehearsal-caddy-1 Waiting 
+ Container hopper-rehearsal-grafana-1 Waiting 
+ Container hopper-rehearsal-worker-3 Waiting 
+ Container hopper-rehearsal-worker-1 Waiting 
+ Container hopper-rehearsal-worker-2 Waiting 
+ Container hopper-rehearsal-postgres-1 Waiting 
+ Container hopper-rehearsal-api-2-1 Waiting 
+ Container hopper-rehearsal-redis-1 Waiting 
+ Container hopper-rehearsal-prometheus-1 Waiting 
+ Container hopper-rehearsal-scheduler-2 Waiting 
+ Container hopper-rehearsal-scheduler-1 Waiting 
+ Container hopper-rehearsal-api-1-1 Waiting 
+ Container hopper-rehearsal-prometheus-1 Healthy 
+ Container hopper-rehearsal-api-1-1 Healthy 
+ Container hopper-rehearsal-scheduler-2 Healthy 
+ Container hopper-rehearsal-scheduler-1 Healthy 
+ Container hopper-rehearsal-redis-1 Healthy 
+ Container hopper-rehearsal-caddy-1 Healthy 
+ Container hopper-rehearsal-worker-3 Healthy 
+ Container hopper-rehearsal-api-2-1 Healthy 
+ Container hopper-rehearsal-postgres-1 Healthy 
+ Container hopper-rehearsal-worker-1 Healthy 
+ Container hopper-rehearsal-worker-2 Healthy 
+ Container hopper-rehearsal-grafana-1 Healthy 
+smoke ok: job f92bfd37-8dc6-4f44-95bf-1edeb72dfed5 succeeded 0.56 s after enqueue (smoke-1791157618)
+23:46:59 deploy: done: good-2 is live (44 s)
+23:47:00 deploy: this log is kept on the host: /tmp/tmp.Oyz3inxBTI/logs/20261004T234615Z-2998-good-2.log
+    PASS  upgrade succeeds
+    PASS  good-2 is live
+    PASS  its full log is kept on the host
+23:47:00 deploy: ERROR: expected one tag, --rollback or --status, got: good-1\;\ touch\ /tmp/x
+    PASS  the forced command refuses anything but one word
+
+=== 23:47:00 3. broken release: /readyz always answers 503
+23:47:00 deploy: deploying broken-readyz (live now: good-2)
+23:47:00 deploy: pulling localhost:5000/hopper:broken-readyz
+23:47:01 deploy: migrating with broken-readyz
+ Container hopper-rehearsal-postgres-1 Running 
+ Container hopper-rehearsal-postgres-1 Waiting 
+ Container hopper-rehearsal-postgres-1 Healthy 
+ Container hopper-rehearsal-migrate-run-91f87ae93a91 Creating 
+ Container hopper-rehearsal-migrate-run-91f87ae93a91 Created 
+INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+INFO  [alembic.runtime.migration] Will assume transactional DDL.
+{"level":"info","ts":1791157623.7211218,"msg":"using config from file","file":"/etc/caddy/Caddyfile"}
+{"level":"info","ts":1791157623.722904,"msg":"adapted config to JSON","adapter":"caddyfile"}
+ Container hopper-rehearsal-prometheus-1 Killing 
+ Container hopper-rehearsal-prometheus-1 Killed 
+ Container hopper-rehearsal-redis-1 Running 
+ Container hopper-rehearsal-postgres-1 Running 
+ Container hopper-rehearsal-postgres-1 Waiting 
+ Container hopper-rehearsal-redis-1 Waiting 
+ Container hopper-rehearsal-postgres-1 Healthy 
+ Container hopper-rehearsal-redis-1 Healthy 
+23:47:04 deploy: draining api-1
+23:47:10 deploy: starting api-1 on broken-readyz
+ Container hopper-rehearsal-api-1-1 Recreate 
+ Container hopper-rehearsal-api-1-1 Recreated 
+ Container hopper-rehearsal-api-1-1 Starting 
+ Container hopper-rehearsal-api-1-1 Started 
+ Container hopper-rehearsal-api-1-1 Waiting 
+container hopper-rehearsal-api-1-1 is unhealthy
+23:47:42 deploy: api-1 did not become healthy
+23:47:42 deploy: release broken-readyz FAILED its health checks
+23:47:42 deploy: ROLLING BACK to good-2 (no migrations: the schema stays, and good-2 works with it)
+{"level":"info","ts":1791157662.2839942,"msg":"using config from file","file":"/etc/caddy/Caddyfile"}
+{"level":"info","ts":1791157662.2850173,"msg":"adapted config to JSON","adapter":"caddyfile"}
+ Container hopper-rehearsal-prometheus-1 Killing 
+ Container hopper-rehearsal-prometheus-1 Killed 
+ Container hopper-rehearsal-redis-1 Running 
+ Container hopper-rehearsal-postgres-1 Running 
+ Container hopper-rehearsal-postgres-1 Waiting 
+ Container hopper-rehearsal-redis-1 Waiting 
+ Container hopper-rehearsal-postgres-1 Healthy 
+ Container hopper-rehearsal-redis-1 Healthy 
+23:47:43 deploy: draining api-1
+23:47:48 deploy: starting api-1 on good-2
+ Container hopper-rehearsal-api-1-1 Recreate 
+ Container hopper-rehearsal-api-1-1 Recreated 
+ Container hopper-rehearsal-api-1-1 Starting 
+ Container hopper-rehearsal-api-1-1 Started 
+ Container hopper-rehearsal-api-1-1 Waiting 
+ Container hopper-rehearsal-api-1-1 Healthy 
+23:47:59 deploy: draining api-2
+23:48:05 deploy: starting api-2 on good-2
+ Container hopper-rehearsal-api-2-1 Recreate 
+ Container hopper-rehearsal-api-2-1 Recreated 
+ Container hopper-rehearsal-api-2-1 Starting 
+ Container hopper-rehearsal-api-2-1 Started 
+ Container hopper-rehearsal-api-2-1 Waiting 
+ Container hopper-rehearsal-api-2-1 Healthy 
+23:48:17 deploy: starting workers, schedulers and the rest on good-2
+ Container hopper-rehearsal-postgres-1 Running 
+ Container hopper-rehearsal-api-2-1 Running 
+ Container hopper-rehearsal-api-1-1 Running 
+ Container hopper-rehearsal-redis-1 Running 
+ Container hopper-rehearsal-grafana-1 Running 
+ Container hopper-rehearsal-caddy-1 Running 
+ Container hopper-rehearsal-prometheus-1 Running 
+ Container hopper-rehearsal-scheduler-1 Running 
+ Container hopper-rehearsal-scheduler-2 Running 
+ Container hopper-rehearsal-worker-1 Running 
+ Container hopper-rehearsal-worker-2 Running 
+ Container hopper-rehearsal-worker-3 Running 
+ Container hopper-rehearsal-postgres-1 Waiting 
+ Container hopper-rehearsal-postgres-1 Waiting 
+ Container hopper-rehearsal-redis-1 Waiting 
+ Container hopper-rehearsal-postgres-1 Waiting 
+ Container hopper-rehearsal-redis-1 Waiting 
+ Container hopper-rehearsal-postgres-1 Waiting 
+ Container hopper-rehearsal-redis-1 Waiting 
+ Container hopper-rehearsal-redis-1 Healthy 
+ Container hopper-rehearsal-postgres-1 Healthy 
+ Container hopper-rehearsal-redis-1 Healthy 
+ Container hopper-rehearsal-redis-1 Healthy 
+ Container hopper-rehearsal-postgres-1 Healthy 
+ Container hopper-rehearsal-postgres-1 Healthy 
+ Container hopper-rehearsal-postgres-1 Healthy 
+ Container hopper-rehearsal-caddy-1 Waiting 
+ Container hopper-rehearsal-prometheus-1 Waiting 
+ Container hopper-rehearsal-scheduler-2 Waiting 
+ Container hopper-rehearsal-scheduler-1 Waiting 
+ Container hopper-rehearsal-api-1-1 Waiting 
+ Container hopper-rehearsal-grafana-1 Waiting 
+ Container hopper-rehearsal-postgres-1 Waiting 
+ Container hopper-rehearsal-api-2-1 Waiting 
+ Container hopper-rehearsal-redis-1 Waiting 
+ Container hopper-rehearsal-worker-3 Waiting 
+ Container hopper-rehearsal-worker-1 Waiting 
+ Container hopper-rehearsal-worker-2 Waiting 
+ Container hopper-rehearsal-api-1-1 Healthy 
+ Container hopper-rehearsal-postgres-1 Healthy 
+ Container hopper-rehearsal-prometheus-1 Healthy 
+ Container hopper-rehearsal-worker-3 Healthy 
+ Container hopper-rehearsal-worker-1 Healthy 
+ Container hopper-rehearsal-worker-2 Healthy 
+ Container hopper-rehearsal-scheduler-2 Healthy 
+ Container hopper-rehearsal-scheduler-1 Healthy 
+ Container hopper-rehearsal-caddy-1 Healthy 
+ Container hopper-rehearsal-redis-1 Healthy 
+ Container hopper-rehearsal-grafana-1 Healthy 
+ Container hopper-rehearsal-api-2-1 Healthy 
+smoke ok: job 191cd2bf-2e1d-4707-8da7-4a180e7b2924 succeeded 0.54 s after enqueue (smoke-1791157698)
+23:48:18 deploy: rolled back: good-2 is serving again
+    PASS  deploy fails and rolls back (exit 1)
+    PASS  good-2 is still live
+
+=== 23:48:18 4. broken release: workers exit at start, /readyz stays green
+23:48:18 deploy: deploying broken-worker (live now: good-2)
+23:48:18 deploy: pulling localhost:5000/hopper:broken-worker
+23:48:19 deploy: migrating with broken-worker
+ Container hopper-rehearsal-postgres-1 Running 
+ Container hopper-rehearsal-postgres-1 Waiting 
+ Container hopper-rehearsal-postgres-1 Healthy 
+ Container hopper-rehearsal-migrate-run-e3e9ddc418ae Creating 
+ Container hopper-rehearsal-migrate-run-e3e9ddc418ae Created 
+INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+INFO  [alembic.runtime.migration] Will assume transactional DDL.
+{"level":"info","ts":1791157701.332188,"msg":"using config from file","file":"/etc/caddy/Caddyfile"}
+{"level":"info","ts":1791157701.333271,"msg":"adapted config to JSON","adapter":"caddyfile"}
+ Container hopper-rehearsal-prometheus-1 Killing 
+ Container hopper-rehearsal-prometheus-1 Killed 
+ Container hopper-rehearsal-redis-1 Running 
+ Container hopper-rehearsal-postgres-1 Running 
+ Container hopper-rehearsal-redis-1 Waiting 
+ Container hopper-rehearsal-postgres-1 Waiting 
+ Container hopper-rehearsal-redis-1 Healthy 
+ Container hopper-rehearsal-postgres-1 Healthy 
+23:48:22 deploy: draining api-1
+23:48:27 deploy: starting api-1 on broken-worker
+ Container hopper-rehearsal-api-1-1 Recreate 
+ Container hopper-rehearsal-api-1-1 Recreated 
+ Container hopper-rehearsal-api-1-1 Starting 
+ Container hopper-rehearsal-api-1-1 Started 
+ Container hopper-rehearsal-api-1-1 Waiting 
+ Container hopper-rehearsal-api-1-1 Healthy 
+23:48:39 deploy: draining api-2
+23:48:44 deploy: starting api-2 on broken-worker
+ Container hopper-rehearsal-api-2-1 Recreate 
+ Container hopper-rehearsal-api-2-1 Recreated 
+ Container hopper-rehearsal-api-2-1 Starting 
+ Container hopper-rehearsal-api-2-1 Started 
+ Container hopper-rehearsal-api-2-1 Waiting 
+ Container hopper-rehearsal-api-2-1 Healthy 
+23:48:56 deploy: starting workers, schedulers and the rest on broken-worker
+ Container hopper-rehearsal-api-2-1 Running 
+ Container hopper-rehearsal-grafana-1 Running 
+ Container hopper-rehearsal-redis-1 Running 
+ Container hopper-rehearsal-prometheus-1 Running 
+ Container hopper-rehearsal-postgres-1 Running 
+ Container hopper-rehearsal-caddy-1 Running 
+ Container hopper-rehearsal-api-1-1 Running 
+ Container hopper-rehearsal-worker-1 Recreate 
+ Container hopper-rehearsal-scheduler-1 Recreate 
+ Container hopper-rehearsal-scheduler-2 Recreate 
+ Container hopper-rehearsal-worker-2 Recreate 
+ Container hopper-rehearsal-worker-3 Recreate 
+ Container hopper-rehearsal-worker-3 Recreated 
+ Container hopper-rehearsal-scheduler-1 Recreated 
+ Container hopper-rehearsal-worker-2 Recreated 
+ Container hopper-rehearsal-worker-1 Recreated 
+ Container hopper-rehearsal-scheduler-2 Recreated 
+ Container hopper-rehearsal-postgres-1 Waiting 
+ Container hopper-rehearsal-redis-1 Waiting 
+ Container hopper-rehearsal-postgres-1 Waiting 
+ Container hopper-rehearsal-postgres-1 Waiting 
+ Container hopper-rehearsal-redis-1 Waiting 
+ Container hopper-rehearsal-redis-1 Waiting 
+ Container hopper-rehearsal-postgres-1 Waiting 
+ Container hopper-rehearsal-postgres-1 Healthy 
+ Container hopper-rehearsal-postgres-1 Healthy 
+ Container hopper-rehearsal-worker-1 Starting 
+ Container hopper-rehearsal-redis-1 Healthy 
+ Container hopper-rehearsal-postgres-1 Healthy 
+ Container hopper-rehearsal-redis-1 Healthy 
+ Container hopper-rehearsal-postgres-1 Healthy 
+ Container hopper-rehearsal-redis-1 Healthy 
+ Container hopper-rehearsal-scheduler-2 Starting 
+ Container hopper-rehearsal-worker-1 Started 
+ Container hopper-rehearsal-worker-2 Starting 
+ Container hopper-rehearsal-worker-2 Started 
+ Container hopper-rehearsal-worker-3 Starting 
+ Container hopper-rehearsal-scheduler-2 Started 
+ Container hopper-rehearsal-scheduler-1 Starting 
+ Container hopper-rehearsal-scheduler-1 Started 
+ Container hopper-rehearsal-worker-3 Started 
+ Container hopper-rehearsal-worker-1 Waiting 
+ Container hopper-rehearsal-worker-2 Waiting 
+ Container hopper-rehearsal-worker-3 Waiting 
+ Container hopper-rehearsal-api-2-1 Waiting 
+ Container hopper-rehearsal-grafana-1 Waiting 
+ Container hopper-rehearsal-redis-1 Waiting 
+ Container hopper-rehearsal-caddy-1 Waiting 
+ Container hopper-rehearsal-api-1-1 Waiting 
+ Container hopper-rehearsal-scheduler-2 Waiting 
+ Container hopper-rehearsal-scheduler-1 Waiting 
+ Container hopper-rehearsal-postgres-1 Waiting 
+ Container hopper-rehearsal-prometheus-1 Waiting 
+ Container hopper-rehearsal-api-1-1 Healthy 
+ Container hopper-rehearsal-caddy-1 Healthy 
+ Container hopper-rehearsal-grafana-1 Healthy 
+ Container hopper-rehearsal-api-2-1 Healthy 
+ Container hopper-rehearsal-scheduler-2 Healthy 
+ Container hopper-rehearsal-scheduler-1 Healthy 
+ Container hopper-rehearsal-redis-1 Healthy 
+ Container hopper-rehearsal-worker-1 Healthy 
+ Container hopper-rehearsal-worker-2 Healthy 
+ Container hopper-rehearsal-worker-3 Healthy 
+ Container hopper-rehearsal-postgres-1 Healthy 
+ Container hopper-rehearsal-prometheus-1 Healthy 
+smoke FAILED: job 4629d2eb-8903-4c7e-ae1d-86c5f32cdf26 still queued after 30 s: are the workers running?
+23:49:29 deploy: smoke test failed (try 1 of 3)
+smoke FAILED: job e74f2d81-010a-43e5-b756-56a56ea501d4 still queued after 30 s: are the workers running?
+23:50:05 deploy: smoke test failed (try 2 of 3)
+smoke FAILED: job 321c6c5d-2c3e-4e48-b92a-fa5944490b48 still queued after 30 s: are the workers running?
+23:50:40 deploy: smoke test failed (try 3 of 3)
+23:50:40 deploy: release broken-worker FAILED its health checks
+23:50:40 deploy: ROLLING BACK to good-2 (no migrations: the schema stays, and good-2 works with it)
+{"level":"info","ts":1791157840.4759445,"msg":"using config from file","file":"/etc/caddy/Caddyfile"}
+{"level":"info","ts":1791157840.4769342,"msg":"adapted config to JSON","adapter":"caddyfile"}
+ Container hopper-rehearsal-prometheus-1 Killing 
+ Container hopper-rehearsal-prometheus-1 Killed 
+ Container hopper-rehearsal-redis-1 Running 
+ Container hopper-rehearsal-postgres-1 Running 
+ Container hopper-rehearsal-redis-1 Waiting 
+ Container hopper-rehearsal-postgres-1 Waiting 
+ Container hopper-rehearsal-redis-1 Healthy 
+ Container hopper-rehearsal-postgres-1 Healthy 
+23:50:41 deploy: draining api-1
+23:50:46 deploy: starting api-1 on good-2
+ Container hopper-rehearsal-api-1-1 Recreate 
+ Container hopper-rehearsal-api-1-1 Recreated 
+ Container hopper-rehearsal-api-1-1 Starting 
+ Container hopper-rehearsal-api-1-1 Started 
+ Container hopper-rehearsal-api-1-1 Waiting 
+ Container hopper-rehearsal-api-1-1 Healthy 
+23:50:58 deploy: draining api-2
+23:51:03 deploy: starting api-2 on good-2
+ Container hopper-rehearsal-api-2-1 Recreate 
+ Container hopper-rehearsal-api-2-1 Recreated 
+ Container hopper-rehearsal-api-2-1 Starting 
+ Container hopper-rehearsal-api-2-1 Started 
+ Container hopper-rehearsal-api-2-1 Waiting 
+ Container hopper-rehearsal-api-2-1 Healthy 
+23:51:15 deploy: starting workers, schedulers and the rest on good-2
+ Container hopper-rehearsal-api-1-1 Running 
+ Container hopper-rehearsal-grafana-1 Running 
+ Container hopper-rehearsal-postgres-1 Running 
+ Container hopper-rehearsal-caddy-1 Running 
+ Container hopper-rehearsal-api-2-1 Running 
+ Container hopper-rehearsal-prometheus-1 Running 
+ Container hopper-rehearsal-redis-1 Running 
+ Container hopper-rehearsal-scheduler-2 Recreate 
+ Container hopper-rehearsal-worker-1 Recreate 
+ Container hopper-rehearsal-worker-2 Recreate 
+ Container hopper-rehearsal-worker-3 Recreate 
+ Container hopper-rehearsal-scheduler-1 Recreate 
+ Container hopper-rehearsal-worker-2 Recreated 
+ Container hopper-rehearsal-worker-3 Recreated 
+ Container hopper-rehearsal-worker-1 Recreated 
+ Container hopper-rehearsal-scheduler-1 Recreated 
+ Container hopper-rehearsal-scheduler-2 Recreated 
+ Container hopper-rehearsal-postgres-1 Waiting 
+ Container hopper-rehearsal-postgres-1 Waiting 
+ Container hopper-rehearsal-redis-1 Waiting 
+ Container hopper-rehearsal-postgres-1 Waiting 
+ Container hopper-rehearsal-redis-1 Waiting 
+ Container hopper-rehearsal-postgres-1 Waiting 
+ Container hopper-rehearsal-redis-1 Waiting 
+ Container hopper-rehearsal-redis-1 Healthy 
+ Container hopper-rehearsal-redis-1 Healthy 
+ Container hopper-rehearsal-postgres-1 Healthy 
+ Container hopper-rehearsal-redis-1 Healthy 
+ Container hopper-rehearsal-scheduler-1 Starting 
+ Container hopper-rehearsal-postgres-1 Healthy 
+ Container hopper-rehearsal-worker-1 Starting 
+ Container hopper-rehearsal-postgres-1 Healthy 
+ Container hopper-rehearsal-postgres-1 Healthy 
+ Container hopper-rehearsal-scheduler-1 Started 
+ Container hopper-rehearsal-scheduler-2 Starting 
+ Container hopper-rehearsal-scheduler-2 Started 
+ Container hopper-rehearsal-worker-1 Started 
+ Container hopper-rehearsal-worker-3 Starting 
+ Container hopper-rehearsal-worker-3 Started 
+ Container hopper-rehearsal-worker-2 Starting 
+ Container hopper-rehearsal-worker-2 Started 
+ Container hopper-rehearsal-caddy-1 Waiting 
+ Container hopper-rehearsal-api-2-1 Waiting 
+ Container hopper-rehearsal-api-1-1 Waiting 
+ Container hopper-rehearsal-scheduler-1 Waiting 
+ Container hopper-rehearsal-scheduler-2 Waiting 
+ Container hopper-rehearsal-worker-1 Waiting 
+ Container hopper-rehearsal-worker-3 Waiting 
+ Container hopper-rehearsal-worker-2 Waiting 
+ Container hopper-rehearsal-prometheus-1 Waiting 
+ Container hopper-rehearsal-grafana-1 Waiting 
+ Container hopper-rehearsal-postgres-1 Waiting 
+ Container hopper-rehearsal-redis-1 Waiting 
+ Container hopper-rehearsal-api-1-1 Healthy 
+ Container hopper-rehearsal-worker-1 Healthy 
+ Container hopper-rehearsal-worker-3 Healthy 
+ Container hopper-rehearsal-worker-2 Healthy 
+ Container hopper-rehearsal-api-2-1 Healthy 
+ Container hopper-rehearsal-redis-1 Healthy 
+ Container hopper-rehearsal-caddy-1 Healthy 
+ Container hopper-rehearsal-scheduler-1 Healthy 
+ Container hopper-rehearsal-scheduler-2 Healthy 
+ Container hopper-rehearsal-prometheus-1 Healthy 
+ Container hopper-rehearsal-grafana-1 Healthy 
+ Container hopper-rehearsal-postgres-1 Healthy 
+smoke ok: job 4888df05-a933-46a2-8299-edd88a1858f6 succeeded 0.56 s after enqueue (smoke-1791157878)
+23:51:18 deploy: rolled back: good-2 is serving again
+    PASS  deploy fails and rolls back (exit 1)
+    PASS  good-2 is still live
+smoke ok: job 0c93e736-7618-4dea-a0dd-455e2b23a17a succeeded 0.52 s after enqueue (smoke-1791157878)
+    PASS  the smoke test passes on good-2 again
+
+=== 23:51:19 5. manual rollback: deploy.sh --rollback, so good-1 runs on the schema good-2 migrated
+23:51:19 deploy: manual rollback from good-2 to good-1
+23:51:19 deploy: pulling localhost:5000/hopper:good-1
+{"level":"info","ts":1791157879.735031,"msg":"using config from file","file":"/etc/caddy/Caddyfile"}
+{"level":"info","ts":1791157879.7362516,"msg":"adapted config to JSON","adapter":"caddyfile"}
+ Container hopper-rehearsal-prometheus-1 Killing 
+ Container hopper-rehearsal-prometheus-1 Killed 
+ Container hopper-rehearsal-postgres-1 Running 
+ Container hopper-rehearsal-redis-1 Running 
+ Container hopper-rehearsal-postgres-1 Waiting 
+ Container hopper-rehearsal-redis-1 Waiting 
+ Container hopper-rehearsal-redis-1 Healthy 
+ Container hopper-rehearsal-postgres-1 Healthy 
+23:51:20 deploy: draining api-1
+23:51:26 deploy: starting api-1 on good-1
+ Container hopper-rehearsal-api-1-1 Recreate 
+ Container hopper-rehearsal-api-1-1 Recreated 
+ Container hopper-rehearsal-api-1-1 Starting 
+ Container hopper-rehearsal-api-1-1 Started 
+ Container hopper-rehearsal-api-1-1 Waiting 
+ Container hopper-rehearsal-api-1-1 Healthy 
+23:51:37 deploy: draining api-2
+23:51:43 deploy: starting api-2 on good-1
+ Container hopper-rehearsal-api-2-1 Recreate 
+ Container hopper-rehearsal-api-2-1 Recreated 
+ Container hopper-rehearsal-api-2-1 Starting 
+ Container hopper-rehearsal-api-2-1 Started 
+ Container hopper-rehearsal-api-2-1 Waiting 
+ Container hopper-rehearsal-api-2-1 Healthy 
+23:51:54 deploy: starting workers, schedulers and the rest on good-1
+ Container hopper-rehearsal-prometheus-1 Running 
+ Container hopper-rehearsal-api-2-1 Running 
+ Container hopper-rehearsal-api-1-1 Running 
+ Container hopper-rehearsal-caddy-1 Running 
+ Container hopper-rehearsal-postgres-1 Running 
+ Container hopper-rehearsal-redis-1 Running 
+ Container hopper-rehearsal-grafana-1 Running 
+ Container hopper-rehearsal-scheduler-1 Recreate 
+ Container hopper-rehearsal-scheduler-2 Recreate 
+ Container hopper-rehearsal-worker-1 Recreate 
+ Container hopper-rehearsal-worker-2 Recreate 
+ Container hopper-rehearsal-worker-3 Recreate 
+ Container hopper-rehearsal-worker-3 Recreated 
+ Container hopper-rehearsal-scheduler-2 Recreated 
+ Container hopper-rehearsal-worker-1 Recreated 
+ Container hopper-rehearsal-scheduler-1 Recreated 
+ Container hopper-rehearsal-worker-2 Recreated 
+ Container hopper-rehearsal-postgres-1 Waiting 
+ Container hopper-rehearsal-redis-1 Waiting 
+ Container hopper-rehearsal-postgres-1 Waiting 
+ Container hopper-rehearsal-redis-1 Waiting 
+ Container hopper-rehearsal-postgres-1 Waiting 
+ Container hopper-rehearsal-redis-1 Waiting 
+ Container hopper-rehearsal-postgres-1 Waiting 
+ Container hopper-rehearsal-postgres-1 Healthy 
+ Container hopper-rehearsal-postgres-1 Healthy 
+ Container hopper-rehearsal-redis-1 Healthy 
+ Container hopper-rehearsal-redis-1 Healthy 
+ Container hopper-rehearsal-postgres-1 Healthy 
+ Container hopper-rehearsal-redis-1 Healthy 
+ Container hopper-rehearsal-scheduler-1 Starting 
+ Container hopper-rehearsal-postgres-1 Healthy 
+ Container hopper-rehearsal-worker-2 Starting 
+ Container hopper-rehearsal-scheduler-1 Started 
+ Container hopper-rehearsal-scheduler-2 Starting 
+ Container hopper-rehearsal-scheduler-2 Started 
+ Container hopper-rehearsal-worker-2 Started 
+ Container hopper-rehearsal-worker-1 Starting 
+ Container hopper-rehearsal-worker-1 Started 
+ Container hopper-rehearsal-worker-3 Starting 
+ Container hopper-rehearsal-worker-3 Started 
+ Container hopper-rehearsal-caddy-1 Waiting 
+ Container hopper-rehearsal-postgres-1 Waiting 
+ Container hopper-rehearsal-scheduler-1 Waiting 
+ Container hopper-rehearsal-scheduler-2 Waiting 
+ Container hopper-rehearsal-grafana-1 Waiting 
+ Container hopper-rehearsal-api-1-1 Waiting 
+ Container hopper-rehearsal-redis-1 Waiting 
+ Container hopper-rehearsal-api-2-1 Waiting 
+ Container hopper-rehearsal-worker-2 Waiting 
+ Container hopper-rehearsal-worker-1 Waiting 
+ Container hopper-rehearsal-worker-3 Waiting 
+ Container hopper-rehearsal-prometheus-1 Waiting 
+ Container hopper-rehearsal-api-2-1 Healthy 
+ Container hopper-rehearsal-api-1-1 Healthy 
+ Container hopper-rehearsal-prometheus-1 Healthy 
+ Container hopper-rehearsal-caddy-1 Healthy 
+ Container hopper-rehearsal-redis-1 Healthy 
+ Container hopper-rehearsal-worker-2 Healthy 
+ Container hopper-rehearsal-worker-1 Healthy 
+ Container hopper-rehearsal-worker-3 Healthy 
+ Container hopper-rehearsal-scheduler-1 Healthy 
+ Container hopper-rehearsal-scheduler-2 Healthy 
+ Container hopper-rehearsal-postgres-1 Healthy 
+ Container hopper-rehearsal-grafana-1 Healthy 
+smoke ok: job 99149807-98e7-4022-993f-bace1d44cf36 succeeded 0.55 s after enqueue (smoke-1791157918)
+23:51:58 deploy: done: good-1 is live again (39 s)
+    PASS  rollback succeeds
+    PASS  good-1 is live
+
+=== 23:52:01 results
+    requests through Caddy during steps 2-5: 3093, failed: 0
+    memory used by the stack's 12 containers at the end: 854 MiB
+    deploy history:
+      2026-10-04T23:46:14Z good-1 deployed
+      2026-10-04T23:46:59Z good-2 deployed
+      2026-10-04T23:48:18Z broken-readyz failed-rolled-back-to-good-2
+      2026-10-04T23:51:18Z broken-worker failed-rolled-back-to-good-2
+      2026-10-04T23:51:58Z good-1 manual-rollback
+    PASS  no request failed during deploys and rollbacks
+
+=== 23:52:01 REHEARSAL PASSED

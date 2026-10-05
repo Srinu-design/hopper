@@ -253,8 +253,12 @@ def test_the_metrics_endpoint_serves_the_catalogue() -> None:
         assert f"# TYPE {name.removesuffix('_total')}" in body
 
 
-def test_port_zero_serves_nothing() -> None:
-    metrics.serve(0)()  # returns a no-op stop
+def test_port_zero_serves_nothing(monkeypatch: pytest.MonkeyPatch) -> None:
+    started: list[int] = []
+    monkeypatch.setattr(metrics, "start_http_server", lambda port: started.append(port))
+    stop = metrics.serve(0)
+    stop()  # a no-op
+    assert started == []
 
 
 # --- logs -------------------------------------------------------------------------------------

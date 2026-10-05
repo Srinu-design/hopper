@@ -39,6 +39,8 @@ from hopper.tasks.http import (
         "fe80::1",  # IPv6 link-local
         "::ffff:169.254.169.254",  # IPv4-mapped IPv6
         "2002:a9fe:a9fe::1",  # 6to4 wrapping 169.254.169.254
+        "64:ff9b::a9fe:a9fe",  # NAT64 wrapping 169.254.169.254 (Python calls it global)
+        "64:ff9b::a00:1",  # NAT64 wrapping 10.0.0.1
         "ff02::1",  # IPv6 multicast
     ],
 )
@@ -46,7 +48,10 @@ def test_non_public_addresses_are_blocked(address: str) -> None:
     assert is_blocked(ipaddress.ip_address(address))
 
 
-@pytest.mark.parametrize("address", ["93.184.215.14", "8.8.8.8", "2606:4700:4700::1111"])
+@pytest.mark.parametrize(
+    "address",
+    ["93.184.215.14", "8.8.8.8", "2606:4700:4700::1111", "64:ff9b::808:808"],  # NAT64 of 8.8.8.8
+)
 def test_public_addresses_are_allowed(address: str) -> None:
     assert not is_blocked(ipaddress.ip_address(address))
 

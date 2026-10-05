@@ -1,0 +1,106 @@
+name: rollback-drill
+
+# A fire drill for delivery, run by hand: Actions > rollback-drill > Run workflow.
+#
+# It builds a release that is broken on purpose from the image live on the server
+# (deploy/broken/<breakage>.Dockerfile changes real code, as a bad commit would), pushes it to
+# GHCR as drill-<breakage>-<run id>, and deploys it. deploy.sh must catch it and roll back on its
+# own, so this job passes only if the deploy fails with exit 1 (rolled back), the same release is
+# live afterwards, and the public URL still answers. Its log is the recording of a broken
+# release being rolled back automatically.
+on:
+  workflow_dispatch:
+    inputs:
+      breakage:
+        description: "What to break: readyz (answers 503) or worker (exits at start; /readyz stays green)"
+        type: choice
+        options: [readyz, worker]
+        default: readyz
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: production
+  cancel-in-progress: false
+
+jobs:
+  drill:
+    if: vars.EC2_HOST != ''
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: ${{ vars.PUBLIC_URL }}
+    timeout-minutes: 25
+    env:
+      BREAKAGE: ${{ inputs.breakage }}
+    steps:
+      - uses: actions/checkout@v7
+
+      # The same SSH setup as deploy.yml. "--" before the host in every ssh call below ends ssh's
+      # own options, so --status reaches deploy.sh instead of being rejected by ssh.
+      - name: SSH key, the server's host key, and the host as "hopper"
+        env:
+          SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.EC2_KNOWN_HOSTS }}
+          EC2_HOST: ${{ vars.EC2_HOST }}
+          EC2_USER: ${{ vars.EC2_USER || 'ubuntu' }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          cat > ~/.ssh/config <<EOF
+          Host hopper
+            HostName $EC2_HOST
+            User $EC2_USER
+            IdentityFile ~/.ssh/deploy_key
+            IdentitiesOnly yes
+            StrictHostKeyChecking yes
+            ConnectTimeout 20
+            ServerAliveInterval 30
+          EOF
+
+      - name: The release that is live now
+        run: |
+          status="$(ssh -- hopper --status)"
+          echo "$status"
+          live="$(sed -n 's/^current=\([^ ]*\).*/\1/p' <<<"$status")"
+          test -n "$live" || { echo "nothing is deployed yet: deploy main first"; exit 1; }
+          {
+            echo "IMAGE=ghcr.io/${GITHUB_REPOSITORY,,}"
+            echo "LIVE=$live"
+            echo "BROKEN=drill-$BREAKAGE-$GITHUB_RUN_ID"
+          } >> "$GITHUB_ENV"
+
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push the broken release
+        run: |
+          docker build -f "deploy/broken/$BREAKAGE.Dockerfile" --build-arg BASE="$IMAGE:$LIVE" \
+            -t "$IMAGE:$BROKEN" deploy/broken
+          docker push "$IMAGE:$BROKEN"
+
+      - name: Deploy it; the server must roll back on its own
+        run: |
+          code=0
+          ssh -- hopper "$BROKEN" || code=$?
+          echo "deploy.sh exited with $code (1 = failed and rolled back)"
+          test "$code" -eq 1
+
+      - name: The same release is still live
+        run: |
+          status="$(ssh -- hopper --status)"
+          echo "$status"
+          grep -q "^current=$LIVE " <<<"$status"
+
+      - name: Public URL answers
+        if: vars.PUBLIC_URL != ''
+        env:
+          PUBLIC_URL: ${{ vars.PUBLIC_URL }}
+        run: curl -fsS --retry 3 --retry-delay 2 "${PUBLIC_URL%/}/readyz"   # with or without a trailing /

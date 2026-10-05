@@ -5,14 +5,17 @@
 A multi-tenant job queue and scheduler on PostgreSQL: send a job over HTTP; it runs at least once,
 retries with backoff, parks in a dead-letter queue if it keeps failing, and can be replayed.
 
-> **Status: Week 6 of 8 (limits and observability).** Tenants enqueue jobs over HTTP with an API key (now, after
+> **Status: Week 7 of 8 (delivery).** Tenants enqueue jobs over HTTP with an API key (now, after
 > a delay, at a set time, or on a cron schedule), optionally with an `Idempotency-Key`. Workers claim them with
 > `FOR UPDATE SKIP LOCKED` under a heartbeated lease, retry with full-jitter backoff, and park failures in a
 > dead-letter queue you can list and replay. The `http` task calls a tenant's URL behind an SSRF guard and signs
 > every request. Each tenant is rate-limited by a Redis token bucket (429 with `Retry-After`), deep queues are
 > refused (429 per tenant, 503 overall), and every process reports to Prometheus, with a provisioned Grafana
-> dashboard and five tested alerts. Deployment and the load and chaos tests arrive in Weeks 7 and 8. Nothing here
-> claims behaviour that is not built and tested yet.
+> dashboard and five tested alerts. Every merge to main can deploy itself to one EC2 host: the API is replaced one
+> replica at a time behind Caddy, each release is smoke-tested with a real job, and a failing one is rolled back
+> automatically. That is rehearsed in CI on every pull request; the server itself is not launched yet
+> ([docs/deploy.md](docs/deploy.md)). The load and chaos tests arrive in Week 8. Nothing here claims behaviour that
+> is not built and tested yet.
 
 The demo video, headline numbers, architecture diagram and live links will go at the top of this file in
 Week 8, once there is something measured to show.
@@ -85,9 +88,10 @@ docker compose -f docker/compose.yaml --env-file .env stop worker
 Built-in tasks: `sleep` (`{"ms": 100}`), `flaky` (`{"p": 0.3}` fails with that probability), `fail_always`
 (`{}` retries until it is dead; `{"permanent": true}` goes to the DLQ at once) and `http` (`{"url", "method",
 "headers", "body"}`; 8 attempts, 10 s backoff base, 1 h cap, 15 s timeout). Admin tokens last 15 minutes, and
-`/auth/token` allows 10 attempts per email, then one every 6 s. HTTPS arrives in Week 7, so keep the API on
-localhost until then. Scale workers with `docker compose -f docker/compose.yaml --env-file .env up -d --scale
-worker=N`; Prometheus finds new replicas by itself within 10 s.
+`/auth/token` allows 10 attempts per email, then one every 6 s. The development stack is plain HTTP, so keep it on
+localhost; on a server, Caddy terminates HTTPS ([docs/deploy.md](docs/deploy.md)). Scale workers with `docker
+compose -f docker/compose.yaml --env-file .env up -d --scale worker=N`; Prometheus finds new replicas by itself
+within 10 s.
 
 | Answer | When | What to do |
 |---|---|---|
@@ -115,7 +119,11 @@ docker compose -f docker/compose.yaml --env-file .env up -d postgres redis
 make test              # pytest against real Postgres and Redis
 make lint              # ruff check, ruff format --check, mypy --strict on src/
 make alerts            # promtool: check the Prometheus config and unit-test the alert rules
+make rehearse          # deploys, broken releases and rollbacks on a throwaway Docker host (deploy/rehearse.sh)
 ```
+
+Production runs `docker/compose.prod.yaml` on one EC2 host, deployed by GitHub Actions through `deploy/deploy.sh`.
+Setting up the server, the GitHub secrets, the first deploy and the rollback drill: [docs/deploy.md](docs/deploy.md).
 
 Tests use real Postgres and Redis, because mocks cannot prove `SKIP LOCKED` behaviour. Integration tests
 create a throwaway database per test, so they never touch your dev data. Host-side URLs use `127.0.0.1`,
@@ -125,10 +133,11 @@ not `localhost`: on Windows `localhost` resolves to `::1` first and the publishe
 
 | Path | Contents |
 |---|---|
-| `src/hopper/` | `api/` (routers, rate limits and backpressure, HTTP metrics), `auth/` (API keys, passwords, JWT, tenant context), `ratelimit/` (`token_bucket.lua`, the limiter and its in-process fallback, the depth gate), `queue/` (Broker interface and all queue SQL), `worker/` (run loop, heartbeats, shutdown), `scheduler/` (cron, reaper and queue-depth loops), `tasks/` (registry, built-ins, `http`), `bootstrap.py` (first admin), `metrics.py`, `config.py`, `logging.py`, `db.py` |
+| `src/hopper/` | `api/` (routers, rate limits and backpressure, HTTP metrics), `auth/` (API keys, passwords, JWT, tenant context), `ratelimit/` (`token_bucket.lua`, the limiter and its in-process fallback, the depth gate), `queue/` (Broker interface and all queue SQL), `worker/` (run loop, heartbeats, shutdown), `scheduler/` (cron, reaper and queue-depth loops), `tasks/` (registry, built-ins, `http`), `bootstrap.py` (first admin, deploy smoke key), `metrics.py`, `config.py`, `logging.py`, `db.py` |
 | `migrations/` | Alembic revisions. Hand-written SQL, backward compatible with the previous release |
-| `docker/` | `Dockerfile` (one image, every role) and `compose.yaml` |
-| `deploy/` | `prometheus/` (`prometheus.yml`, `alerts.yml`, `alerts_test.yml`) and `grafana/provisioning/` (data source, dashboard JSON) |
+| `docker/` | `Dockerfile` (one image, every role, carrying its deploy bundle), `compose.yaml` (development) and `compose.prod.yaml` (the server) |
+| `deploy/` | `deploy.sh` (deploy, smoke test, rollback), `smoke.py`, `host-setup.sh` (one-time server setup), `rehearse.sh` and `rehearse-local.sh`, `broken/` (releases broken on purpose for drills), `Caddyfile`, `prometheus/` (config, alerts and their tests), `grafana/provisioning/` (data source, dashboard JSON) |
+| `.github/workflows/` | `ci.yml` (lint, alerts, tests, delivery rehearsal, image), `deploy.yml` (main to the server), `drill.yml` (rollback drill) |
 | `tests/` | `unit/`, `integration/`, `e2e/` |
 | `loadtest/`, `chaos/` | Reserved for Week 8 |
 | `docs/` | `adr/` decision records, `ai-usage.md` |
@@ -143,7 +152,7 @@ not `localhost`: on Windows `localhost` resolves to `::1` first and the publishe
 | 4 | Reliability: leases, heartbeats, reaper, graceful shutdown | done |
 | 5 | Scheduling and tenancy: delayed and cron jobs, API keys, JWT, `http` task | done |
 | 6 | Limits and observability: token bucket, backpressure, metrics, Grafana | done |
-| 7 | Delivery: GHCR, EC2, deploy with rollback | |
+| 7 | Delivery: GHCR, EC2, deploy with rollback | built and rehearsed; server launch pending |
 | 8 | Proof and write-up: load tests, chaos test, design doc, demo | |
 
 ### Week 1
@@ -341,6 +350,114 @@ not `localhost`: on Windows `localhost` resolves to `::1` first and the publishe
   - The Redis client uses a blocking connection pool: redis-py's default pool fails at once when busy, and a test
     showed that turned a burst into a fallback that let 300 requests through a limit of 100 (ADR-0008).
 
+### Week 7
+- **The image is the release.** CI tags one image per commit to main with its sha on GHCR (public, no secrets
+  inside). It also carries that release's deploy bundle: `compose.prod.yaml`, the Caddy, Prometheus and Grafana
+  config, `deploy.sh` and the smoke test. So config always ships with its code, and a rollback restores both.
+- **Production stack** (`docker/compose.prod.yaml`): Caddy is the only thing with published ports (80 and 443, with
+  automatic HTTPS when a domain is set). Two named API replicas sit behind it, with active `/readyz` probes and
+  retries. Then 3 workers, 2 schedulers, Postgres, Redis, Prometheus, and Grafana under `/grafana/` (view only).
+  Logs are capped, the project name is fixed so volumes survive every release, and secrets are required, never
+  defaulted.
+- **`deploy/deploy.sh <sha>`** runs these steps:
+  1. pull the image and unpack its bundle;
+  2. migrate;
+  3. install the config and reload Caddy and Prometheus in place (Grafana restarts only when its data sources
+     changed);
+  4. **drain** `api-1` (`/readyz` answers 503 `draining` while it serves), replace it and wait until healthy; then
+     the same for `api-2`;
+  5. replace the workers and the rest;
+  6. **smoke test**: a real job through Caddy must reach `succeeded`.
+
+  On failure the previous release comes back the same way, without migrations, and is smoke-tested. Exit 1 means
+  rolled back; exit 3 means the rollback failed too. It also has `--rollback` and `--status`. A lock stops two deploys
+  running at once.
+- **`python -m hopper.bootstrap --smoke-key`** creates or rotates the `hopper-smoke` tenant's API key (small limits).
+  The first deploy stores it in the server's `.env`. `deploy/smoke.py` uses only the standard library, so it runs
+  with the host's own Python.
+- **GitHub Actions.**
+  - `deploy.yml` deploys main after a green CI run, one deploy at a time, or any sha (or `--rollback`) on demand.
+    On the server its SSH key is a forced command that can only pass one word to `deploy.sh`.
+  - `drill.yml` (the rollback drill) builds a release with `/readyz`, or the workers, broken on purpose from the
+    live image, and deploys it. It passes only if the server rolls back by itself; its log is the recording.
+  - In `ci.yml`, a new `delivery` job runs shellcheck, actionlint, a `compose.prod.yaml` validation and the full
+    rehearsal. The image is pushed only after it passes.
+- **Rehearsal** (`deploy/rehearse.sh`, in CI on a fresh runner, locally in `docker:dind`). With main's image as the
+  first release, it does a first deploy, an upgrade, a broken `/readyz` and dead workers (both must roll back on their
+  own), and a manual rollback to main's image on the new schema, which is the check that migrations stay backward
+  compatible. A prober counts every request through Caddy.
+- **Server setup** (`deploy/host-setup.sh`, Ubuntu 24.04): Docker from Docker's apt repository, capped logs and
+  `live-restore`, 2 GB swap, SSH with keys only (no passwords, no root), `/opt/hopper` with generated secrets
+  (mode 600), and the restricted deploy key, which a rerun with a new key replaces. Tested in a stock `ubuntu:24.04`
+  container with a real OpenSSH server:
+  - it installed Docker 29.8.2 with Compose v5.6, and a second run changed nothing;
+  - after a rerun with a new key, the old key was refused and a personal login key still worked;
+  - it refused a private key and a reused login key, and changed nothing when it did.
+- **Checked, in an isolated Docker host (`docker:dind`).** Ten full runs passed every check, each with 0 failed
+  requests out of about 3,100 sent through Caddy every 100 ms. Numbers from the last run, with the final code (raw
+  log in [docs/delivery](docs/delivery/rehearsal-2026-10-04.log)):
+  - first deploy 42 s, upgrade 44 s (sent through the forced command, as CI sends it);
+  - the broken `/readyz` was caught after 42 s and the old release was serving again at 78 s, while the other API
+    replica served throughout;
+  - the dead workers were caught only by the smoke test, after three 30 s tries, and rolled back at 3 min 0 s;
+  - the manual rollback took 39 s;
+  - 0 failed requests out of 3,093, and the whole stack (12 containers) used 854 MiB of memory (817 to 1,085 MiB
+    across the last seven runs).
+- **Found by the rehearsal and fixed:**
+  - Caddy's passive health check marked a restarting replica down for 10 s. When the other replica's turn came
+    inside that window, Caddy saw neither.
+  - Replicas were stopped without draining, so Caddy kept sending them requests until its next probe.
+
+  Together these cost 2 to 7 failed requests per run. Draining plus the active probe alone took it to 0. The first
+  run also failed on a Windows path in the local wrapper.
+- **Found in review and fixed:**
+  - `ssh host --status` and `ssh host --rollback` failed with "unknown option -- -": OpenSSH reads them as its own
+    flags (shown against a real OpenSSH 9.6). The workflows now pass `--` before the host.
+  - The runbook allowed SSH only from your IP, which would have blocked GitHub's runners. Port 22 is now open to
+    all, with keys only.
+  - A dropped SSH connection would kill a deploy halfway, and could fail a healthy release's smoke test and roll it
+    back. The deploy now runs detached on the host and keeps its log there. Tested by killing the SSH client
+    mid-deploy: the deploy ran to its end.
+  - After a failed redeploy of the live tag, `--status` would still name the failed release as live.
+  - Old releases' images were never deleted, so the disk would slowly fill.
+  - The smoke key was on the command line, readable by any user of the host; it now travels in the environment.
+  - A rollback needed GHCR to answer. It now falls back to the image already on the host.
+  - A release that changed Grafana's data source would never have applied it: Grafana reads data sources only at
+    start. It now restarts when they change.
+  - `host-setup.sh` accepted any `DEPLOY_PUBKEY`. It now refuses a private key, and a key that already logs in
+    without restrictions (sshd would use that line and ignore the forced command).
+- **Found in a review of the whole project and fixed** (code from earlier weeks, shipped with this one):
+  - The `http` task's SSRF guard let NAT64 addresses through: `64:ff9b::a9fe:a9fe` is 169.254.169.254, the cloud
+    metadata endpoint, on a network that translates it, and Python calls the prefix global. The guard now judges
+    the IPv4 address inside, as it already did for IPv4-mapped and 6to4 addresses.
+  - The rate limiter's in-process fallback kept every bucket it ever made, and login buckets are per email, so
+    during a Redis outage anyone could grow it by trying new emails. Refilled buckets are now forgotten, as in the
+    Lua script, and the table is cleared when Redis answers again (ADR-0008).
+  - Migrations had no lock timeout. Now that deploys migrate the live database, an `ALTER` stuck behind a lock
+    would queue every query on its table and stall the API; it now gives up after 5 s and the deploy stops
+    (ADR-0011). A test holds a lock on `jobs` and checks that the migration fails fast.
+  - Smaller: one test asserted nothing (`metrics.serve(0)`); five settings were missing from `.env.example`, which
+    a test now keeps complete; the app reported version 0.6.0.
+- Tests: 425 (up from 362). They cover the smoke script against a fake API (a ready API whose workers never run
+  fails), `--smoke-key` against a real database (rotation revokes the old key), and the draining `/readyz`. Also:
+  - `deploy.sh`'s decisions against a fake docker: rollback without migrations, exit 3 when the rollback fails too,
+    a broken first release, a failed redeploy of the live tag, a rollback while the registry is down, a Grafana
+    data source change, pruning, the lock, and the forced command keeping its log;
+  - the forced command refusing anything but one word (`;`, `$(...)`, backticks, newlines, spaces);
+
+  and static checks on the production stack:
+  - only Caddy publishes ports;
+  - app services never build;
+  - migrations never run on `up`;
+  - config is mounted from the installed copy;
+  - images are pinned;
+  - secrets are required;
+  - rollback skips migrations;
+  - the CI key can only name a tag;
+  - every `ssh` in the workflows passes `--` before the host.
+- Not done yet, because it needs an AWS account: launching the instance, the GitHub secrets, the first real deploy
+  and recording the drill. [docs/deploy.md](docs/deploy.md) walks through each step.
+
 ## Docs
 
 - [ADR-0001: PostgreSQL as the job queue](docs/adr/0001-postgres-as-queue.md)
@@ -349,4 +466,6 @@ not `localhost`: on Windows `localhost` resolves to `::1` first and the publishe
 - [ADR-0008: Redis Lua token bucket; fail open when Redis is down](docs/adr/0008-redis-token-bucket-fail-open.md)
 - [ADR-0009: Backpressure: 429 for tenant quota, 503 for overload, cached depth](docs/adr/0009-backpressure-429-503-cached-depth.md)
 - [ADR-0010: API keys hashed with HMAC-SHA256 and a pepper; JWT only for admins](docs/adr/0010-api-keys-and-admin-jwt.md)
+- [ADR-0011: Single-host Compose deploy with health-check rollback; backward-compatible migrations](docs/adr/0011-single-host-deploy-with-rollback.md)
+- [Deploying to EC2: setup, first deploy, rollback drill, day to day](docs/deploy.md)
 - [AI usage notes](docs/ai-usage.md)
