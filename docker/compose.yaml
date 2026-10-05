@@ -72,7 +72,7 @@ services:
 
   scheduler:
     <<: *app
-    command: ["python", "-m", "hopper.scheduler"]   # cron, reaper and queue-depth loops
+    command: ["python", "-m", "hopper.scheduler"]   # cron, reaper, queue-depth and retention loops
     deploy: { replicas: 2 }                         # safe without leader election: SKIP LOCKED
     depends_on:
       postgres: { condition: service_healthy }

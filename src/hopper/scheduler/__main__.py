@@ -10,13 +10,14 @@ from hopper.queue.postgres import PostgresBroker
 from hopper.scheduler.cron import CronLoop
 from hopper.scheduler.depth import DepthLoop
 from hopper.scheduler.reaper import Reaper
+from hopper.scheduler.retention import Retention
 
 
 async def main() -> None:
-    """The scheduler process: the cron, reaper and depth loops, side by side.
+    """The scheduler process: the cron, reaper, depth and retention loops, side by side.
 
-    Run two replicas for availability; cron and the reaper claim their rows with SKIP LOCKED,
-    and both replicas count depth (the dashboard takes the max).
+    Run two replicas for availability; cron, the reaper and retention take their rows with
+    SKIP LOCKED, and both replicas count depth (the dashboard takes the max).
     """
     settings = get_settings()
     configure_logging(settings.log_level)
@@ -36,7 +37,13 @@ async def main() -> None:
         namespace=settings.redis_namespace,
         interval=settings.depth_interval_seconds,
     )
-    loops = (cron, reaper, depth)
+    retention = Retention(
+        engine,
+        days=settings.retention_days,
+        interval=settings.retention_interval_seconds,
+        batch_size=settings.retention_batch_size,
+    )
+    loops = (cron, reaper, depth, retention)
 
     def stop() -> None:
         for each in loops:

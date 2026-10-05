@@ -51,6 +51,19 @@ def test_limit_and_observability_defaults(monkeypatch: pytest.MonkeyPatch) -> No
     assert settings.redis_retry_seconds == 5.0
 
 
+def test_retention_defaults() -> None:
+    settings = Settings()
+    assert settings.retention_days == 7
+    assert (settings.retention_interval_seconds, settings.retention_batch_size) == (3600.0, 1000)
+
+
+def test_retention_keeps_at_least_a_day(monkeypatch: pytest.MonkeyPatch) -> None:
+    """0 days would delete every finished job on the next pass, so it is refused."""
+    monkeypatch.setenv("RETENTION_DAYS", "0")
+    with pytest.raises(ValidationError):
+        Settings()
+
+
 @pytest.mark.parametrize("namespace", ["", "has space", "a:b", "x" * 65])
 def test_redis_namespace_is_a_plain_word(monkeypatch: pytest.MonkeyPatch, namespace: str) -> None:
     monkeypatch.setenv("REDIS_NAMESPACE", namespace)

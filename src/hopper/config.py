@@ -57,6 +57,11 @@ class Settings(BaseSettings):
     cron_interval_seconds: float = Field(default=1.0, gt=0)
     cron_batch_size: int = Field(default=100, ge=1)
     depth_interval_seconds: float = Field(default=1.0, gt=0)
+    # Retention: succeeded and cancelled jobs are deleted this many days after they finished,
+    # which also frees their idempotency keys. Dead jobs stay until they are replayed.
+    retention_days: int = Field(default=7, ge=1)
+    retention_interval_seconds: float = Field(default=3600.0, gt=0)
+    retention_batch_size: int = Field(default=1000, ge=1)
 
     # Redis holds rate-limit buckets and the cached queue depth, never job state. Timeouts are
     # short: a slow or dead Redis must cost a request milliseconds, not seconds (ADR-0008).

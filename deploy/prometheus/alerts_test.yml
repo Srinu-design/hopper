@@ -1,4 +1,4 @@
-# Unit tests for alerts.yml:  promtool test rules alerts_test.yml  (CI runs it; see make rules)
+# Unit tests for alerts.yml:  promtool test rules alerts_test.yml  (CI runs it; see make alerts)
 # Each case feeds synthetic series and checks which alerts are firing (not just pending).
 rule_files:
   - alerts.yml
