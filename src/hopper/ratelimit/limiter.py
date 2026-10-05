@@ -40,25 +40,44 @@ class LocalBuckets:
     """The Lua script's maths in process, used only while Redis is unavailable.
 
     Each API replica keeps its own buckets, so during an outage a tenant can get up to
-    (replicas x) its limit. There is one bucket per tenant and route class, so memory is
-    bounded by the number of tenants.
+    (replicas x) its limit. Login buckets are per email, so anyone can make new ones; memory
+    stays bounded because a bucket that has refilled is the same as no bucket (a missing one
+    starts full, as in the Lua script): past `prune_at` buckets, refilled ones are forgotten.
     """
 
-    def __init__(self, clock: Callable[[], float] = time.monotonic) -> None:
+    def __init__(
+        self, clock: Callable[[], float] = time.monotonic, *, prune_at: int = 10_000
+    ) -> None:
         self._clock = clock
-        self._buckets: dict[str, tuple[float, float]] = {}  # key -> (tokens, last ms)
+        self._first_prune_at = self._prune_at = prune_at
+        # key -> (tokens, last ms, ms at which the bucket is full again)
+        self._buckets: dict[str, tuple[float, float, float]] = {}
 
     def take(self, key: str, *, capacity: int, rate: float, requested: int = 1) -> Decision:
         now = self._clock() * 1000
-        tokens, ts = self._buckets.get(key, (float(capacity), now))
+        tokens, ts, _ = self._buckets.get(key, (float(capacity), now, now))
         tokens = min(capacity, tokens + max(0.0, now - ts) * rate / 1000)
         retry_ms = 0
         if tokens >= requested:
             tokens -= requested
         else:
             retry_ms = math.ceil((requested - tokens) * 1000 / rate)
-        self._buckets[key] = (tokens, now)
+        self._buckets[key] = (tokens, now, now + (capacity - tokens) * 1000 / rate)
+        if len(self._buckets) > self._prune_at:
+            self._buckets = {k: b for k, b in self._buckets.items() if b[2] > now}
+            # Buckets still refilling stay. The next prune waits until the table doubles, so
+            # a table full of them costs O(1) per call on average.
+            self._prune_at = max(self._first_prune_at, 2 * len(self._buckets))
         return Decision(retry_ms == 0, capacity, math.floor(tokens), retry_ms)
+
+    def clear(self) -> None:
+        """Forget every bucket: called when Redis answers again, ending the outage."""
+        if self._buckets:
+            self._buckets.clear()
+            self._prune_at = self._first_prune_at
+
+    def __len__(self) -> int:
+        return len(self._buckets)
 
 
 class RateLimiter:
@@ -99,6 +118,7 @@ class RateLimiter:
             except REDIS_DOWN as exc:
                 self._health.failed("rate_limit", exc)
             else:
+                self._local.clear()  # an outage's buckets mean nothing once Redis is back
                 return Decision(bool(allowed), capacity, int(remaining), int(retry_ms))
         RATELIMIT_FALLBACK.inc()
         return self._local.take(key, capacity=capacity, rate=rate, requested=requested)

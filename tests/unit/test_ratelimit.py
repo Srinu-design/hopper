@@ -1,8 +1,11 @@
 """The in-process fallback bucket and the Redis cool-down, with a fake clock."""
 
-import pytest
+from typing import Any, cast
 
-from hopper.ratelimit.limiter import Decision, LocalBuckets
+import pytest
+from redis import exceptions as redis_errors
+
+from hopper.ratelimit.limiter import Decision, LocalBuckets, RateLimiter
 from hopper.ratelimit.redis_health import RedisHealth
 
 
@@ -67,3 +70,51 @@ def test_redis_is_skipped_for_the_retry_period_after_a_failure() -> None:
     assert not health.usable()
     clock.now += 0.1
     assert health.usable()
+
+
+def test_refilled_buckets_are_forgotten_once_there_are_many() -> None:
+    """Login buckets are per email, so anyone can make new ones during a Redis outage."""
+    clock = Clock()
+    buckets = LocalBuckets(clock, prune_at=3)
+    for key in ("a", "b", "c"):
+        buckets.take(key, capacity=2, rate=1)  # one token short: full again in 1 s
+    clock.now += 2
+    buckets.take("d", capacity=2, rate=1)
+    assert len(buckets) == 1  # a, b and c had refilled, which is the same as no bucket
+
+
+def test_buckets_still_refilling_are_kept() -> None:
+    clock = Clock()
+    buckets = LocalBuckets(clock, prune_at=2)
+    for key in ("a", "b", "c"):
+        buckets.take(key, capacity=2, rate=1)
+        buckets.take(key, capacity=2, rate=1)  # empty
+    assert len(buckets) == 3
+    assert not buckets.take("a", capacity=2, rate=1).allowed  # still empty, not forgotten
+
+
+class FlakyRedis:
+    """Just enough of redis.asyncio.Redis for RateLimiter: a script that fails while down."""
+
+    def __init__(self) -> None:
+        self.down = True
+
+    def register_script(self, _: str) -> Any:
+        async def run(*, keys: list[str], args: list[float]) -> list[int]:
+            if self.down:
+                raise redis_errors.ConnectionError("down")
+            return [1, 0, 0]
+
+        return run
+
+
+async def test_the_fallback_starts_afresh_after_redis_comes_back() -> None:
+    redis = FlakyRedis()
+    limiter = RateLimiter(cast(Any, redis), namespace="t", health=RedisHealth(0.0, Clock()))
+    bucket = {"capacity": 1, "rate": 0.001}  # one token, and it takes 1000 s to come back
+    assert (await limiter.take("k", **bucket)).allowed  # Redis down: the in-process bucket
+    assert not (await limiter.take("k", **bucket)).allowed
+    redis.down = False
+    assert (await limiter.take("k", **bucket)).allowed  # Redis decides again
+    redis.down = True
+    assert (await limiter.take("k", **bucket)).allowed  # a new outage starts with full buckets

@@ -26,8 +26,11 @@ from hopper.worker.loop import Worker
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def run_alembic(database_url: str, *args: str) -> subprocess.CompletedProcess[str]:
-    """Run the real alembic CLI against database_url, exactly as the migrate container does."""
+def run_alembic(
+    database_url: str, *args: str, timeout: float = 120.0
+) -> subprocess.CompletedProcess[str]:
+    """Run the real alembic CLI against database_url, exactly as the migrate container does.
+    A migration stuck behind a lock fails the test after `timeout` instead of hanging it."""
     return subprocess.run(
         [sys.executable, "-m", "alembic", *args],
         cwd=ROOT,
@@ -35,6 +38,7 @@ def run_alembic(database_url: str, *args: str) -> subprocess.CompletedProcess[st
         capture_output=True,
         text=True,
         check=False,
+        timeout=timeout,
     )
 
 

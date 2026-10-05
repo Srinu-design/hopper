@@ -1,7 +1,10 @@
+import re
+
 import pytest
 from pydantic import ValidationError
 
 from hopper.config import Settings
+from tests.helpers import ROOT
 
 
 def test_lease_timing_defaults() -> None:
@@ -53,3 +56,14 @@ def test_redis_namespace_is_a_plain_word(monkeypatch: pytest.MonkeyPatch, namesp
     monkeypatch.setenv("REDIS_NAMESPACE", namespace)
     with pytest.raises(ValidationError):
         Settings()
+
+
+def test_every_setting_is_documented_in_env_example() -> None:
+    """.env.example is where people look up a setting; a new one must not be missing there."""
+    example = (ROOT / ".env.example").read_text(encoding="utf-8")
+    missing = [
+        name.upper()
+        for name in Settings.model_fields
+        if not re.search(rf"^#? *{name.upper()}=", example, flags=re.MULTILINE)
+    ]
+    assert missing == []

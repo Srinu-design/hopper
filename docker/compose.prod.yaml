@@ -1,0 +1,158 @@
+# Production stack for one host (the EC2 instance). deploy/deploy.sh runs it; do not run it by
+# hand except to look (docker compose -p hopper ps / logs).
+#
+#   HOPPER_IMAGE  the release image, ghcr.io/srinu-design/hopper:<git sha> (deploy.sh sets it)
+#   HOPPER_ROOT   the deploy root holding .env (default /opt/hopper)
+#
+# Differences from compose.yaml: images come from the registry (never built here); only Caddy
+# publishes ports, so Postgres, Redis, Prometheus and the metrics ports stay on the internal
+# network; two named API replicas sit behind Caddy; logs are capped. The project name is
+# fixed, so the volumes stay the same whichever release directory deploy.sh runs this from.
+# Caddy, Prometheus and Grafana read their config from $HOPPER_ROOT/config, which deploy.sh
+# fills from the release and then reloads in place: a deploy never restarts Caddy.
+name: hopper
+
+x-logging: &logging
+  driver: json-file
+  options: { max-size: "10m", max-file: "5" }   # 50 MB per container at most
+
+x-app: &app
+  image: ${HOPPER_IMAGE:?set HOPPER_IMAGE to the release image}
+  env_file: ${HOPPER_ROOT:-/opt/hopper}/.env
+  environment:
+    DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-hopper}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@postgres:5432/${POSTGRES_DB:-hopper}
+    REDIS_URL: redis://redis:6379/0
+  init: true                       # PID 1 forwards signals
+  restart: unless-stopped
+  logging: *logging
+
+x-api: &api
+  <<: *app
+  depends_on:
+    postgres: { condition: service_healthy }
+    redis: { condition: service_healthy }
+  healthcheck:
+    test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/readyz', timeout=3)"]
+    interval: 5s
+    timeout: 5s
+    retries: 3
+    start_period: 20s
+  networks:
+    default:
+      aliases: [api]               # Prometheus finds both replicas under one name
+
+services:
+  postgres:
+    image: postgres:16.15
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-hopper}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB:-hopper}
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-hopper} -d ${POSTGRES_DB:-hopper}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+    logging: *logging
+
+  redis:
+    image: redis:7.4.11
+    # Redis holds only rate-limit buckets and the depth snapshot, which rebuild themselves, so
+    # it may evict anything rather than refuse writes when full.
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory", "128mb", "--maxmemory-policy", "allkeys-lru"]
+    volumes: [redisdata:/data]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+    logging: *logging
+
+  # Not started by `up`: deploy.sh runs it once per release, before the new code starts, and
+  # never on a rollback (the old image cannot run the new head; migrations are backward
+  # compatible instead, ADR-0011).
+  migrate:
+    <<: *app
+    profiles: [migrate]
+    restart: "no"
+    command: ["alembic", "upgrade", "head"]
+    depends_on:
+      postgres: { condition: service_healthy }
+
+  # Two named replicas, so deploy.sh can replace one while Caddy sends traffic to the other.
+  api-1: *api
+  api-2: *api
+
+  worker:
+    <<: *app
+    command: ["python", "-m", "hopper.worker"]   # exec form: Python receives SIGTERM
+    stop_grace_period: 30s                       # > SHUTDOWN_GRACE_SECONDS (25)
+    deploy: { replicas: 3 }
+    depends_on:
+      postgres: { condition: service_healthy }
+
+  scheduler:
+    <<: *app
+    command: ["python", "-m", "hopper.scheduler"]
+    deploy: { replicas: 2 }
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+
+  # The only public entry point. SITE_ADDRESS is ":80" for plain HTTP on any address (a bare
+  # EC2 IP), or a domain name, for which Caddy gets and renews HTTPS certificates itself.
+  caddy:
+    image: caddy:2.11.6
+    environment:
+      SITE_ADDRESS: ${SITE_ADDRESS:-:80}
+    ports: ["80:80", "443:443", "443:443/udp"]
+    volumes:
+      - ${HOPPER_ROOT:-/opt/hopper}/config/caddy:/etc/caddy:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on: [api-1, api-2, grafana]
+    restart: unless-stopped
+    logging: *logging
+
+  prometheus:
+    image: prom/prometheus:v3.15.0
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=15d
+    volumes:
+      - ${HOPPER_ROOT:-/opt/hopper}/config/prometheus:/etc/prometheus:ro
+      - promdata:/prometheus
+    restart: unless-stopped
+    logging: *logging
+
+  # Served by Caddy under /grafana/: anyone can view the dashboard, editing needs the admin login.
+  grafana:
+    image: grafana/grafana:13.2.3
+    environment:
+      GF_SERVER_ROOT_URL: ${PUBLIC_URL:-http://localhost}/grafana/
+      GF_SERVER_SERVE_FROM_SUB_PATH: "true"
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?set GRAFANA_ADMIN_PASSWORD in .env}
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /etc/grafana/provisioning/dashboards/hopper.json
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
+    volumes:
+      - ${HOPPER_ROOT:-/opt/hopper}/config/grafana/provisioning:/etc/grafana/provisioning:ro
+      - grafanadata:/var/lib/grafana
+    depends_on: [prometheus]
+    restart: unless-stopped
+    logging: *logging
+
+volumes:
+  pgdata: {}
+  redisdata: {}
+  promdata: {}
+  grafanadata: {}
+  caddy_data: {}      # certificates: keep this volume, or Let's Encrypt rate limits bite
+  caddy_config: {}

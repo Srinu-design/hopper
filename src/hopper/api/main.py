@@ -80,7 +80,7 @@ async def request_context_middleware(
 
 
 def create_app() -> FastAPI:
-    app = FastAPI(title="Hopper", version="0.6.0", lifespan=lifespan)
+    app = FastAPI(title="Hopper", version="0.7.0", lifespan=lifespan)
     # Added last = outermost: metrics time everything, then the request id exists before
     # anything else runs.
     app.add_middleware(BodySizeLimitMiddleware)

@@ -1,8 +1,8 @@
-# Targets: up, down, test, lint, fmt, migrate, alerts. load, chaos and bench arrive in later weeks.
+# Targets: up, down, test, lint, fmt, migrate, alerts, rehearse. load, chaos and bench arrive in Week 8.
 COMPOSE := docker compose -f docker/compose.yaml --env-file .env
 PROMTOOL := docker run --rm -w /etc/prometheus -v "$(CURDIR)/deploy/prometheus:/etc/prometheus:ro" --entrypoint promtool prom/prometheus:v3.15.0
 
-.PHONY: env up down logs migrate test lint fmt alerts
+.PHONY: env up down logs migrate test lint fmt alerts rehearse
 
 env:
 	@test -f .env || cp .env.example .env
@@ -33,3 +33,7 @@ lint:
 alerts:
 	$(PROMTOOL) check config prometheus.yml
 	$(PROMTOOL) test rules alerts_test.yml
+
+# Deploys, broken releases and rollbacks on a throwaway Docker host (docker:dind), as CI does.
+rehearse:
+	bash deploy/rehearse-local.sh
