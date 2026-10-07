@@ -44,7 +44,7 @@
 
 Where duplicates come from here: a worker killed after its effect but before its ack (a window of milliseconds, so rare), and the frozen worker, which wakes up after its jobs were reclaimed and finished elsewhere, finishes them again, and has its acks refused because the lease token changed. A worker that ends a SIGTERM drain with jobs still running releases them instead; these jobs are short, so they finish within the 25 s grace period.
 
-In this mode a worker marks each job succeeded as soon as it claims it, so the queue never shows a job running and the kills above find none cut off mid-run. Every job a kill did cut off is counted as lost instead: succeeded, with no effect.
+In this mode a worker marks each job succeeded as soon as it claims it, so a job shows as running only between its claim and that ack: a kill in that moment is counted above as cutting it off, and the reaper gives it to another worker as usual. A kill while a handler runs, after the ack, is invisible to the queue: that job is counted as lost instead, succeeded with no effect.
 
 ## Timeline
 

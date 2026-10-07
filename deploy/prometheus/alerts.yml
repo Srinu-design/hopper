@@ -47,8 +47,8 @@ groups:
           summary: "No worker is up"
           description: "Nothing runs jobs; queued jobs wait, and backpressure starts refusing enqueues at the depth limits."
 
-      # The scheduler runs cron, the reaper and the depth count. Without it no cron job fires,
-      # a crashed worker's jobs are never reclaimed, and backpressure stops after 15 s.
+      # The scheduler runs cron, the reaper, the depth count and retention. Without it no cron
+      # job fires, a crashed worker's jobs are never reclaimed, and backpressure stops after 15 s.
       - alert: NoScheduler
         expr: absent(up{job="scheduler"} == 1)
         for: 1m

@@ -75,10 +75,10 @@ instance when you are not using it**: **Instances** → select **hopper** → **
 
 On your machine, make a new key for CI to deploy with: never your own login key, which `host-setup.sh` refuses
 because its unrestricted line would win over the forced command. It gets no passphrase, because a workflow uses
-it:
+it, and it goes in `~/.ssh`, outside the repository, so it can never be committed:
 
 ```bash
-ssh-keygen -t ed25519 -f hopper-deploy -N "" -C github-deploy
+ssh-keygen -t ed25519 -f ~/.ssh/hopper-deploy -N "" -C github-deploy
 ```
 
 Copy the setup files over and run the setup. It installs Docker from Docker's apt repository, adds 2 GB of swap,
@@ -91,7 +91,7 @@ scp -i ~/.ssh/hopper-login.pem deploy/host-setup.sh deploy/deploy.sh ubuntu@<ip>
 ```
 
 ```bash
-ssh -i ~/.ssh/hopper-login.pem ubuntu@<ip> "sudo DEPLOY_PUBKEY='$(cat hopper-deploy.pub)' SITE_ADDRESS=:80 bash host-setup.sh"
+ssh -i ~/.ssh/hopper-login.pem ubuntu@<ip> "sudo DEPLOY_PUBKEY='$(cat ~/.ssh/hopper-deploy.pub)' SITE_ADDRESS=:80 bash host-setup.sh"
 ```
 
 Running it again is safe: existing secrets are left alone. Running it with a new `DEPLOY_PUBKEY` replaces the old
@@ -103,11 +103,11 @@ deploy key, which is how to rotate it. On the host, the deploy key's line in `~/
 First, on your machine, read the server's host key and check it against the fingerprint from step 1d:
 
 ```bash
-ssh-keyscan -t ed25519 <ip> > hopper-known-hosts
+ssh-keyscan -t ed25519 <ip> > ~/.ssh/hopper-known-hosts
 ```
 
 ```bash
-ssh-keygen -lf hopper-known-hosts
+ssh-keygen -lf ~/.ssh/hopper-known-hosts
 ```
 
 The `SHA256:...` part must be the same as the `(ED25519)` line in the system log. If it is not, stop: something
@@ -119,8 +119,8 @@ Then on github.com, in the repository: **Settings** tab → left menu **Secrets 
 
   | Name | Secret |
   |---|---|
-  | `EC2_SSH_KEY` | the whole private key file `hopper-deploy` (`cat hopper-deploy`), from `-----BEGIN` to `-----END ...-----` |
-  | `EC2_KNOWN_HOSTS` | the whole file `hopper-known-hosts` (one line, starting with the address) |
+  | `EC2_SSH_KEY` | the whole private key file (`cat ~/.ssh/hopper-deploy`), from `-----BEGIN` to `-----END ...-----` |
+  | `EC2_KNOWN_HOSTS` | the whole file `~/.ssh/hopper-known-hosts` (one line, starting with the address) |
 
 - On the **Variables** tab, **New repository variable**, twice (three if you log in as someone other than
   `ubuntu`):
@@ -174,12 +174,14 @@ The job's log is the recording: link it in the README, or screen-record the log 
 ## Day to day
 
 The commands below log in as `ubuntu@<ip>`. Add this to `~/.ssh/config` once, so that ssh uses your login key for
-the server without `-i` every time:
+the server without `-i` every time. `IdentitiesOnly` matters if an ssh agent holds the deploy key: ssh would offer
+that key first, the server would take it, and its forced command would refuse every command below.
 
 ```
 Host <ip>
   User ubuntu
   IdentityFile ~/.ssh/hopper-login.pem
+  IdentitiesOnly yes
 ```
 
 ```bash
