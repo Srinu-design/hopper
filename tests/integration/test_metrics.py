@@ -340,6 +340,8 @@ def test_prometheus_scrapes_every_process_on_the_metrics_port() -> None:
     for service in ("api", "worker", "scheduler"):
         assert f"job_name: {service}" in config and f"names: [{service}]" in config
     assert config.count("port: 9100") == 3
+    # Postgres itself, through postgres-exporter on its own port.
+    assert "job_name: postgres" in config and "targets: [postgres-exporter:9187]" in config
 
 
 def test_paths_are_where_compose_mounts_them() -> None:

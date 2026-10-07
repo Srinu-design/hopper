@@ -8,7 +8,16 @@ from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 
 from tests.helpers import run_alembic
 
-EXPECTED_TABLES = {"tenants", "api_keys", "schedules", "jobs", "job_attempts", "users"}
+EXPECTED_TABLES = {
+    "tenants",
+    "api_keys",
+    "schedules",
+    "jobs",
+    "job_attempts",
+    "users",
+    "job_executions",
+    "job_effects",
+}
 EXPECTED_INDEXES = {
     "jobs_ready_idx",
     "jobs_lease_idx",
@@ -18,6 +27,7 @@ EXPECTED_INDEXES = {
     "schedules_due_idx",
     "job_attempts_job_idx",
     "api_keys_tenant_idx",
+    "job_executions_job_idx",
 }
 
 

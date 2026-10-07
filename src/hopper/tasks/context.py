@@ -18,6 +18,7 @@ class JobContext:
     attempt: int
     max_attempts: int
     signing_secret: bytes = field(repr=False)
+    worker_id: str = ""
 
 
 _current: ContextVar[JobContext] = ContextVar("hopper_job")

@@ -117,6 +117,19 @@ services:
     restart: unless-stopped
     logging: *logging
 
+  # Postgres's own numbers (connections, dead tuples, transactions) for the dashboard. Reaches
+  # Postgres over the internal network only, like everything but Caddy.
+  postgres-exporter:
+    image: quay.io/prometheuscommunity/postgres-exporter:v0.20.1
+    environment:
+      DATA_SOURCE_URI: postgres:5432/${POSTGRES_DB:-hopper}?sslmode=disable
+      DATA_SOURCE_USER: ${POSTGRES_USER:-hopper}
+      DATA_SOURCE_PASS: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+    depends_on:
+      postgres: { condition: service_healthy }
+    restart: unless-stopped
+    logging: *logging
+
   prometheus:
     image: prom/prometheus:v3.15.0
     command:

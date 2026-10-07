@@ -18,16 +18,58 @@ Only Caddy publishes ports. Postgres, Redis, Prometheus and the metrics ports st
 
 ## 1. Launch the instance (AWS console)
 
-| Setting | Value |
-|---|---|
-| AMI | Ubuntu Server 24.04 LTS, **64-bit (x86)**: the image is built for `linux/amd64` |
-| Instance type | `t3.medium` (2 vCPU, 4 GB). The whole stack used about 1 GB in the rehearsals, which leaves room for load tests |
-| Storage | 30 GB gp3 (images, Postgres, Prometheus' 15 days) |
-| Key pair | your own SSH key, for you to log in |
-| Security group | SSH 22, HTTP 80 and HTTPS 443 from anywhere; nothing else. SSH must be open to all: GitHub's hosted runners deploy over it and have no fixed addresses (see Security notes) |
-| Elastic IP | recommended: the address then survives stop and start (DNS and `known_hosts` keep working) |
+Everything in this section happens in the browser. Your AWS project has one **selected Region**; every resource
+below must be created in it. Check it in **AWS Settings → View all projects → Overview → Additional Info →
+Region** (for this project it is **Asia Pacific (Sydney), `ap-southeast-2`**).
 
-Check your account's free-tier or credit terms before you launch, and stop the instance when you are not demoing.
+**a. Open EC2 in the right Region**
+
+1. Open the AWS Management Console for your project.
+2. In the Region menu at the top right, choose **Asia Pacific (Sydney) ap-southeast-2**.
+3. Type **EC2** in the search bar at the top and open **EC2**.
+
+**b. Launch the instance**: on the EC2 dashboard, click **Launch instance**, then fill the form from the top:
+
+| Field | Choose |
+|---|---|
+| **Name and tags → Name** | `hopper` |
+| **Application and OS Images** | **Quick Start → Ubuntu**, then **Ubuntu Server 24.04 LTS (HVM), SSD Volume Type**, architecture **64-bit (x86)**. The Hopper image is built for `linux/amd64`, so not Arm |
+| **Instance type** | **`m7i-flex.large`** (2 vCPU, 8 GiB). On the free plan only types marked *Free tier eligible* can be launched, so `t3.medium` is refused; `c7i-flex.large` (2 vCPU, 4 GiB) also fits the stack. About $0.12 an hour, taken from your credits while it runs |
+| **Key pair (login)** | **Create new key pair**: name `hopper-login`, type **ED25519**, format **.pem**, then **Create key pair**. The browser downloads `hopper-login.pem`: this is *your* login key, never the deploy key of step 2 |
+| **Network settings** | Keep the default VPC and subnet, **Auto-assign public IP: Enable**, **Create security group**, and tick all three: **Allow SSH traffic from Anywhere (0.0.0.0/0)**, **Allow HTTPS traffic from the internet**, **Allow HTTP traffic from the internet**. The console warns about SSH from anywhere: expected, GitHub's runners deploy over SSH and have no fixed addresses; keys are the only way in (see Security notes) |
+| **Configure storage** | **30** GiB, **gp3** (images, Postgres, 15 days of Prometheus) |
+| **Advanced details** | Leave as it is |
+
+Click **Launch instance**, then **View all instances**. Wait until **Instance state** says *Running* and **Status
+check** says *2/2 checks passed* (two or three minutes).
+
+**c. Give it a fixed address (Elastic IP)**: without one, the address changes every time the instance stops and
+starts, and GitHub's settings would have to change with it.
+
+1. Left menu: **Network & Security → Elastic IPs → Allocate Elastic IP address → Allocate**.
+2. Select the new address, then **Actions → Associate Elastic IP address**: resource type **Instance**, instance
+   **hopper**, then **Associate**.
+3. Write the address down. Below, `<ip>` means this address.
+
+**d. Note the host key fingerprint**, to check in step 3 that GitHub talks to *your* server: **Instances** → select
+**hopper** → **Actions → Monitor and troubleshoot → Get system log**. Between `BEGIN SSH HOST KEY FINGERPRINTS` and
+`END SSH HOST KEY FINGERPRINTS`, copy the line that ends in `(ED25519)`. (If the log is still empty, wait a minute
+and reload.)
+
+**e. Log in once** from your machine, to check the key and the security group:
+
+```bash
+mv ~/Downloads/hopper-login.pem ~/.ssh/ && chmod 400 ~/.ssh/hopper-login.pem
+```
+
+```bash
+ssh -i ~/.ssh/hopper-login.pem ubuntu@<ip> 'uname -a'
+```
+
+What it costs on the free plan: the instance about $0.12 per running hour, the disk about $2.90 a month and the
+Elastic IP about $3.65 a month even while the instance is stopped, all taken from your credits. **Stop the
+instance when you are not using it**: **Instances** → select **hopper** → **Instance state → Stop instance**
+(**Start instance** brings everything back, Docker restarts every container).
 
 ## 2. Set up the host (once)
 
@@ -45,11 +87,11 @@ turns SSH password and root logins off, creates `/opt/hopper` with `deploy.sh` a
 whose DNS A record points at the instance, instead of `:80`.
 
 ```bash
-scp deploy/host-setup.sh deploy/deploy.sh ubuntu@<ip>:
+scp -i ~/.ssh/hopper-login.pem deploy/host-setup.sh deploy/deploy.sh ubuntu@<ip>:
 ```
 
 ```bash
-ssh ubuntu@<ip> "sudo DEPLOY_PUBKEY='$(cat hopper-deploy.pub)' SITE_ADDRESS=:80 bash host-setup.sh"
+ssh -i ~/.ssh/hopper-login.pem ubuntu@<ip> "sudo DEPLOY_PUBKEY='$(cat hopper-deploy.pub)' SITE_ADDRESS=:80 bash host-setup.sh"
 ```
 
 Running it again is safe: existing secrets are left alone. Running it with a new `DEPLOY_PUBKEY` replaces the old
@@ -58,33 +100,57 @@ deploy key, which is how to rotate it. On the host, the deploy key's line in `~/
 
 ## 3. Tell GitHub about the host
 
-Repository **Settings → Secrets and variables → Actions**:
+First, on your machine, read the server's host key and check it against the fingerprint from step 1d:
 
-| Kind | Name | Value |
-|---|---|---|
-| Secret | `EC2_SSH_KEY` | the whole private key file `hopper-deploy` |
-| Secret | `EC2_KNOWN_HOSTS` | the output of `ssh-keyscan -t ed25519 <host>`, with the same `<host>` as `EC2_HOST` |
-| Variable | `EC2_HOST` | the Elastic IP (or DNS name) |
-| Variable | `PUBLIC_URL` | `http://<ip>`, or `https://<domain>` |
-| Variable | `EC2_USER` | only if not `ubuntu` |
+```bash
+ssh-keyscan -t ed25519 <ip> > hopper-known-hosts
+```
 
-Check the scanned host key before you trust it: `ssh-keygen -lf` of the `ssh-keyscan` output must match the
-ED25519 fingerprint the instance printed at first boot (EC2 console: **Actions → Monitor and troubleshoot → Get
-system log**, between the `BEGIN SSH HOST KEY FINGERPRINTS` lines). The deploy workflows stay skipped until
-`EC2_HOST` is set. The first run creates the `production` environment, where you can add required reviewers if
-deploys should wait for approval.
+```bash
+ssh-keygen -lf hopper-known-hosts
+```
+
+The `SHA256:...` part must be the same as the `(ED25519)` line in the system log. If it is not, stop: something
+else answered on that address.
+
+Then on github.com, in the repository: **Settings** tab → left menu **Secrets and variables → Actions**.
+
+- On the **Secrets** tab, **New repository secret**, twice:
+
+  | Name | Secret |
+  |---|---|
+  | `EC2_SSH_KEY` | the whole private key file `hopper-deploy` (`cat hopper-deploy`), from `-----BEGIN` to `-----END ...-----` |
+  | `EC2_KNOWN_HOSTS` | the whole file `hopper-known-hosts` (one line, starting with the address) |
+
+- On the **Variables** tab, **New repository variable**, twice (three if you log in as someone other than
+  `ubuntu`):
+
+  | Name | Value |
+  |---|---|
+  | `EC2_HOST` | `<ip>`, the Elastic IP (or a DNS name for it) |
+  | `PUBLIC_URL` | `http://<ip>`, or `https://<domain>` |
+  | `EC2_USER` | only if not `ubuntu` |
+
+The deploy workflows stay skipped until `EC2_HOST` is set. The first run creates the `production` environment
+(**Settings → Environments**), where you can add required reviewers if deploys should wait for approval.
+
+Once `EC2_HOST` is set, every merge to main deploys. While the instance is stopped those deploys fail (the
+workflow cannot reach the host); start the instance before merging, or rerun the failed deploy afterwards.
 
 ## 4. First deploy
 
-**Actions → deploy → Run workflow**, with the tag set to the full commit sha of main's latest green CI run
-(`git rev-parse origin/main`). Images from before Week 7 carry no deploy bundle and cannot be deployed. The log
-shows each step with a time stamp. The first deploy also creates the smoke tenant's API key and stores it in
-`/opt/hopper/.env`.
+1. On your machine, `git rev-parse origin/main` prints the full commit sha of main's latest green CI run (images
+   from before Week 7 carry no deploy bundle and cannot be deployed).
+2. On github.com: **Actions** tab → **deploy** in the left list → **Run workflow** → paste the sha into **Image
+   tag** → **Run workflow**.
+3. Open the run. The log shows each step with a time stamp; it ends green after a smoke test pushed a real job
+   through the new release. The first deploy also creates the smoke tenant's API key and stores it in
+   `/opt/hopper/.env`.
 
 Then create the first platform admin (it asks for a password):
 
 ```bash
-ssh -t ubuntu@<ip> docker exec -it hopper-api-1-1 python -m hopper.bootstrap --email you@example.com
+ssh -t -i ~/.ssh/hopper-login.pem ubuntu@<ip> docker exec -it hopper-api-1-1 python -m hopper.bootstrap --email you@example.com
 ```
 
 Live links: `<PUBLIC_URL>/docs` (API docs) and `<PUBLIC_URL>/grafana/` (dashboard, view only). The Grafana admin
@@ -94,7 +160,8 @@ From now on, every merge to main deploys by itself once CI is green.
 
 ## 5. Record a broken release being rolled back
 
-**Actions → rollback-drill → Run workflow**, breakage `readyz`.
+On github.com: **Actions** tab → **rollback-drill** in the left list → **Run workflow** → breakage **readyz** →
+**Run workflow**.
 
 1. The drill builds a release from the image that is live, with `/readyz` broken on purpose
    (`deploy/broken/readyz.Dockerfile`), and pushes it as `drill-readyz-<run id>`.
@@ -105,6 +172,15 @@ The job's log is the recording: link it in the README, or screen-record the log 
 `worker` does the same with workers that exit at start, where `/readyz` stays green and only the smoke test catches it.
 
 ## Day to day
+
+The commands below log in as `ubuntu@<ip>`. Add this to `~/.ssh/config` once, so that ssh uses your login key for
+the server without `-i` every time:
+
+```
+Host <ip>
+  User ubuntu
+  IdentityFile ~/.ssh/hopper-login.pem
+```
 
 ```bash
 ssh ubuntu@<ip> /opt/hopper/deploy.sh --status         # current=<sha> previous=<sha>

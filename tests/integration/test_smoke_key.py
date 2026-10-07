@@ -10,7 +10,7 @@ import httpx
 from fastapi import FastAPI
 from sqlalchemy import text
 
-from hopper.bootstrap import SMOKE_TENANT
+from hopper.bootstrap import BENCH_TENANT, SMOKE_TENANT
 from tests.helpers import ROOT
 
 KEY = re.compile(r"hop_live_[a-z0-9]{8}_[A-Za-z0-9_-]{43}")
@@ -73,3 +73,44 @@ def test_refuses_to_run_without_the_pepper(migrated_db_url: str) -> None:
         check=False,
     )
     assert result.returncode == 2 and "API_KEY_PEPPER" in result.stderr
+
+
+def bench_key(db_url: str) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        [sys.executable, "-m", "hopper.bootstrap", "--bench-key"],
+        cwd=ROOT,
+        env={**os.environ, "DATABASE_URL": db_url},
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+
+async def test_the_bench_key_belongs_to_a_tenant_with_raised_limits(
+    api_app: FastAPI, migrated_db_url: str
+) -> None:
+    """The load test measures Hopper, not its own tenant's rate limit."""
+    made = await asyncio.to_thread(bench_key, migrated_db_url)
+    assert made.returncode == 0, made.stderr
+    assert KEY.fullmatch(made.stdout.strip()), made.stdout
+    async with client(api_app, made.stdout.strip()) as c:
+        job = await c.post("/v1/jobs", json={"task": "sleep", "payload": {"ms": 1}})
+    assert job.status_code == 201
+    assert job.headers["X-RateLimit-Limit"] == "100000"
+    async with api_app.state.engine.connect() as conn:
+        limits = (
+            await conn.execute(
+                text("SELECT max_queue_depth FROM tenants WHERE name = :n"), {"n": BENCH_TENANT}
+            )
+        ).scalar_one()
+    assert limits == 10_000_000
+
+
+async def test_bench_and_smoke_keys_are_separate_tenants(
+    api_app: FastAPI, migrated_db_url: str
+) -> None:
+    smoke = (await asyncio.to_thread(smoke_key, migrated_db_url)).stdout.strip()
+    bench = (await asyncio.to_thread(bench_key, migrated_db_url)).stdout.strip()
+    async with client(api_app, smoke) as s, client(api_app, bench) as b:
+        assert (await s.get("/v1/jobs")).status_code == 200  # rotating one keeps the other
+        assert (await b.get("/v1/jobs")).status_code == 200
