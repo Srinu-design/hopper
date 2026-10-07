@@ -1,6 +1,6 @@
 [project]
 name = "hopper"
-version = "0.1.0"
+version = "0.8.0"
 description = "Multi-tenant distributed job queue and scheduler on PostgreSQL"
 requires-python = ">=3.12"
 dependencies = [

@@ -11,3 +11,8 @@ dist/
 build/
 # deploy/rehearse-local.sh's output (a kept copy lives in docs/delivery/)
 rehearsal.log
+# Keys and host files from docs/deploy.md belong in ~/.ssh; never commit one by accident
+*.pem
+hopper-deploy
+hopper-deploy.pub
+hopper-known-hosts

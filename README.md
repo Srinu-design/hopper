@@ -5,20 +5,20 @@
 A multi-tenant job queue and scheduler on PostgreSQL: send a job over HTTP; it runs at least once,
 retries with backoff, parks in a dead-letter queue if it keeps failing, and can be replayed.
 
-> **Status: Week 7 of 8 (delivery).** Tenants enqueue jobs over HTTP with an API key (now, after
+> **Status: Week 8 of 8 (proof).** Tenants enqueue jobs over HTTP with an API key (now, after
 > a delay, at a set time, or on a cron schedule), optionally with an `Idempotency-Key`. Workers claim them with
 > `FOR UPDATE SKIP LOCKED` under a heartbeated lease, retry with full-jitter backoff, and park failures in a
 > dead-letter queue you can list and replay. The `http` task calls a tenant's URL behind an SSRF guard and signs
 > every request. Each tenant is rate-limited by a Redis token bucket (429 with `Retry-After`), deep queues are
 > refused (429 per tenant, 503 overall), and every process reports to Prometheus, with a provisioned Grafana
-> dashboard and five tested alerts. Every merge to main can deploy itself to one EC2 host: the API is replaced one
+> dashboard and five tested alerts. Every merge to main deploys itself to one EC2 host: the API is replaced one
 > replica at a time behind Caddy, each release is smoke-tested with a real job, and a failing one is rolled back
-> automatically. That is rehearsed in CI on every pull request; the server itself is not launched yet
-> ([docs/deploy.md](docs/deploy.md)). The load and chaos tests arrive in Week 8. Nothing here claims behaviour that
-> is not built and tested yet.
+> automatically, as rehearsed in CI on every pull request ([docs/deploy.md](docs/deploy.md)). On that server a
+> chaos test killed workers 38 times while 10,000 jobs ran and lost none, and a load test measured where Hopper
+> breaks ([Week 8](#week-8)). Nothing here claims behaviour that is not built and tested.
 
-The demo video, headline numbers, architecture diagram and live links will go at the top of this file in
-Week 8, once there is something measured to show.
+The demo video, architecture diagram and live links will go at the top of this file with the write-up (design doc
+and benchmarks), which is still to come.
 
 ## Quickstart
 
@@ -120,6 +120,9 @@ make test              # pytest against real Postgres and Redis
 make lint              # ruff check, ruff format --check, mypy --strict on src/
 make alerts            # promtool: check the Prometheus config and unit-test the alert rules
 make rehearse          # deploys, broken releases and rollbacks on a throwaway Docker host (deploy/rehearse.sh)
+make chaos             # 10,000 jobs while workers are killed for 5 minutes, then SQL checks (about 7 minutes)
+make chaos-control     # the same with workers that ack before running: it must lose jobs
+make load              # load scenario A (enqueue throughput); make bench runs A to D, about two hours
 ```
 
 Production runs `docker/compose.prod.yaml` on one EC2 host, deployed by GitHub Actions through `deploy/deploy.sh`.
@@ -133,13 +136,14 @@ not `localhost`: on Windows `localhost` resolves to `::1` first and the publishe
 
 | Path | Contents |
 |---|---|
-| `src/hopper/` | `api/` (routers, rate limits and backpressure, HTTP metrics), `auth/` (API keys, passwords, JWT, tenant context), `ratelimit/` (`token_bucket.lua`, the limiter and its in-process fallback, the depth gate), `queue/` (Broker interface and all queue SQL), `worker/` (run loop, heartbeats, shutdown), `scheduler/` (cron, reaper, queue-depth and retention loops), `tasks/` (registry, built-ins, `http`), `bootstrap.py` (first admin, deploy smoke key), `metrics.py`, `config.py`, `logging.py`, `db.py` |
+| `src/hopper/` | `api/` (routers, rate limits and backpressure, HTTP metrics), `auth/` (API keys, passwords, JWT, tenant context), `ratelimit/` (`token_bucket.lua`, the limiter and its in-process fallback, the depth gate), `queue/` (Broker interface and all queue SQL), `worker/` (run loop, heartbeats, shutdown), `scheduler/` (cron, reaper, queue-depth and retention loops), `tasks/` (registry, built-ins, `http`, `effect` for the chaos test), `bootstrap.py` (first admin, deploy smoke key, load-test key), `metrics.py`, `config.py`, `logging.py`, `db.py` |
 | `migrations/` | Alembic revisions. Hand-written SQL, backward compatible with the previous release |
 | `docker/` | `Dockerfile` (one image, every role, carrying its deploy bundle), `compose.yaml` (development) and `compose.prod.yaml` (the server) |
 | `deploy/` | `deploy.sh` (deploy, smoke test, rollback), `smoke.py`, `host-setup.sh` (one-time server setup), `rehearse.sh` and `rehearse-local.sh`, `broken/` (releases broken on purpose for drills), `Caddyfile`, `prometheus/` (config, alerts and their tests), `grafana/provisioning/` (data source, dashboard JSON) |
-| `.github/workflows/` | `ci.yml` (lint, alerts, tests, delivery rehearsal, image), `deploy.yml` (main to the server), `drill.yml` (rollback drill) |
+| `.github/workflows/` | `ci.yml` (lint, alerts, tests, delivery rehearsal, image), `deploy.yml` (main to the server), `drill.yml` (rollback drill), `nightly-chaos.yml` (the chaos test every night, either mode on demand) |
 | `tests/` | `unit/`, `integration/`, `e2e/` |
-| `loadtest/`, `chaos/` | Reserved for Week 8 |
+| `loadtest/` | `bench.py` (scenarios A to D with k6 in Docker, three runs each), `k6/enqueue.js`, `compose.bench.yaml` (a second API replica), `results/` (summaries and raw k6 output) |
+| `chaos/` | `kill_workers.py` (the chaos test), `compose.ack-before-run.yaml` (the negative control), `on-server.sh` (the same test on the server), `results/` (reports) |
 | `docs/` | `adr/` decision records, `ai-usage.md` |
 
 ## Roadmap and changelog
@@ -152,8 +156,8 @@ not `localhost`: on Windows `localhost` resolves to `::1` first and the publishe
 | 4 | Reliability: leases, heartbeats, reaper, graceful shutdown | done |
 | 5 | Scheduling and tenancy: delayed and cron jobs, API keys, JWT, `http` task | done |
 | 6 | Limits and observability: token bucket, backpressure, metrics, Grafana | done |
-| 7 | Delivery: GHCR, EC2, deploy with rollback | built and rehearsed; server launch pending |
-| 8 | Proof and write-up: load tests, chaos test, design doc, demo | |
+| 7 | Delivery: GHCR, EC2, deploy with rollback | done; live on EC2 |
+| 8 | Proof and write-up: load tests, chaos test, design doc, demo | load and chaos tests done; write-up and demo to come |
 
 ### Week 1
 - Repo layout, `pyproject.toml` with a committed `uv.lock`, ruff and `mypy --strict` on `src/`.
@@ -474,6 +478,58 @@ not `localhost`: on Windows `localhost` resolves to `::1` first and the publishe
   current batch, the hourly loop stopping at once, and `RETENTION_DAYS=0` refused. Three bugs were put in on purpose,
   and a test failed for each.
 - New settings: `RETENTION_DAYS` (7, at least 1), `RETENTION_INTERVAL_SECONDS` (3600), `RETENTION_BATCH_SIZE` (1,000).
+
+### Week 8
+- **Live on EC2.** The server from [docs/deploy.md](docs/deploy.md) runs in ap-southeast-2 on a c7i-flex.large
+  (2 vCPUs, 4 GiB). Merging Week 8 deployed it in 53 s, smoke test included, and the release before it is kept for
+  rollback. The rollback drill (`drill.yml`) passed on the real server: its broken release was rolled back by itself.
+- **Chaos test** (`chaos/kill_workers.py`, `make chaos`). 10,000 `effect` jobs go in through the API over 5 minutes
+  while a random worker is killed with SIGKILL every 3 to 10 s, plus one SIGTERM, one worker frozen 40 s past its
+  30 s lease, and one Redis restart. The `effect` task writes each run to `job_executions` and its side effect, once
+  per job, to `job_effects` (migration `0004`), so SQL tells lost jobs, duplicate runs and repeated effects apart.
+
+  | Run | SIGKILLs | Jobs cut off mid-run | Lost | Duplicate runs | Acks refused by fencing | Recovery, median and max |
+  |---|---|---|---|---|---|---|
+  | Laptop | 36 | 69 | **0** | 8 | 5 | 32.3 s, 64.6 s |
+  | EC2 server (`chaos/on-server.sh`) | 38 | 102 | **0** | 9 | 1 | 31.7 s, 59.6 s |
+
+  Every job ran its effect exactly once. The duplicates come from kills between a job's effect and its ack, and
+  from the frozen worker finishing jobs that had meanwhile run elsewhere, whose acks the fencing token refused.
+  Reports: [chaos/results](chaos/results/).
+- **Negative control.** With `CHAOS_ACK_BEFORE_RUN=true` workers ack before running (at-most-once). It can only be
+  turned on through `chaos/compose.ack-before-run.yaml`, and a test keeps it out of everything that ships. The same
+  test then lost 69 jobs out of 10,000, and the checks caught every one, which shows they can see a loss.
+  `nightly-chaos.yml` runs the test every night, and either mode on demand.
+- **Load test** (`loadtest/bench.py`, `make bench`). k6 2.3.0 in Docker against two API replicas, three runs per
+  scenario, on a laptop on mains power. The script refuses to run on battery or in power-saver mode: a first run on
+  battery was thrown away. Medians ([full tables and raw output](loadtest/results/2026-10-07-Zenbook-Q420VA/summary.md)):
+  - A, enqueue: p95 6.9 ms at 100 req/s, 17 ms at 250 and 376 ms at 500; asked for 1,000, the API took about 545.
+  - B, drain 100,000 jobs: 956 jobs/s with 1 worker, 1,600 with 2, 2,137 with 4 and 2,773 with 8.
+  - C, 300 jobs/s for 10 minutes with 5% `flaky` jobs: API p95 20 ms, queue wait p95 189 ms, enqueue to done p95
+    254 ms, no errors.
+  - D, breaking point: 400 req/s held in all three runs; at 500 the API accepted 463 to 491.
+  - What breaks first: the API. Each replica is one Python process, and both were near 100% CPU while Postgres used
+    under one core.
+- **Postgres metrics.** `postgres-exporter` joins both stacks, and the dashboard has a Postgres row: connections by
+  state, dead tuples on `jobs`, transactions per second and the longest open transaction.
+- New tasks: `cpu` (SHA-256 rounds in a thread, for CPU-bound load) and `effect`. `python -m hopper.bootstrap
+  --bench-key` rotates the key of the `hopper-bench` tenant, whose limits stay out of the measurement. New setting:
+  `CHAOS_ACK_BEFORE_RUN` (the negative control only).
+- **Found in a full check after Week 8 and fixed:**
+  - The app reported version 0.7.0 while `pyproject.toml` said 0.1.0. It now reads the one version from the package
+    (0.8.0), and a test keeps it that way.
+  - The negative control's report said its kills cut off no job mid-run, next to a table counting 10: a job is
+    briefly running between its claim and the early ack. The wording is fixed and the report re-rendered from its
+    raw data.
+  - [docs/deploy.md](docs/deploy.md) made the CI deploy key and the host-key file in the repository folder, where
+    `git add .` would have committed the private key. They go in `~/.ssh` now, and `.gitignore` refuses key files.
+  - Its ssh config for day-to-day commands lacked `IdentitiesOnly yes`: with the deploy key in an ssh agent, ssh
+    offers that key first, and its forced command refused every command. `chaos/on-server.sh` had the same problem
+    before its first run.
+  - CI's shellcheck skipped `chaos/on-server.sh`.
+- Tests: 482 (up from 434). They cover the `effect` and `cpu` tasks, the negative control (a real worker process
+  killed mid-job loses the job only with the switch on), the bench key, the new tables, the Postgres scrape, and the
+  chaos and load-test scripts' verdicts, including the power check.
 
 ## Docs
 

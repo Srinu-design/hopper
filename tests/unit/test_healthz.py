@@ -1,9 +1,11 @@
+import tomllib
 from collections.abc import AsyncIterator
 
 import httpx
 import pytest
 
 from hopper.api.main import create_app
+from tests.helpers import ROOT
 
 
 @pytest.fixture
@@ -25,3 +27,9 @@ async def test_healthz_needs_no_backing_services(client: httpx.AsyncClient) -> N
     # readiness (/readyz) is the probe that reports them.
     resp = await client.get("/healthz")
     assert resp.status_code == 200
+
+
+def test_the_api_reports_the_project_version() -> None:
+    """/docs and /openapi.json show pyproject.toml's version, never a second copy of it."""
+    project = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))["project"]
+    assert create_app().version == project["version"]

@@ -645,10 +645,11 @@ def render_report(data: dict[str, Any]) -> str:
         "",
         *(
             [
-                "In this mode a worker marks each job succeeded as soon as it claims it, so the "
-                "queue never shows a job running and the kills above find none cut off mid-run. "
-                "Every job a kill did cut off is counted as lost instead: succeeded, with no "
-                "effect.",
+                "In this mode a worker marks each job succeeded as soon as it claims it, so a "
+                "job shows as running only between its claim and that ack: a kill in that moment "
+                "is counted above as cutting it off, and the reaper gives it to another worker "
+                "as usual. A kill while a handler runs, after the ack, is invisible to the queue: "
+                "that job is counted as lost instead, succeeded with no effect.",
                 "",
             ]
             if a["mode"] != "normal"
