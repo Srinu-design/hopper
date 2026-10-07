@@ -227,6 +227,10 @@ def test_the_chaos_negative_control_can_never_reach_the_server() -> None:
 
     assert Settings().chaos_ack_before_run is False
     shipped = [ROOT / "docker/compose.prod.yaml", ROOT / "docker/compose.yaml"]
-    shipped += [p for p in (ROOT / "deploy").rglob("*") if p.is_file()]
+    # Bytes, not text: other tests import deploy/smoke.py, which leaves compiled .pyc files in
+    # deploy/__pycache__ (never shipped: .dockerignore drops them, and so does this check).
+    shipped += [
+        p for p in (ROOT / "deploy").rglob("*") if p.is_file() and "__pycache__" not in p.parts
+    ]
     for path in shipped:
-        assert "CHAOS_ACK_BEFORE_RUN" not in path.read_text(encoding="utf-8"), path
+        assert b"CHAOS_ACK_BEFORE_RUN" not in path.read_bytes(), path
