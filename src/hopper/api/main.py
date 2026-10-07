@@ -2,6 +2,7 @@ import re
 import uuid
 from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager
+from importlib.metadata import version
 
 import structlog
 from fastapi import FastAPI, Request, Response
@@ -80,7 +81,8 @@ async def request_context_middleware(
 
 
 def create_app() -> FastAPI:
-    app = FastAPI(title="Hopper", version="0.7.0", lifespan=lifespan)
+    # One version, from pyproject.toml: a number written here as well drifted from it.
+    app = FastAPI(title="Hopper", version=version("hopper"), lifespan=lifespan)
     # Added last = outermost: metrics time everything, then the request id exists before
     # anything else runs.
     app.add_middleware(BodySizeLimitMiddleware)
