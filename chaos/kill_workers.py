@@ -555,7 +555,10 @@ def host_description() -> str:
 
 
 def git_sha() -> str:
-    """The commit, marked "+ uncommitted changes" when the working tree differs from it."""
+    """The commit, marked "+ uncommitted changes" when the working tree differs from it. On
+    the server there is no checkout: chaos/on-server.sh names the live release instead."""
+    if release := os.environ.get("HOPPER_RELEASE"):
+        return f"{release[:7]} (the release deployed on the server)"
     try:
         sha = subprocess.run(
             ["git", "rev-parse", "--short", "HEAD"], cwd=ROOT, capture_output=True, text=True

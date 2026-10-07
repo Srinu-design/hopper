@@ -1,0 +1,1813 @@
+{
+  "runs": [
+    {
+      "scenario": "A",
+      "name": "A-100rps-run1",
+      "rate": 100,
+      "duration": "2m",
+      "api": {
+        "requests": 12001.0,
+        "achieved_rps": 100.00377402043709,
+        "p50_ms": 5.326168,
+        "p95_ms": 6.85082,
+        "p99_ms": 7.731961,
+        "max_ms": 56.693231,
+        "failed_rate": 0.0,
+        "not_201_rate": 0.0,
+        "dropped": 0.0
+      },
+      "jobs": {
+        "jobs": 12001,
+        "succeeded": 12001,
+        "dead": 0,
+        "unfinished": 0,
+        "retried": 0,
+        "wait_s": [
+          0.056232,
+          0.171879,
+          0.228021
+        ],
+        "run_s": [
+          0.059156,
+          0.069784,
+          0.073927
+        ],
+        "end_to_end_s": [
+          0.116788,
+          0.233047,
+          0.287594
+        ]
+      },
+      "drain_after_s": 0.2,
+      "cpu": {
+        "api": 35.1,
+        "postgres": 12.3,
+        "redis": 2.2,
+        "workers": 12.1,
+        "worker_max": 4.83,
+        "scheduler": 0.9,
+        "k6": 6.5
+      },
+      "pg": {
+        "connections": 34,
+        "lock_waits": 0,
+        "jobs_dead_tuples": 8242,
+        "jobs_live_tuples": 7410
+      },
+      "run": 1
+    },
+    {
+      "scenario": "A",
+      "name": "A-100rps-run2",
+      "rate": 100,
+      "duration": "2m",
+      "api": {
+        "requests": 12001.0,
+        "achieved_rps": 100.00464218032465,
+        "p50_ms": 5.304051,
+        "p95_ms": 11.825226,
+        "p99_ms": 20.154066,
+        "max_ms": 47.799315,
+        "failed_rate": 0.0,
+        "not_201_rate": 0.0,
+        "dropped": 0.0
+      },
+      "jobs": {
+        "jobs": 12001,
+        "succeeded": 12001,
+        "dead": 0,
+        "unfinished": 0,
+        "retried": 0,
+        "wait_s": [
+          0.056103,
+          0.168892,
+          0.219449
+        ],
+        "run_s": [
+          0.059515,
+          0.072685,
+          0.10489
+        ],
+        "end_to_end_s": [
+          0.117901,
+          0.231867,
+          0.280367
+        ]
+      },
+      "drain_after_s": 0.1,
+      "cpu": {
+        "api": 36.5,
+        "postgres": 13.4,
+        "redis": 2.1,
+        "workers": 13.6,
+        "worker_max": 5.04,
+        "scheduler": 1.0,
+        "k6": 6.5
+      },
+      "pg": {
+        "connections": 34,
+        "lock_waits": 0,
+        "jobs_dead_tuples": 8710,
+        "jobs_live_tuples": 7390
+      },
+      "run": 2
+    },
+    {
+      "scenario": "A",
+      "name": "A-100rps-run3",
+      "rate": 100,
+      "duration": "2m",
+      "api": {
+        "requests": 12001.0,
+        "achieved_rps": 100.00413849890401,
+        "p50_ms": 5.077429,
+        "p95_ms": 6.521195,
+        "p99_ms": 7.251047,
+        "max_ms": 52.819185,
+        "failed_rate": 0.0,
+        "not_201_rate": 0.0,
+        "dropped": 0.0
+      },
+      "jobs": {
+        "jobs": 12001,
+        "succeeded": 12001,
+        "dead": 0,
+        "unfinished": 0,
+        "retried": 0,
+        "wait_s": [
+          0.057999,
+          0.174911,
+          0.238113
+        ],
+        "run_s": [
+          0.05888,
+          0.069029,
+          0.073923
+        ],
+        "end_to_end_s": [
+          0.118066,
+          0.235475,
+          0.296892
+        ]
+      },
+      "drain_after_s": 0.1,
+      "cpu": {
+        "api": 62.3,
+        "postgres": 11.7,
+        "redis": 2.0,
+        "workers": 12.6,
+        "worker_max": 4.66,
+        "scheduler": 0.7,
+        "k6": 6.5
+      },
+      "pg": {
+        "connections": 34,
+        "lock_waits": 0,
+        "jobs_dead_tuples": 9000,
+        "jobs_live_tuples": 7403
+      },
+      "run": 3
+    },
+    {
+      "scenario": "A",
+      "name": "A-250rps-run1",
+      "rate": 250,
+      "duration": "2m",
+      "api": {
+        "requests": 30001.0,
+        "achieved_rps": 249.99976224148475,
+        "p50_ms": 5.750505,
+        "p95_ms": 17.153109,
+        "p99_ms": 25.633839,
+        "max_ms": 69.206968,
+        "failed_rate": 0.0,
+        "not_201_rate": 0.0,
+        "dropped": 0.0
+      },
+      "jobs": {
+        "jobs": 30001,
+        "succeeded": 30001,
+        "dead": 0,
+        "unfinished": 0,
+        "retried": 0,
+        "wait_s": [
+          0.065375,
+          0.179471,
+          0.229709
+        ],
+        "run_s": [
+          0.062798,
+          0.07943,
+          0.11591
+        ],
+        "end_to_end_s": [
+          0.132079,
+          0.243455,
+          0.294042
+        ]
+      },
+      "drain_after_s": 0.1,
+      "cpu": {
+        "api": 80.8,
+        "postgres": 27.5,
+        "redis": 4.0,
+        "workers": 28.8,
+        "worker_max": 12.96,
+        "scheduler": 1.1,
+        "k6": 13.5
+      },
+      "pg": {
+        "connections": 35,
+        "lock_waits": 0,
+        "jobs_dead_tuples": 23764,
+        "jobs_live_tuples": 18449
+      },
+      "run": 1
+    },
+    {
+      "scenario": "A",
+      "name": "A-250rps-run2",
+      "rate": 250,
+      "duration": "2m",
+      "api": {
+        "requests": 30000.0,
+        "achieved_rps": 249.99803741957368,
+        "p50_ms": 5.641614499999999,
+        "p95_ms": 8.065208049999999,
+        "p99_ms": 12.687570829999977,
+        "max_ms": 74.925723,
+        "failed_rate": 0.0,
+        "not_201_rate": 0.0,
+        "dropped": 0.0
+      },
+      "jobs": {
+        "jobs": 30000,
+        "succeeded": 30000,
+        "dead": 0,
+        "unfinished": 0,
+        "retried": 0,
+        "wait_s": [
+          0.0646125,
+          0.17866639999999998,
+          0.22554805999999983
+        ],
+        "run_s": [
+          0.061786,
+          0.0730991,
+          0.07873203
+        ],
+        "end_to_end_s": [
+          0.127615,
+          0.24204625,
+          0.28837419
+        ]
+      },
+      "drain_after_s": 0.2,
+      "cpu": {
+        "api": 117.6,
+        "postgres": 30.1,
+        "redis": 3.9,
+        "workers": 42.3,
+        "worker_max": 16.74,
+        "scheduler": 1.0,
+        "k6": 13.9
+      },
+      "pg": {
+        "connections": 35,
+        "lock_waits": 0,
+        "jobs_dead_tuples": 24763,
+        "jobs_live_tuples": 18432
+      },
+      "run": 2
+    },
+    {
+      "scenario": "A",
+      "name": "A-250rps-run3",
+      "rate": 250,
+      "duration": "2m",
+      "api": {
+        "requests": 30000.0,
+        "achieved_rps": 249.99673313644016,
+        "p50_ms": 5.713662,
+        "p95_ms": 16.93036745,
+        "p99_ms": 25.84895044999997,
+        "max_ms": 76.209409,
+        "failed_rate": 0.0,
+        "not_201_rate": 0.0,
+        "dropped": 0.0
+      },
+      "jobs": {
+        "jobs": 30000,
+        "succeeded": 30000,
+        "dead": 0,
+        "unfinished": 0,
+        "retried": 0,
+        "wait_s": [
+          0.0648685,
+          0.18441559999999999,
+          0.23410154999999974
+        ],
+        "run_s": [
+          0.062507,
+          0.07886624999999998,
+          0.11571609999999982
+        ],
+        "end_to_end_s": [
+          0.130949,
+          0.25005715,
+          0.29917417999999996
+        ]
+      },
+      "drain_after_s": 0.1,
+      "cpu": {
+        "api": 92.3,
+        "postgres": 30.6,
+        "redis": 4.2,
+        "workers": 30.7,
+        "worker_max": 12.67,
+        "scheduler": 0.9,
+        "k6": 14.0
+      },
+      "pg": {
+        "connections": 35,
+        "lock_waits": 0,
+        "jobs_dead_tuples": 25576,
+        "jobs_live_tuples": 18440
+      },
+      "run": 3
+    },
+    {
+      "scenario": "A",
+      "name": "A-500rps-run1",
+      "rate": 500,
+      "duration": "2m",
+      "api": {
+        "requests": 59646.0,
+        "achieved_rps": 497.0259221963397,
+        "p50_ms": 13.7880395,
+        "p95_ms": 827.99620225,
+        "p99_ms": 1142.72829255,
+        "max_ms": 3923.493804,
+        "failed_rate": 0.0,
+        "not_201_rate": 0.0,
+        "dropped": 355.0
+      },
+      "jobs": {
+        "jobs": 59646,
+        "succeeded": 59646,
+        "dead": 0,
+        "unfinished": 0,
+        "retried": 0,
+        "wait_s": [
+          0.0850785,
+          0.23119375,
+          0.2751182000000001
+        ],
+        "run_s": [
+          0.0633615,
+          0.0851285,
+          0.1110671
+        ],
+        "end_to_end_s": [
+          0.149667,
+          0.3032665,
+          0.3503197000000001
+        ]
+      },
+      "drain_after_s": 0.2,
+      "cpu": {
+        "api": 174.3,
+        "postgres": 73.0,
+        "redis": 7.7,
+        "workers": 70.6,
+        "worker_max": 28.71,
+        "scheduler": 1.0,
+        "k6": 26.2
+      },
+      "pg": {
+        "connections": 35,
+        "lock_waits": 0,
+        "jobs_dead_tuples": 53284,
+        "jobs_live_tuples": 37011
+      },
+      "run": 1
+    },
+    {
+      "scenario": "A",
+      "name": "A-500rps-run2",
+      "rate": 500,
+      "duration": "2m",
+      "api": {
+        "requests": 59883.0,
+        "achieved_rps": 498.8456929544692,
+        "p50_ms": 13.694928,
+        "p95_ms": 375.6738682999999,
+        "p99_ms": 618.7609413800001,
+        "max_ms": 1742.625722,
+        "failed_rate": 0.0,
+        "not_201_rate": 0.0,
+        "dropped": 118.0
+      },
+      "jobs": {
+        "jobs": 59883,
+        "succeeded": 59883,
+        "dead": 0,
+        "unfinished": 0,
+        "retried": 0,
+        "wait_s": [
+          0.082697,
+          0.2007639,
+          0.25786792
+        ],
+        "run_s": [
+          0.062534,
+          0.07831,
+          0.1035055
+        ],
+        "end_to_end_s": [
+          0.146934,
+          0.26521469999999997,
+          0.31945668
+        ]
+      },
+      "drain_after_s": 0.1,
+      "cpu": {
+        "api": 160.6,
+        "postgres": 65.8,
+        "redis": 6.3,
+        "workers": 77.2,
+        "worker_max": 27.76,
+        "scheduler": 0.9,
+        "k6": 22.3
+      },
+      "pg": {
+        "connections": 35,
+        "lock_waits": 0,
+        "jobs_dead_tuples": 55897,
+        "jobs_live_tuples": 36844
+      },
+      "run": 2
+    },
+    {
+      "scenario": "A",
+      "name": "A-500rps-run3",
+      "rate": 500,
+      "duration": "2m",
+      "api": {
+        "requests": 59911.0,
+        "achieved_rps": 499.1930898739119,
+        "p50_ms": 12.325034,
+        "p95_ms": 261.696309,
+        "p99_ms": 541.6008161000005,
+        "max_ms": 1487.826043,
+        "failed_rate": 0.0,
+        "not_201_rate": 0.0,
+        "dropped": 90.0
+      },
+      "jobs": {
+        "jobs": 59911,
+        "succeeded": 59911,
+        "dead": 0,
+        "unfinished": 0,
+        "retried": 0,
+        "wait_s": [
+          0.072144,
+          0.18728899999999998,
+          0.23081400000000005
+        ],
+        "run_s": [
+          0.062563,
+          0.0777125,
+          0.1021169
+        ],
+        "end_to_end_s": [
+          0.135734,
+          0.254348,
+          0.3027570000000001
+        ]
+      },
+      "drain_after_s": 0.1,
+      "cpu": {
+        "api": 192.6,
+        "postgres": 78.5,
+        "redis": 7.3,
+        "workers": 81.2,
+        "worker_max": 39.24,
+        "scheduler": 1.0,
+        "k6": 28.1
+      },
+      "pg": {
+        "connections": 35,
+        "lock_waits": 0,
+        "jobs_dead_tuples": 58196,
+        "jobs_live_tuples": 36754
+      },
+      "run": 3
+    },
+    {
+      "scenario": "A",
+      "name": "A-1000rps-run1",
+      "rate": 1000,
+      "duration": "2m",
+      "api": {
+        "requests": 66443.0,
+        "achieved_rps": 544.691719886671,
+        "p50_ms": 3521.1769,
+        "p95_ms": 9944.568293599992,
+        "p99_ms": 14268.526167860002,
+        "max_ms": 30023.770242,
+        "failed_rate": 3.0100988817482654e-05,
+        "not_201_rate": 3.0100988817505225e-05,
+        "dropped": 53558.0
+      },
+      "jobs": {
+        "jobs": 66441,
+        "succeeded": 66441,
+        "dead": 0,
+        "unfinished": 0,
+        "retried": 0,
+        "wait_s": [
+          0.093705,
+          0.265776,
+          0.4859748000000003
+        ],
+        "run_s": [
+          0.063009,
+          0.07868,
+          0.1032676000000001
+        ],
+        "end_to_end_s": [
+          0.158682,
+          0.333192,
+          0.5473258000000005
+        ]
+      },
+      "drain_after_s": 0.2,
+      "cpu": {
+        "api": 201.0,
+        "postgres": 117.0,
+        "redis": 8.6,
+        "workers": 87.8,
+        "worker_max": 34.82,
+        "scheduler": 1.2,
+        "k6": 29.0
+      },
+      "pg": {
+        "connections": 35,
+        "lock_waits": 0,
+        "jobs_dead_tuples": 1485,
+        "jobs_live_tuples": 38217
+      },
+      "run": 1
+    },
+    {
+      "scenario": "A",
+      "name": "A-1000rps-run2",
+      "rate": 1000,
+      "duration": "2m",
+      "api": {
+        "requests": 66925.0,
+        "achieved_rps": 548.8522002656953,
+        "p50_ms": 3477.921455,
+        "p95_ms": 8929.121467399988,
+        "p99_ms": 13501.730097519981,
+        "max_ms": 30018.913726,
+        "failed_rate": 5.976839745984311e-05,
+        "not_201_rate": 5.976839745980289e-05,
+        "dropped": 53076.0
+      },
+      "jobs": {
+        "jobs": 66921,
+        "succeeded": 66921,
+        "dead": 0,
+        "unfinished": 0,
+        "retried": 0,
+        "wait_s": [
+          0.095102,
+          0.249347,
+          0.5668974000000002
+        ],
+        "run_s": [
+          0.063013,
+          0.078281,
+          0.10411900000000004
+        ],
+        "end_to_end_s": [
+          0.159613,
+          0.314398,
+          0.6253350000000003
+        ]
+      },
+      "drain_after_s": 0.1,
+      "cpu": {
+        "api": 203.5,
+        "postgres": 71.4,
+        "redis": 3.5,
+        "workers": 88.6,
+        "worker_max": 40.49,
+        "scheduler": 0.8,
+        "k6": 28.1
+      },
+      "pg": {
+        "connections": 35,
+        "lock_waits": 0,
+        "jobs_dead_tuples": 5957,
+        "jobs_live_tuples": 38929
+      },
+      "run": 2
+    },
+    {
+      "scenario": "A",
+      "name": "A-1000rps-run3",
+      "rate": 1000,
+      "duration": "2m",
+      "api": {
+        "requests": 65574.0,
+        "achieved_rps": 537.2081904760844,
+        "p50_ms": 3536.0889075,
+        "p95_ms": 9882.4166899,
+        "p99_ms": 13988.573965229998,
+        "max_ms": 30023.690563,
+        "failed_rate": 9.149967975112087e-05,
+        "not_201_rate": 9.149967975108364e-05,
+        "dropped": 54427.0
+      },
+      "jobs": {
+        "jobs": 65568,
+        "succeeded": 65568,
+        "dead": 0,
+        "unfinished": 0,
+        "retried": 0,
+        "wait_s": [
+          0.096042,
+          0.2743712,
+          0.4845075000000004
+        ],
+        "run_s": [
+          0.063038,
+          0.07855664999999999,
+          0.10511466
+        ],
+        "end_to_end_s": [
+          0.16005049999999998,
+          0.34198065,
+          0.54652997
+        ]
+      },
+      "drain_after_s": 0.1,
+      "cpu": {
+        "api": 201.5,
+        "postgres": 88.2,
+        "redis": 10.2,
+        "workers": 98.2,
+        "worker_max": 36.06,
+        "scheduler": 1.0,
+        "k6": 30.0
+      },
+      "pg": {
+        "connections": 35,
+        "lock_waits": 0,
+        "jobs_dead_tuples": 11112,
+        "jobs_live_tuples": 39742
+      },
+      "run": 3
+    },
+    {
+      "scenario": "B",
+      "name": "B-1workers",
+      "workers": 1,
+      "jobs": 100000,
+      "succeeded": 100000,
+      "drain_s": 109.67,
+      "jobs_per_s": 911.9,
+      "wall_s_including_worker_start": 111.6,
+      "cpu": {
+        "api": 0.6,
+        "postgres": 25.5,
+        "redis": 0.3,
+        "workers": 30.8,
+        "worker_max": 30.77,
+        "scheduler": 0.7,
+        "k6": 0
+      },
+      "pg": {
+        "connections": 25,
+        "lock_waits": 0,
+        "jobs_dead_tuples": 81610,
+        "jobs_live_tuples": 100604
+      },
+      "run": 1
+    },
+    {
+      "scenario": "B",
+      "name": "B-1workers",
+      "workers": 1,
+      "jobs": 100000,
+      "succeeded": 100000,
+      "drain_s": 104.6,
+      "jobs_per_s": 956.0,
+      "wall_s_including_worker_start": 106.2,
+      "cpu": {
+        "api": 39.7,
+        "postgres": 66.2,
+        "redis": 0.3,
+        "workers": 95.2,
+        "worker_max": 95.17,
+        "scheduler": 0.6,
+        "k6": 0
+      },
+      "pg": {
+        "connections": 25,
+        "lock_waits": 0,
+        "jobs_dead_tuples": 84988,
+        "jobs_live_tuples": 100017
+      },
+      "run": 2
+    },
+    {
+      "scenario": "B",
+      "name": "B-1workers",
+      "workers": 1,
+      "jobs": 100000,
+      "succeeded": 100000,
+      "drain_s": 104.04,
+      "jobs_per_s": 961.1,
+      "wall_s_including_worker_start": 106.0,
+      "cpu": {
+        "api": 57.3,
+        "postgres": 61.9,
+        "redis": 0.3,
+        "workers": 94.0,
+        "worker_max": 94.02,
+        "scheduler": 1.0,
+        "k6": 0
+      },
+      "pg": {
+        "connections": 25,
+        "lock_waits": 0,
+        "jobs_dead_tuples": 68271,
+        "jobs_live_tuples": 100016
+      },
+      "run": 3
+    },
+    {
+      "scenario": "B",
+      "name": "B-2workers",
+      "workers": 2,
+      "jobs": 100000,
+      "succeeded": 100000,
+      "drain_s": 67.9,
+      "jobs_per_s": 1472.8,
+      "wall_s_including_worker_start": 69.7,
+      "cpu": {
+        "api": 0.3,
+        "postgres": 124.9,
+        "redis": 0.4,
+        "workers": 191.8,
+        "worker_max": 96.88,
+        "scheduler": 1.2,
+        "k6": 0
+      },
+      "pg": {
+        "connections": 30,
+        "lock_waits": 0,
+        "jobs_dead_tuples": 43834,
+        "jobs_live_tuples": 100015
+      },
+      "run": 1
+    },
+    {
+      "scenario": "B",
+      "name": "B-2workers",
+      "workers": 2,
+      "jobs": 100000,
+      "succeeded": 100000,
+      "drain_s": 62.52,
+      "jobs_per_s": 1599.6,
+      "wall_s_including_worker_start": 64.5,
+      "cpu": {
+        "api": 0.3,
+        "postgres": 111.9,
+        "redis": 4.5,
+        "workers": 195.3,
+        "worker_max": 98.19,
+        "scheduler": 1.2,
+        "k6": 0
+      },
+      "pg": {
+        "connections": 30,
+        "lock_waits": 0,
+        "jobs_dead_tuples": 77842,
+        "jobs_live_tuples": 100016
+      },
+      "run": 2
+    },
+    {
+      "scenario": "B",
+      "name": "B-2workers",
+      "workers": 2,
+      "jobs": 100000,
+      "succeeded": 100000,
+      "drain_s": 61.88,
+      "jobs_per_s": 1615.9,
+      "wall_s_including_worker_start": 63.6,
+      "cpu": {
+        "api": 0.5,
+        "postgres": 100.9,
+        "redis": 0.4,
+        "workers": 198.1,
+        "worker_max": 99.29,
+        "scheduler": 0.7,
+        "k6": 0
+      },
+      "pg": {
+        "connections": 30,
+        "lock_waits": 0,
+        "jobs_dead_tuples": 87565,
+        "jobs_live_tuples": 100017
+      },
+      "run": 3
+    },
+    {
+      "scenario": "B",
+      "name": "B-4workers",
+      "workers": 4,
+      "jobs": 100000,
+      "succeeded": 100000,
+      "drain_s": 45.86,
+      "jobs_per_s": 2180.6,
+      "wall_s_including_worker_start": 48.1,
+      "cpu": {
+        "api": 0.3,
+        "postgres": 68.8,
+        "redis": 3.2,
+        "workers": 117.1,
+        "worker_max": 32.0,
+        "scheduler": 1.3,
+        "k6": 0
+      },
+      "pg": {
+        "connections": 40,
+        "lock_waits": 0,
+        "jobs_dead_tuples": 88968,
+        "jobs_live_tuples": 100017
+      },
+      "run": 1
+    },
+    {
+      "scenario": "B",
+      "name": "B-4workers",
+      "workers": 4,
+      "jobs": 100000,
+      "succeeded": 100000,
+      "drain_s": 46.8,
+      "jobs_per_s": 2136.7,
+      "wall_s_including_worker_start": 49.1,
+      "cpu": {
+        "api": 1.0,
+        "postgres": 197.8,
+        "redis": 4.3,
+        "workers": 393.8,
+        "worker_max": 99.68,
+        "scheduler": 1.1,
+        "k6": 0
+      },
+      "pg": {
+        "connections": 40,
+        "lock_waits": 0,
+        "jobs_dead_tuples": 91746,
+        "jobs_live_tuples": 100017
+      },
+      "run": 2
+    },
+    {
+      "scenario": "B",
+      "name": "B-4workers",
+      "workers": 4,
+      "jobs": 100000,
+      "succeeded": 100000,
+      "drain_s": 49.91,
+      "jobs_per_s": 2003.8,
+      "wall_s_including_worker_start": 51.7,
+      "cpu": {
+        "api": 0.4,
+        "postgres": 234.8,
+        "redis": 0.4,
+        "workers": 393.7,
+        "worker_max": 99.11,
+        "scheduler": 2.1,
+        "k6": 0
+      },
+      "pg": {
+        "connections": 40,
+        "lock_waits": 0,
+        "jobs_dead_tuples": 93829,
+        "jobs_live_tuples": 100017
+      },
+      "run": 3
+    },
+    {
+      "scenario": "B",
+      "name": "B-8workers",
+      "workers": 8,
+      "jobs": 100000,
+      "succeeded": 100000,
+      "drain_s": 32.65,
+      "jobs_per_s": 3062.7,
+      "wall_s_including_worker_start": 34.5,
+      "cpu": {
+        "api": 0.4,
+        "postgres": 316.3,
+        "redis": 0.4,
+        "workers": 792.1,
+        "worker_max": 100.0,
+        "scheduler": 1.6,
+        "k6": 0
+      },
+      "pg": {
+        "connections": 60,
+        "lock_waits": 0,
+        "jobs_dead_tuples": 74842,
+        "jobs_live_tuples": 100002
+      },
+      "run": 1
+    },
+    {
+      "scenario": "B",
+      "name": "B-8workers",
+      "workers": 8,
+      "jobs": 100000,
+      "succeeded": 100000,
+      "drain_s": 36.23,
+      "jobs_per_s": 2759.9,
+      "wall_s_including_worker_start": 38.3,
+      "cpu": {
+        "api": 0.5,
+        "postgres": 118.2,
+        "redis": 3.2,
+        "workers": 245.5,
+        "worker_max": 31.49,
+        "scheduler": 1.2,
+        "k6": 0
+      },
+      "pg": {
+        "connections": 60,
+        "lock_waits": 0,
+        "jobs_dead_tuples": 88393,
+        "jobs_live_tuples": 100017
+      },
+      "run": 2
+    },
+    {
+      "scenario": "B",
+      "name": "B-8workers",
+      "workers": 8,
+      "jobs": 100000,
+      "succeeded": 100000,
+      "drain_s": 36.06,
+      "jobs_per_s": 2773.0,
+      "wall_s_including_worker_start": 38.1,
+      "cpu": {
+        "api": 0.4,
+        "postgres": 315.8,
+        "redis": 0.5,
+        "workers": 789.1,
+        "worker_max": 100.83,
+        "scheduler": 2.0,
+        "k6": 0
+      },
+      "pg": {
+        "connections": 60,
+        "lock_waits": 0,
+        "jobs_dead_tuples": 96601,
+        "jobs_live_tuples": 100017
+      },
+      "run": 3
+    },
+    {
+      "scenario": "C",
+      "name": "C-run1",
+      "rate": 300,
+      "duration": "10m",
+      "api": {
+        "requests": 180001.0,
+        "achieved_rps": 300.0027153831588,
+        "p50_ms": 5.843597,
+        "p95_ms": 20.022171,
+        "p99_ms": 38.710497,
+        "max_ms": 136.431211,
+        "failed_rate": 0.0,
+        "not_201_rate": 0.0,
+        "dropped": 0.0
+      },
+      "jobs": {
+        "jobs": 180001,
+        "succeeded": 179733,
+        "dead": 268,
+        "unfinished": 0,
+        "retried": 4481,
+        "wait_s": [
+          0.067872,
+          0.18928829999999994,
+          0.23785305
+        ],
+        "run_s": [
+          0.062935,
+          0.0792825,
+          0.11297035000000004
+        ],
+        "end_to_end_s": [
+          0.134006,
+          0.2556515,
+          0.3066203500000007
+        ]
+      },
+      "drain_after_s": 24.0,
+      "cpu": {
+        "api": 99.7,
+        "postgres": 52.2,
+        "redis": 5.0,
+        "workers": 47.5,
+        "worker_max": 18.01,
+        "scheduler": 0.9,
+        "k6": 16.3
+      },
+      "pg": {
+        "connections": 36,
+        "lock_waits": 0,
+        "jobs_dead_tuples": 71,
+        "jobs_live_tuples": 108563
+      },
+      "run": 1
+    },
+    {
+      "scenario": "C",
+      "name": "C-run2",
+      "rate": 300,
+      "duration": "10m",
+      "api": {
+        "requests": 180000.0,
+        "achieved_rps": 300.00157348925285,
+        "p50_ms": 6.1248725,
+        "p95_ms": 21.45331079999999,
+        "p99_ms": 49.28980341000004,
+        "max_ms": 359.495175,
+        "failed_rate": 0.0,
+        "not_201_rate": 0.0,
+        "dropped": 0.0
+      },
+      "jobs": {
+        "jobs": 180000,
+        "succeeded": 179724,
+        "dead": 276,
+        "unfinished": 0,
+        "retried": 4471,
+        "wait_s": [
+          0.067096,
+          0.1889974,
+          0.24422288000000003
+        ],
+        "run_s": [
+          0.063033,
+          0.079102,
+          0.11002252000000001
+        ],
+        "end_to_end_s": [
+          0.132991,
+          0.2538394,
+          0.3103188400000003
+        ]
+      },
+      "drain_after_s": 17.3,
+      "cpu": {
+        "api": 134.5,
+        "postgres": 42.8,
+        "redis": 5.0,
+        "workers": 40.5,
+        "worker_max": 17.8,
+        "scheduler": 1.2,
+        "k6": 16.3
+      },
+      "pg": {
+        "connections": 35,
+        "lock_waits": 0,
+        "jobs_dead_tuples": 17677,
+        "jobs_live_tuples": 108456
+      },
+      "run": 2
+    },
+    {
+      "scenario": "C",
+      "name": "C-run3",
+      "rate": 300,
+      "duration": "10m",
+      "api": {
+        "requests": 180001.0,
+        "achieved_rps": 300.00297069257937,
+        "p50_ms": 5.470516,
+        "p95_ms": 19.009001,
+        "p99_ms": 37.098865,
+        "max_ms": 119.090174,
+        "failed_rate": 0.0,
+        "not_201_rate": 0.0,
+        "dropped": 0.0
+      },
+      "jobs": {
+        "jobs": 180001,
+        "succeeded": 179698,
+        "dead": 303,
+        "unfinished": 0,
+        "retried": 4512,
+        "wait_s": [
+          0.066456,
+          0.18672960000000002,
+          0.23960815999999982
+        ],
+        "run_s": [
+          0.062208,
+          0.077859,
+          0.11198781999999984
+        ],
+        "end_to_end_s": [
+          0.131794,
+          0.25125145,
+          0.30488998
+        ]
+      },
+      "drain_after_s": 19.7,
+      "cpu": {
+        "api": 89.6,
+        "postgres": 29.7,
+        "redis": 4.6,
+        "workers": 35.4,
+        "worker_max": 18.94,
+        "scheduler": 0.9,
+        "k6": 13.8
+      },
+      "pg": {
+        "connections": 35,
+        "lock_waits": 0,
+        "jobs_dead_tuples": 30563,
+        "jobs_live_tuples": 108509
+      },
+      "run": 3
+    },
+    {
+      "scenario": "D",
+      "name": "D-run1",
+      "run": 1,
+      "steps": [
+        {
+          "rate": 200,
+          "api": {
+            "requests": 12001.0,
+            "achieved_rps": 199.99950887213348,
+            "p50_ms": 5.203152,
+            "p95_ms": 16.151641,
+            "p99_ms": 23.861545,
+            "max_ms": 76.118841,
+            "failed_rate": 0.0,
+            "not_201_rate": 0.0,
+            "dropped": 0.0
+          },
+          "jobs": {
+            "jobs": 12001,
+            "succeeded": 12001,
+            "dead": 0,
+            "unfinished": 0,
+            "retried": 0,
+            "wait_s": [
+              0.061503,
+              0.180176,
+              0.229381
+            ],
+            "run_s": [
+              0.062266,
+              0.089148,
+              0.11312
+            ],
+            "end_to_end_s": [
+              0.127953,
+              0.244834,
+              0.293457
+            ]
+          },
+          "backlog": 0,
+          "cpu": {
+            "api": 66.7,
+            "postgres": 33.7,
+            "redis": 3.2,
+            "workers": 20.9,
+            "worker_max": 11.4,
+            "scheduler": 0.9,
+            "k6": 10.6
+          },
+          "pg": {
+            "connections": 35,
+            "lock_waits": 0,
+            "jobs_dead_tuples": 17471,
+            "jobs_live_tuples": 8838
+          },
+          "broke": ""
+        },
+        {
+          "rate": 300,
+          "api": {
+            "requests": 18000.0,
+            "achieved_rps": 299.9971751016004,
+            "p50_ms": 4.8905875,
+            "p95_ms": 8.365965499999998,
+            "p99_ms": 18.35569267999925,
+            "max_ms": 64.762307,
+            "failed_rate": 0.0,
+            "not_201_rate": 0.0,
+            "dropped": 0.0
+          },
+          "jobs": {
+            "jobs": 18000,
+            "succeeded": 18000,
+            "dead": 0,
+            "unfinished": 0,
+            "retried": 0,
+            "wait_s": [
+              0.068742,
+              0.19059299999999998,
+              0.24846677999999922
+            ],
+            "run_s": [
+              0.060908,
+              0.07160715,
+              0.07648706999999999
+            ],
+            "end_to_end_s": [
+              0.1310045,
+              0.2521459,
+              0.3094202499999998
+            ]
+          },
+          "backlog": 0,
+          "cpu": {
+            "api": 81.4,
+            "postgres": 28.6,
+            "redis": 3.5,
+            "workers": 27.2,
+            "worker_max": 14.63,
+            "scheduler": 0.8,
+            "k6": 16.4
+          },
+          "pg": {
+            "connections": 35,
+            "lock_waits": 0,
+            "jobs_dead_tuples": 30752,
+            "jobs_live_tuples": 25205
+          },
+          "broke": ""
+        },
+        {
+          "rate": 400,
+          "api": {
+            "requests": 24000.0,
+            "achieved_rps": 399.9737231729592,
+            "p50_ms": 5.5010010000000005,
+            "p95_ms": 40.082012899999995,
+            "p99_ms": 105.6565406899997,
+            "max_ms": 236.174172,
+            "failed_rate": 0.0,
+            "not_201_rate": 0.0,
+            "dropped": 0.0
+          },
+          "jobs": {
+            "jobs": 24000,
+            "succeeded": 24000,
+            "dead": 0,
+            "unfinished": 0,
+            "retried": 0,
+            "wait_s": [
+              0.0704835,
+              0.19957034999999998,
+              0.24043505
+            ],
+            "run_s": [
+              0.061828,
+              0.08814975,
+              0.11398110999999998
+            ],
+            "end_to_end_s": [
+              0.1346025,
+              0.27232424999999993,
+              0.3173183599999999
+            ]
+          },
+          "backlog": 0,
+          "cpu": {
+            "api": 172.6,
+            "postgres": 41.0,
+            "redis": 4.2,
+            "workers": 51.7,
+            "worker_max": 21.03,
+            "scheduler": 1.3,
+            "k6": 16.2
+          },
+          "pg": {
+            "connections": 35,
+            "lock_waits": 0,
+            "jobs_dead_tuples": 42950,
+            "jobs_live_tuples": 47510
+          },
+          "broke": ""
+        },
+        {
+          "rate": 500,
+          "api": {
+            "requests": 29457.0,
+            "achieved_rps": 490.7868655051442,
+            "p50_ms": 167.432869,
+            "p95_ms": 1444.6820453999994,
+            "p99_ms": 2203.3505774399987,
+            "max_ms": 4605.649963,
+            "failed_rate": 0.0,
+            "not_201_rate": 0.0,
+            "dropped": 544.0
+          },
+          "jobs": {
+            "jobs": 29457,
+            "succeeded": 29457,
+            "dead": 0,
+            "unfinished": 0,
+            "retried": 0,
+            "wait_s": [
+              0.086465,
+              0.23923819999999993,
+              0.27714811999999983
+            ],
+            "run_s": [
+              0.064131,
+              0.0868108,
+              0.11354027999999998
+            ],
+            "end_to_end_s": [
+              0.153606,
+              0.306212,
+              0.34952996
+            ]
+          },
+          "backlog": 0,
+          "cpu": {
+            "api": 222.0,
+            "postgres": 78.2,
+            "redis": 7.9,
+            "workers": 103.6,
+            "worker_max": 36.86,
+            "scheduler": 0.8,
+            "k6": 28.4
+          },
+          "pg": {
+            "connections": 35,
+            "lock_waits": 0,
+            "jobs_dead_tuples": 54603,
+            "jobs_live_tuples": 75518
+          },
+          "broke": "API kept up with only 491 of 500 req/s"
+        }
+      ]
+    },
+    {
+      "scenario": "D",
+      "name": "D-run2",
+      "run": 2,
+      "steps": [
+        {
+          "rate": 200,
+          "api": {
+            "requests": 12000.0,
+            "achieved_rps": 200.00044575099346,
+            "p50_ms": 4.07822,
+            "p95_ms": 6.184348749999999,
+            "p99_ms": 8.044592230000001,
+            "max_ms": 48.363077,
+            "failed_rate": 0.0,
+            "not_201_rate": 0.0,
+            "dropped": 0.0
+          },
+          "jobs": {
+            "jobs": 12000,
+            "succeeded": 12000,
+            "dead": 0,
+            "unfinished": 0,
+            "retried": 0,
+            "wait_s": [
+              0.0590945,
+              0.17198749999999996,
+              0.23180923000000006
+            ],
+            "run_s": [
+              0.060043,
+              0.06946515,
+              0.07491321
+            ],
+            "end_to_end_s": [
+              0.12024,
+              0.2314392,
+              0.29232395000000005
+            ]
+          },
+          "backlog": 0,
+          "cpu": {
+            "api": 51.8,
+            "postgres": 21.1,
+            "redis": 4.3,
+            "workers": 19.5,
+            "worker_max": 7.3,
+            "scheduler": 0.7,
+            "k6": 8.2
+          },
+          "pg": {
+            "connections": 35,
+            "lock_waits": 0,
+            "jobs_dead_tuples": 1131,
+            "jobs_live_tuples": 8805
+          },
+          "broke": ""
+        },
+        {
+          "rate": 300,
+          "api": {
+            "requests": 18001.0,
+            "achieved_rps": 299.9979519394305,
+            "p50_ms": 4.968149,
+            "p95_ms": 20.046221,
+            "p99_ms": 30.070762,
+            "max_ms": 86.633879,
+            "failed_rate": 0.0,
+            "not_201_rate": 0.0,
+            "dropped": 0.0
+          },
+          "jobs": {
+            "jobs": 18001,
+            "succeeded": 18001,
+            "dead": 0,
+            "unfinished": 0,
+            "retried": 0,
+            "wait_s": [
+              0.064343,
+              0.181902,
+              0.226419
+            ],
+            "run_s": [
+              0.061796,
+              0.090953,
+              0.119617
+            ],
+            "end_to_end_s": [
+              0.130236,
+              0.246522,
+              0.295865
+            ]
+          },
+          "backlog": 0,
+          "cpu": {
+            "api": 99.3,
+            "postgres": 28.2,
+            "redis": 3.1,
+            "workers": 31.8,
+            "worker_max": 12.87,
+            "scheduler": 0.9,
+            "k6": 12.8
+          },
+          "pg": {
+            "connections": 35,
+            "lock_waits": 0,
+            "jobs_dead_tuples": 2085,
+            "jobs_live_tuples": 25252
+          },
+          "broke": ""
+        },
+        {
+          "rate": 400,
+          "api": {
+            "requests": 24001.0,
+            "achieved_rps": 399.96095925767725,
+            "p50_ms": 6.628872,
+            "p95_ms": 85.950784,
+            "p99_ms": 225.414175,
+            "max_ms": 760.456567,
+            "failed_rate": 0.0,
+            "not_201_rate": 0.0,
+            "dropped": 0.0
+          },
+          "jobs": {
+            "jobs": 24001,
+            "succeeded": 24001,
+            "dead": 0,
+            "unfinished": 0,
+            "retried": 0,
+            "wait_s": [
+              0.064264,
+              0.18227,
+              0.228635
+            ],
+            "run_s": [
+              0.06169,
+              0.07581,
+              0.085467
+            ],
+            "end_to_end_s": [
+              0.1271,
+              0.244279,
+              0.292065
+            ]
+          },
+          "backlog": 0,
+          "cpu": {
+            "api": 197.6,
+            "postgres": 51.8,
+            "redis": 7.2,
+            "workers": 52.5,
+            "worker_max": 19.01,
+            "scheduler": 1.1,
+            "k6": 20.9
+          },
+          "pg": {
+            "connections": 35,
+            "lock_waits": 0,
+            "jobs_dead_tuples": 3808,
+            "jobs_live_tuples": 47568
+          },
+          "broke": ""
+        },
+        {
+          "rate": 500,
+          "api": {
+            "requests": 28650.0,
+            "achieved_rps": 463.4353153492169,
+            "p50_ms": 351.7462665,
+            "p95_ms": 3288.6118713499995,
+            "p99_ms": 6086.265164739998,
+            "max_ms": 14131.453878,
+            "failed_rate": 0.0,
+            "not_201_rate": 0.0,
+            "dropped": 1351.0
+          },
+          "jobs": {
+            "jobs": 28650,
+            "succeeded": 28650,
+            "dead": 0,
+            "unfinished": 0,
+            "retried": 0,
+            "wait_s": [
+              0.108049,
+              0.28792965,
+              0.4914702999999999
+            ],
+            "run_s": [
+              0.0658365,
+              0.08931149999999999,
+              0.11184421999999997
+            ],
+            "end_to_end_s": [
+              0.175075,
+              0.3562384999999999,
+              0.5555313499999999
+            ]
+          },
+          "backlog": 0,
+          "cpu": {
+            "api": 201.8,
+            "postgres": 62.5,
+            "redis": 9.6,
+            "workers": 75.2,
+            "worker_max": 35.17,
+            "scheduler": 1.3,
+            "k6": 47.6
+          },
+          "pg": {
+            "connections": 35,
+            "lock_waits": 0,
+            "jobs_dead_tuples": 6040,
+            "jobs_live_tuples": 74925
+          },
+          "broke": "API kept up with only 463 of 500 req/s"
+        }
+      ]
+    },
+    {
+      "scenario": "D",
+      "name": "D-run3",
+      "run": 3,
+      "steps": [
+        {
+          "rate": 200,
+          "api": {
+            "requests": 12001.0,
+            "achieved_rps": 199.96331611065798,
+            "p50_ms": 8.051608,
+            "p95_ms": 23.655925,
+            "p99_ms": 36.221585,
+            "max_ms": 165.421283,
+            "failed_rate": 0.0,
+            "not_201_rate": 0.0,
+            "dropped": 0.0
+          },
+          "jobs": {
+            "jobs": 12001,
+            "succeeded": 12001,
+            "dead": 0,
+            "unfinished": 0,
+            "retried": 0,
+            "wait_s": [
+              0.059104,
+              0.178194,
+              0.23222
+            ],
+            "run_s": [
+              0.065593,
+              0.095618,
+              0.129869
+            ],
+            "end_to_end_s": [
+              0.129139,
+              0.248036,
+              0.29871
+            ]
+          },
+          "backlog": 0,
+          "cpu": {
+            "api": 94.1,
+            "postgres": 30.9,
+            "redis": 5.1,
+            "workers": 25.1,
+            "worker_max": 8.96,
+            "scheduler": 1.2,
+            "k6": 17.3
+          },
+          "pg": {
+            "connections": 35,
+            "lock_waits": 0,
+            "jobs_dead_tuples": 4785,
+            "jobs_live_tuples": 8697
+          },
+          "broke": ""
+        },
+        {
+          "rate": 300,
+          "api": {
+            "requests": 18001.0,
+            "achieved_rps": 299.9929717717901,
+            "p50_ms": 4.974352,
+            "p95_ms": 12.944829,
+            "p99_ms": 30.541902,
+            "max_ms": 147.052303,
+            "failed_rate": 0.0,
+            "not_201_rate": 0.0,
+            "dropped": 0.0
+          },
+          "jobs": {
+            "jobs": 18001,
+            "succeeded": 18001,
+            "dead": 0,
+            "unfinished": 0,
+            "retried": 0,
+            "wait_s": [
+              0.067005,
+              0.193625,
+              0.240474
+            ],
+            "run_s": [
+              0.06117,
+              0.073635,
+              0.081137
+            ],
+            "end_to_end_s": [
+              0.130453,
+              0.255737,
+              0.30309
+            ]
+          },
+          "backlog": 0,
+          "cpu": {
+            "api": 114.0,
+            "postgres": 31.5,
+            "redis": 3.9,
+            "workers": 37.9,
+            "worker_max": 15.7,
+            "scheduler": 0.8,
+            "k6": 18.3
+          },
+          "pg": {
+            "connections": 35,
+            "lock_waits": 0,
+            "jobs_dead_tuples": 8172,
+            "jobs_live_tuples": 25310
+          },
+          "broke": ""
+        },
+        {
+          "rate": 400,
+          "api": {
+            "requests": 24001.0,
+            "achieved_rps": 399.87847324492174,
+            "p50_ms": 5.244787,
+            "p95_ms": 20.651232,
+            "p99_ms": 42.30846,
+            "max_ms": 122.302261,
+            "failed_rate": 0.0,
+            "not_201_rate": 0.0,
+            "dropped": 0.0
+          },
+          "jobs": {
+            "jobs": 24001,
+            "succeeded": 24001,
+            "dead": 0,
+            "unfinished": 0,
+            "retried": 0,
+            "wait_s": [
+              0.067104,
+              0.186569,
+              0.231222
+            ],
+            "run_s": [
+              0.061256,
+              0.075499,
+              0.10627
+            ],
+            "end_to_end_s": [
+              0.131093,
+              0.250686,
+              0.294711
+            ]
+          },
+          "backlog": 0,
+          "cpu": {
+            "api": 131.3,
+            "postgres": 37.1,
+            "redis": 7.7,
+            "workers": 45.5,
+            "worker_max": 16.53,
+            "scheduler": 0.8,
+            "k6": 21.0
+          },
+          "pg": {
+            "connections": 35,
+            "lock_waits": 0,
+            "jobs_dead_tuples": 11767,
+            "jobs_live_tuples": 47663
+          },
+          "broke": ""
+        },
+        {
+          "rate": 500,
+          "api": {
+            "requests": 29509.0,
+            "achieved_rps": 486.67566523523135,
+            "p50_ms": 12.405872,
+            "p95_ms": 1131.0817379999996,
+            "p99_ms": 2129.31344516,
+            "max_ms": 5459.786739,
+            "failed_rate": 0.0,
+            "not_201_rate": 0.0,
+            "dropped": 492.0
+          },
+          "jobs": {
+            "jobs": 29509,
+            "succeeded": 29509,
+            "dead": 0,
+            "unfinished": 0,
+            "retried": 0,
+            "wait_s": [
+              0.078851,
+              0.2941549999999997,
+              0.43598687999999997
+            ],
+            "run_s": [
+              0.062199,
+              0.0786214,
+              0.09649063999999992
+            ],
+            "end_to_end_s": [
+              0.142797,
+              0.3613381999999996,
+              0.5148924399999999
+            ]
+          },
+          "backlog": 0,
+          "cpu": {
+            "api": 190.6,
+            "postgres": 74.2,
+            "redis": 6.6,
+            "workers": 98.5,
+            "worker_max": 46.71,
+            "scheduler": 0.8,
+            "k6": 26.3
+          },
+          "pg": {
+            "connections": 35,
+            "lock_waits": 0,
+            "jobs_dead_tuples": 16381,
+            "jobs_live_tuples": 75717
+          },
+          "broke": "API kept up with only 487 of 500 req/s"
+        }
+      ]
+    }
+  ]
+}

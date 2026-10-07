@@ -151,3 +151,20 @@ def test_the_control_override_only_flips_the_switch() -> None:
         "    environment:",
         '      CHAOS_ACK_BEFORE_RUN: "true"',
     ]
+
+
+def test_a_server_run_names_the_live_release(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The server has no checkout; chaos/on-server.sh passes the deployed tag instead."""
+    monkeypatch.setenv("HOPPER_RELEASE", "d28d7e62fb0f385411779740ee98023f6e0084f3")
+    assert chaos.git_sha() == "d28d7e6 (the release deployed on the server)"
+
+
+def test_the_server_run_is_normal_mode_through_the_login_key() -> None:
+    """The negative control loses jobs by design: never on the live server. The deploy key's
+    forced command refuses anything but a tag, so ssh must not offer it from an agent."""
+    script = (chaos.ROOT / "chaos/on-server.sh").read_text(encoding="utf-8")
+    assert "--mode" not in script and chaos.CONTROL_OVERRIDE not in script
+    assert 'SSH_OPTS=(-o IdentitiesOnly=yes "$@")' in script
+    calls = [line for line in script.splitlines() if line.startswith(("ssh ", "scp "))]
+    assert len(calls) == 5 and all('"${SSH_OPTS[@]}"' in line for line in calls)
+    assert "--base-url http://localhost --grafana-url http://localhost/grafana" in script
