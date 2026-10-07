@@ -43,6 +43,10 @@ class Settings(BaseSettings):
     # On SIGTERM: wait this long for in-flight jobs, then release the rest. Must stay under
     # Compose's stop_grace_period (30 s) so Docker's SIGKILL never arrives first.
     shutdown_grace_seconds: float = Field(default=25.0, ge=0)
+    # The chaos test's negative control, never for real use: workers mark each job succeeded
+    # BEFORE running it (at-most-once), so a worker killed mid-run loses the job for good.
+    # Running the chaos test with it on proves the test can detect lost jobs.
+    chaos_ack_before_run: bool = False
 
     # http task. Private, loopback and link-local targets are refused unless this is set,
     # which is only for tests and local demos against a server on your own machine.

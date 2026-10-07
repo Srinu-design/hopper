@@ -79,6 +79,18 @@ services:
       redis: { condition: service_healthy }
       migrate: { condition: service_completed_successfully }
 
+  # Postgres's own numbers for the dashboard: connections, dead tuples on jobs, transactions.
+  # The load test's "what breaks first" answer comes from these.
+  postgres-exporter:
+    image: quay.io/prometheuscommunity/postgres-exporter:v0.20.1
+    environment:
+      DATA_SOURCE_URI: postgres:5432/${POSTGRES_DB:-hopper}?sslmode=disable
+      DATA_SOURCE_USER: ${POSTGRES_USER:-hopper}
+      DATA_SOURCE_PASS: ${POSTGRES_PASSWORD:-hopper}
+    depends_on:
+      postgres: { condition: service_healthy }
+    restart: unless-stopped
+
   # Every app container serves metrics on port 9100 inside the network (never published).
   # Prometheus finds each replica through Docker's DNS; Grafana is provisioned from the repo.
   prometheus:

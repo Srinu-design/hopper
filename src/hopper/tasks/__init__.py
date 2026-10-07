@@ -1,1 +1,2 @@
-from hopper.tasks import builtin, http  # noqa: F401  (importing registers the built-in tasks)
+# Importing these modules registers the built-in tasks.
+from hopper.tasks import builtin, effect, http  # noqa: F401

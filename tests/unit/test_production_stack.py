@@ -90,7 +90,7 @@ def test_workers_get_longer_than_their_shutdown_grace() -> None:
 
 
 def test_third_party_images_are_pinned_and_match_development() -> None:
-    for name in ("postgres", "redis", "prometheus", "grafana"):
+    for name in ("postgres", "redis", "prometheus", "grafana", "postgres-exporter"):
         assert SERVICES[name]["image"] == DEV["services"][name]["image"], name
     for svc in SERVICES.values():
         image = svc["image"]
@@ -217,3 +217,16 @@ def test_workflows_end_ssh_options_before_the_host() -> None:
                 assert first_argument == "--", (path.name, line)
                 calls += 1
     assert calls >= 4  # deploy.yml once, drill.yml three times
+
+
+def test_the_chaos_negative_control_can_never_reach_the_server() -> None:
+    """CHAOS_ACK_BEFORE_RUN loses jobs by design. It is off by default, and nothing that ships
+    to the server (the production compose file, the deploy bundle, host setup) can turn it on;
+    only the chaos test's own Compose override does."""
+    from hopper.config import Settings
+
+    assert Settings().chaos_ack_before_run is False
+    shipped = [ROOT / "docker/compose.prod.yaml", ROOT / "docker/compose.yaml"]
+    shipped += [p for p in (ROOT / "deploy").rglob("*") if p.is_file()]
+    for path in shipped:
+        assert "CHAOS_ACK_BEFORE_RUN" not in path.read_text(encoding="utf-8"), path

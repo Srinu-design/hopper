@@ -1,0 +1,14 @@
+# Load test only (loadtest/bench.py adds this file to docker/compose.yaml): a second API
+# replica, as in production, where compose.prod.yaml runs api-1 and api-2 behind Caddy. The
+# development stack runs one. k6 reaches both through the name "api", which Docker's DNS
+# answers with both addresses; Prometheus finds both the same way. The bench removes it again
+# when it ends.
+#
+# Paths here are relative to docker/, the directory of the first compose file.
+services:
+  api-2:
+    extends: { file: compose.yaml, service: api }
+    ports: !reset []
+    networks:
+      default:
+        aliases: [api]

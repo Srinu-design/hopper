@@ -1,0 +1,451 @@
+{
+  "run": "chaos-20261007T133538Z-normal",
+  "started": "2026-10-07 13:35:38 UTC",
+  "finished": "2026-10-07 13:41:05 UTC",
+  "host": "13th Gen Intel(R) Core(TM) i7-13700H, 20 threads, 14.7 GiB RAM",
+  "git": "d8d69d8 + uncommitted changes",
+  "args": {
+    "mode": "normal",
+    "jobs": 10000,
+    "duration": 300.0,
+    "enqueue_seconds": 300.0,
+    "workers": 4,
+    "min_gap": 3.0,
+    "max_gap": 10.0,
+    "drain_timeout": 600.0,
+    "sigterm": true,
+    "redis_restart": true,
+    "freeze": true,
+    "freeze_seconds": 40,
+    "base_url": "http://127.0.0.1:8000",
+    "compose": "docker compose -f docker/compose.yaml --env-file .env",
+    "env_file": ".env",
+    "api_service": "api",
+    "grafana_url": "http://127.0.0.1:3000",
+    "out": "chaos/results"
+  },
+  "drained": true,
+  "enqueue": {
+    "accepted": 10000,
+    "retried": 0,
+    "failed": 0,
+    "statuses": {
+      "201": 10000
+    }
+  },
+  "checks": {
+    "jobs": 10000,
+    "succeeded": 10000,
+    "dead": 0,
+    "unfinished": 0,
+    "effects": 10000,
+    "succeeded_without_effect": 0,
+    "dead_with_effect": 0,
+    "executions": 10008,
+    "executed_jobs": 10000,
+    "lease_expired_attempts": 74,
+    "jobs_reclaimed": 73,
+    "released_attempts": 0
+  },
+  "summary": {
+    "lost": 0,
+    "duplicate_runs": 8,
+    "sigkills": 36,
+    "sigterms": 1,
+    "redis_restarts": 1,
+    "freezes": 1,
+    "jobs_in_flight_at_sigkill": 69,
+    "jobs_in_flight_at_sigterm": 0,
+    "jobs_in_flight_at_freeze": 5,
+    "acks_refused": 5,
+    "nacks_refused": 0,
+    "cancelled_lost_lease": 0,
+    "recovery_max_s": 64.6,
+    "recovery_median_s": 32.3,
+    "passed": true,
+    "verdict": "PASS: no job lost"
+  },
+  "events": [
+    {
+      "t": 9.7,
+      "db_time": "2026-10-07 13:35:50.855001+00",
+      "kind": "sigkill",
+      "container": "c36b981a0b8b",
+      "in_flight": [
+        "4296ce50-4abd-4c8e-b358-011b806393a6",
+        "79257ff3-d2e9-407e-859f-b608a51197b0"
+      ]
+    },
+    {
+      "t": 15.7,
+      "db_time": "2026-10-07 13:35:56.892911+00",
+      "kind": "sigkill",
+      "container": "c36b981a0b8b",
+      "in_flight": [
+        "441be072-5b6d-4553-a122-122e060ed52a",
+        "ee33d8d0-315a-4883-81de-6090ce1d87d3",
+        "945fc216-fa4a-4e8a-93fc-3c9b44d50620"
+      ]
+    },
+    {
+      "t": 20.7,
+      "db_time": "2026-10-07 13:36:01.869205+00",
+      "kind": "sigkill",
+      "container": "fde1cd5e820e",
+      "in_flight": [
+        "1cc6c443-a358-4505-8ec8-51c8c512439d",
+        "a89ca315-0f75-4ebd-a647-d3fe41f0b2e8",
+        "fc3f99bc-013e-498c-95f2-3a0390f64d5c"
+      ]
+    },
+    {
+      "t": 27.6,
+      "db_time": "2026-10-07 13:36:08.7763+00",
+      "kind": "sigkill",
+      "container": "dbbc7966e392",
+      "in_flight": []
+    },
+    {
+      "t": 35.2,
+      "db_time": "2026-10-07 13:36:16.30714+00",
+      "kind": "sigkill",
+      "container": "fde1cd5e820e",
+      "in_flight": [
+        "e5b51165-1be2-436e-b3ba-2ba7d5972606"
+      ]
+    },
+    {
+      "t": 46.3,
+      "db_time": "2026-10-07 13:36:27.354478+00",
+      "kind": "sigkill",
+      "container": "1eda0036c9a0",
+      "in_flight": [
+        "5f52c08d-f42e-4ef5-958b-51d4eb268321"
+      ]
+    },
+    {
+      "t": 54.6,
+      "db_time": "2026-10-07 13:36:35.651346+00",
+      "kind": "sigkill",
+      "container": "c36b981a0b8b",
+      "in_flight": [
+        "2119b14a-7bfb-4fcc-89f6-61014b802f04",
+        "a36592d7-279e-4e83-b47a-4d9b991bd0a4",
+        "fce8aab8-765d-487f-bbfb-b20ff0e6700c",
+        "dd49033e-825d-434f-a91b-98fe1a9268e7"
+      ]
+    },
+    {
+      "t": 61.8,
+      "db_time": "2026-10-07 13:36:42.983522+00",
+      "kind": "sigkill",
+      "container": "dbbc7966e392",
+      "in_flight": [
+        "a6fe0e37-59a1-4242-8199-c39470100f30",
+        "644d25f9-9c11-49f8-9c83-98b6da9c5d04",
+        "be26103f-76cc-4a63-824b-38b0fff9ee49",
+        "591c1e2e-537a-4528-b31d-4387f2d8c90f"
+      ]
+    },
+    {
+      "t": 69.9,
+      "db_time": "2026-10-07 13:36:51.128553+00",
+      "kind": "sigkill",
+      "container": "fde1cd5e820e",
+      "in_flight": [
+        "fc7dce2e-872c-4237-9520-8720768831b5",
+        "7e0f2a7e-84b0-41e1-97ae-dc2899ed7807"
+      ]
+    },
+    {
+      "t": 78.8,
+      "db_time": "2026-10-07 13:36:59.995393+00",
+      "kind": "sigkill",
+      "container": "dbbc7966e392",
+      "in_flight": [
+        "5764368c-be24-4d26-9c93-3720a4da91d1",
+        "4ab0b885-06e3-4abf-bd0c-2ed0df7f979b",
+        "124925ff-21b0-4bd4-865f-d78a06c60266"
+      ]
+    },
+    {
+      "t": 86.0,
+      "db_time": "2026-10-07 13:37:07.0624+00",
+      "kind": "sigkill",
+      "container": "fde1cd5e820e",
+      "in_flight": [
+        "06989efd-604d-4a79-ad38-6aff35dd7467",
+        "0634e4e6-729b-4e52-8f50-d4b7c424249a"
+      ]
+    },
+    {
+      "t": 90.2,
+      "db_time": "2026-10-07 13:37:11.279737+00",
+      "kind": "sigkill",
+      "container": "c36b981a0b8b",
+      "in_flight": [
+        "ca7c7653-9238-4628-aa08-046bfb7b9ca8",
+        "6ddc62b4-fffd-48b0-9b6e-2ddb0035ef24",
+        "91c14759-15bc-41cc-8162-840fb197845a"
+      ]
+    },
+    {
+      "t": 94.6,
+      "db_time": "2026-10-07 13:37:15.637757+00",
+      "kind": "sigkill",
+      "container": "c36b981a0b8b",
+      "in_flight": [
+        "7e795e88-296f-4977-b3bf-f9fbb7bc881e"
+      ]
+    },
+    {
+      "t": 101.6,
+      "db_time": "2026-10-07 13:37:22.696245+00",
+      "kind": "sigkill",
+      "container": "fde1cd5e820e",
+      "in_flight": []
+    },
+    {
+      "t": 107.7,
+      "db_time": "2026-10-07 13:37:28.617714+00",
+      "kind": "sigkill",
+      "container": "c36b981a0b8b",
+      "in_flight": [
+        "1d3b951c-6c6c-4195-ae22-2a4dc10bd946"
+      ]
+    },
+    {
+      "t": 112.7,
+      "db_time": "2026-10-07 13:37:33.747495+00",
+      "kind": "sigkill",
+      "container": "c36b981a0b8b",
+      "in_flight": [
+        "78ef3e21-4352-40df-a908-ed5b61cb1702",
+        "8d5a57a7-9588-465e-b327-bcb981d454b7",
+        "d912ac80-2f17-477e-9b98-8548ab45136d",
+        "41ac19d8-def4-422e-a9ca-1c634296f772"
+      ]
+    },
+    {
+      "t": 122.1,
+      "db_time": "2026-10-07 13:37:42.950868+00",
+      "kind": "sigterm",
+      "container": "1eda0036c9a0",
+      "in_flight": []
+    },
+    {
+      "t": 130.6,
+      "db_time": "2026-10-07 13:37:51.672448+00",
+      "kind": "sigkill",
+      "container": "fde1cd5e820e",
+      "in_flight": []
+    },
+    {
+      "t": 138.8,
+      "db_time": "2026-10-07 13:37:59.887805+00",
+      "kind": "sigkill",
+      "container": "c36b981a0b8b",
+      "in_flight": [
+        "759ba1fe-aceb-4859-b234-b212fce10161",
+        "e19f906f-2ade-4215-9bdf-f722fdb50ed0",
+        "dc59dfc0-635c-40df-912d-058af7aaaa74",
+        "a242058d-4847-409c-9aa9-17466ff87788"
+      ]
+    },
+    {
+      "t": 146.8,
+      "db_time": "2026-10-07 13:38:07.81527+00",
+      "kind": "sigkill",
+      "container": "c36b981a0b8b",
+      "in_flight": [
+        "93584ff8-a467-43b0-953b-4f8170aa289a",
+        "2366cc95-443e-4d78-b4fe-3dda65451e97",
+        "f7159b40-2204-4144-bcd8-dda20fd4c44e",
+        "7aafaca9-9143-491b-af0f-87af8b561e19"
+      ]
+    },
+    {
+      "t": 153.2,
+      "db_time": "2026-10-07 13:38:14.339628+00",
+      "kind": "sigkill",
+      "container": "1eda0036c9a0",
+      "in_flight": [
+        "1ce7845c-cd81-4f37-9808-00cacf67fdca",
+        "45a874ca-ab79-4b0b-9e9d-1b85b4d38746"
+      ]
+    },
+    {
+      "t": 164.4,
+      "db_time": "2026-10-07 13:38:25.541024+00",
+      "kind": "sigkill",
+      "container": "c36b981a0b8b",
+      "in_flight": [
+        "ddd119b8-5e45-4f30-84f7-8472f52e2c1a"
+      ]
+    },
+    {
+      "t": 174.2,
+      "db_time": "2026-10-07 13:38:34.640745+00",
+      "kind": "freeze",
+      "container": "dbbc7966e392",
+      "in_flight": [
+        "a62f049a-1b68-4f66-87f6-de845d19e508",
+        "759ba1fe-aceb-4859-b234-b212fce10161",
+        "493c7fac-5b7b-4856-8b61-f578b7d77384",
+        "396771de-5feb-4dd1-80b5-aba9bc79c3da",
+        "c692a412-bb3f-438c-81bc-0010f7b642e2"
+      ]
+    },
+    {
+      "t": 179.2,
+      "db_time": "2026-10-07 13:38:40.237033+00",
+      "kind": "sigkill",
+      "container": "c36b981a0b8b",
+      "in_flight": [
+        "271cc59f-01a0-4bae-8be7-ab526ab6fdc6",
+        "ccf77894-cbc4-4b27-8a16-f3b153454d90"
+      ]
+    },
+    {
+      "t": 190.2,
+      "db_time": "2026-10-07 13:38:51.475923+00",
+      "kind": "sigkill",
+      "container": "fde1cd5e820e",
+      "in_flight": []
+    },
+    {
+      "t": 194.8,
+      "db_time": "2026-10-07 13:38:55.96117+00",
+      "kind": "sigkill",
+      "container": "c36b981a0b8b",
+      "in_flight": []
+    },
+    {
+      "t": 204.6,
+      "db_time": "2026-10-07 13:39:05.717795+00",
+      "kind": "sigkill",
+      "container": "fde1cd5e820e",
+      "in_flight": [
+        "b1e6ef8c-7b51-4f27-9fd9-4860d0d8408b",
+        "34e69112-c594-4f84-bbf5-7d822fa08b7c",
+        "5042db58-ac57-46f7-9a8d-c50056f3ac0e",
+        "796d4d79-1d2c-45c5-9396-6fbd02ffe83f"
+      ]
+    },
+    {
+      "t": 213.0,
+      "db_time": "2026-10-07 13:39:13.779458+00",
+      "kind": "redis-restart",
+      "container": "",
+      "in_flight": []
+    },
+    {
+      "t": 214.3,
+      "db_time": "2026-10-07 13:39:14.961025+00",
+      "kind": "thaw",
+      "container": "dbbc7966e392",
+      "in_flight": []
+    },
+    {
+      "t": 219.4,
+      "db_time": "2026-10-07 13:39:20.461412+00",
+      "kind": "sigkill",
+      "container": "1eda0036c9a0",
+      "in_flight": []
+    },
+    {
+      "t": 230.4,
+      "db_time": "2026-10-07 13:39:31.542026+00",
+      "kind": "sigkill",
+      "container": "dbbc7966e392",
+      "in_flight": [
+        "ef698ca9-26ab-4d81-b864-721e4e517739",
+        "dd4be6a4-658f-4949-93d3-9e398bb4f405",
+        "ccd80f54-9ea2-4a43-823d-29013218c57d"
+      ]
+    },
+    {
+      "t": 238.0,
+      "db_time": "2026-10-07 13:39:39.101113+00",
+      "kind": "sigkill",
+      "container": "1eda0036c9a0",
+      "in_flight": [
+        "7ccd17dd-61a2-4bdb-b235-c427deafcfa8",
+        "f2d03d69-0332-477c-8e38-77350709f842",
+        "243b11a9-b846-4923-8b9b-008f5b384646",
+        "b1e942f0-7c9c-4348-b022-01b84bad9899"
+      ]
+    },
+    {
+      "t": 245.5,
+      "db_time": "2026-10-07 13:39:46.645258+00",
+      "kind": "sigkill",
+      "container": "1eda0036c9a0",
+      "in_flight": []
+    },
+    {
+      "t": 253.3,
+      "db_time": "2026-10-07 13:39:54.436523+00",
+      "kind": "sigkill",
+      "container": "dbbc7966e392",
+      "in_flight": [
+        "e1183b62-cfe3-403c-86a8-8ae04128d3b1"
+      ]
+    },
+    {
+      "t": 263.3,
+      "db_time": "2026-10-07 13:40:04.527642+00",
+      "kind": "sigkill",
+      "container": "dbbc7966e392",
+      "in_flight": [
+        "011df5a1-ff3b-4333-9acf-38e05df03dd2",
+        "86d02b58-6e0e-4584-bb08-15cda0c86a2d",
+        "f9767b13-d868-49cd-ae9e-74f15536f9c5",
+        "c9de1c97-503f-4b2b-867f-169f007d08a6",
+        "8bf86288-0576-4214-a246-a23d76a5c88d"
+      ]
+    },
+    {
+      "t": 269.2,
+      "db_time": "2026-10-07 13:40:10.348866+00",
+      "kind": "sigkill",
+      "container": "c36b981a0b8b",
+      "in_flight": [
+        "b51f7bbf-96d4-47d5-9205-5bfee14d9e0d",
+        "14b24dd0-7b69-40ec-a8f4-d3635b9c1aef",
+        "6d19f99a-8111-4f44-94c9-f9be76d5da2f"
+      ]
+    },
+    {
+      "t": 274.4,
+      "db_time": "2026-10-07 13:40:15.434705+00",
+      "kind": "sigkill",
+      "container": "1eda0036c9a0",
+      "in_flight": []
+    },
+    {
+      "t": 278.5,
+      "db_time": "2026-10-07 13:40:19.704652+00",
+      "kind": "sigkill",
+      "container": "c36b981a0b8b",
+      "in_flight": [
+        "79155e1a-1de6-47e3-9d1d-eafcf0eb3140",
+        "27d50355-7174-42be-b404-dd56e42788e5"
+      ]
+    },
+    {
+      "t": 289.9,
+      "db_time": "2026-10-07 13:40:30.977128+00",
+      "kind": "sigkill",
+      "container": "1eda0036c9a0",
+      "in_flight": []
+    },
+    {
+      "t": 295.1,
+      "db_time": "2026-10-07 13:40:36.248616+00",
+      "kind": "sigkill",
+      "container": "dbbc7966e392",
+      "in_flight": []
+    }
+  ]
+}

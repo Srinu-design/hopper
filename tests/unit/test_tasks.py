@@ -1,15 +1,23 @@
+import asyncio
+import hashlib
+import time
+
 import pytest
 from pydantic import ValidationError
 
 from hopper.tasks import registry
 from hopper.tasks.builtin import (
+    CpuPayload,
     FailAlwaysPayload,
     FlakyPayload,
     SleepPayload,
+    cpu,
     fail_always,
     flaky,
+    hash_rounds,
     sleep,
 )
+from hopper.tasks.effect import EffectPayload
 from hopper.tasks.errors import PermanentError
 from hopper.tasks.registry import TaskPayload
 
@@ -77,3 +85,58 @@ async def test_fail_always_is_retryable_unless_permanent() -> None:
         await fail_always(FailAlwaysPayload())
     with pytest.raises(PermanentError):
         await fail_always(FailAlwaysPayload(permanent=True))
+
+
+def test_load_and_chaos_tasks_are_registered() -> None:
+    assert {"cpu", "effect"} <= set(registry.task_names())
+
+
+def test_hash_rounds_is_sha256_applied_n_times() -> None:
+    assert hash_rounds(1) == hashlib.sha256(b"hopper").hexdigest()
+    twice = hashlib.sha256(hashlib.sha256(b"hopper").digest()).hexdigest()
+    assert hash_rounds(2) == twice
+
+
+def test_cpu_payload_is_bounded() -> None:
+    assert CpuPayload(n=1).n == 1
+    for bad in (0, 20_000_001):
+        with pytest.raises(ValidationError):
+            CpuPayload.model_validate({"n": bad})
+
+
+async def test_cpu_hashes_off_the_event_loop() -> None:
+    """While the cpu task hashes, the event loop keeps turning, so heartbeats keep going.
+
+    Hashing on the loop itself would freeze it for the whole run; in a thread it only pauses
+    for the interpreter's thread switch interval.
+    """
+    gaps: list[float] = []
+    done = asyncio.Event()
+
+    async def ticker() -> None:
+        last = time.monotonic()
+        while not done.is_set():
+            await asyncio.sleep(0.01)
+            now = time.monotonic()
+            gaps.append(now - last)
+            last = now
+
+    ticking = asyncio.create_task(ticker())
+    started = time.monotonic()
+    result = await cpu(CpuPayload(n=2_000_000))
+    elapsed = time.monotonic() - started
+    done.set()
+    await ticking
+    assert result is not None and result["n"] == 2_000_000 and len(result["digest"]) == 64
+    assert elapsed > 0.3  # long enough that a blocked loop would have shown
+    assert gaps, "the event loop never turned while the task hashed"
+    assert max(gaps) < 0.25, f"the loop stalled for {max(gaps):.2f} s"
+
+
+def test_effect_payload_defaults_and_bounds() -> None:
+    payload = EffectPayload()
+    assert (payload.min_ms, payload.max_ms, payload.run) == (50, 500, None)
+    with pytest.raises(ValidationError, match="max_ms"):
+        EffectPayload.model_validate({"min_ms": 100, "max_ms": 10})
+    with pytest.raises(ValidationError):
+        EffectPayload.model_validate({"run": "spaces are not allowed"})

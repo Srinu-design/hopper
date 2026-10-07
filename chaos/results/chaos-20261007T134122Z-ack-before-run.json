@@ -1,0 +1,342 @@
+{
+  "run": "chaos-20261007T134122Z-ack-before-run",
+  "started": "2026-10-07 13:41:22 UTC",
+  "finished": "2026-10-07 13:46:40 UTC",
+  "host": "13th Gen Intel(R) Core(TM) i7-13700H, 20 threads, 14.7 GiB RAM",
+  "git": "d8d69d8 + uncommitted changes",
+  "args": {
+    "mode": "ack-before-run",
+    "jobs": 10000,
+    "duration": 300.0,
+    "enqueue_seconds": 300.0,
+    "workers": 4,
+    "min_gap": 3.0,
+    "max_gap": 10.0,
+    "drain_timeout": 600.0,
+    "sigterm": true,
+    "redis_restart": true,
+    "freeze": true,
+    "freeze_seconds": 40,
+    "base_url": "http://127.0.0.1:8000",
+    "compose": "docker compose -f docker/compose.yaml --env-file .env -f chaos/compose.ack-before-run.yaml",
+    "env_file": ".env",
+    "api_service": "api",
+    "grafana_url": "http://127.0.0.1:3000",
+    "out": "chaos/results"
+  },
+  "drained": true,
+  "enqueue": {
+    "accepted": 10000,
+    "retried": 0,
+    "failed": 0,
+    "statuses": {
+      "201": 10000
+    }
+  },
+  "checks": {
+    "jobs": 10000,
+    "succeeded": 10000,
+    "dead": 0,
+    "unfinished": 0,
+    "effects": 9931,
+    "succeeded_without_effect": 69,
+    "dead_with_effect": 0,
+    "executions": 9931,
+    "executed_jobs": 9931,
+    "lease_expired_attempts": 10,
+    "jobs_reclaimed": 10,
+    "released_attempts": 0
+  },
+  "summary": {
+    "lost": 69,
+    "duplicate_runs": 0,
+    "sigkills": 33,
+    "sigterms": 1,
+    "redis_restarts": 1,
+    "freezes": 1,
+    "jobs_in_flight_at_sigkill": 10,
+    "jobs_in_flight_at_sigterm": 0,
+    "jobs_in_flight_at_freeze": 0,
+    "acks_refused": 0,
+    "nacks_refused": 0,
+    "cancelled_lost_lease": 0,
+    "recovery_max_s": 31.5,
+    "recovery_median_s": 31.3,
+    "passed": true,
+    "verdict": "PASS: the negative control lost 69 jobs, and the checks caught every one"
+  },
+  "events": [
+    {
+      "t": 6.3,
+      "db_time": "2026-10-07 13:41:35.370566+00",
+      "kind": "sigkill",
+      "container": "56e338f31e78",
+      "in_flight": []
+    },
+    {
+      "t": 18.0,
+      "db_time": "2026-10-07 13:41:46.949433+00",
+      "kind": "sigkill",
+      "container": "56e338f31e78",
+      "in_flight": []
+    },
+    {
+      "t": 29.7,
+      "db_time": "2026-10-07 13:41:58.666325+00",
+      "kind": "sigkill",
+      "container": "f7a71b53fd93",
+      "in_flight": []
+    },
+    {
+      "t": 37.4,
+      "db_time": "2026-10-07 13:42:06.024901+00",
+      "kind": "sigkill",
+      "container": "350c5cdca110",
+      "in_flight": []
+    },
+    {
+      "t": 48.3,
+      "db_time": "2026-10-07 13:42:17.160733+00",
+      "kind": "sigkill",
+      "container": "56e338f31e78",
+      "in_flight": [
+        "5a578c69-7f00-4399-a1d3-f7f54b15fdc0",
+        "c28820c9-f74b-4331-94c9-29ec356d6309"
+      ]
+    },
+    {
+      "t": 53.4,
+      "db_time": "2026-10-07 13:42:22.288479+00",
+      "kind": "sigkill",
+      "container": "f74244bd98b0",
+      "in_flight": []
+    },
+    {
+      "t": 62.9,
+      "db_time": "2026-10-07 13:42:31.741552+00",
+      "kind": "sigkill",
+      "container": "f74244bd98b0",
+      "in_flight": []
+    },
+    {
+      "t": 70.9,
+      "db_time": "2026-10-07 13:42:39.659082+00",
+      "kind": "sigkill",
+      "container": "f74244bd98b0",
+      "in_flight": []
+    },
+    {
+      "t": 79.0,
+      "db_time": "2026-10-07 13:42:47.828002+00",
+      "kind": "sigkill",
+      "container": "350c5cdca110",
+      "in_flight": []
+    },
+    {
+      "t": 88.2,
+      "db_time": "2026-10-07 13:42:56.880093+00",
+      "kind": "sigkill",
+      "container": "f7a71b53fd93",
+      "in_flight": []
+    },
+    {
+      "t": 94.4,
+      "db_time": "2026-10-07 13:43:03.11279+00",
+      "kind": "sigkill",
+      "container": "350c5cdca110",
+      "in_flight": []
+    },
+    {
+      "t": 103.5,
+      "db_time": "2026-10-07 13:43:12.359292+00",
+      "kind": "sigkill",
+      "container": "f7a71b53fd93",
+      "in_flight": [
+        "1a74c9e6-1e9d-42eb-95e7-78d58f6f6b65",
+        "1f533af6-f8c9-48a7-bc76-f2f37615a2f6",
+        "df35146d-2be7-4ed3-8483-6ee619342f98"
+      ]
+    },
+    {
+      "t": 112.4,
+      "db_time": "2026-10-07 13:43:21.233905+00",
+      "kind": "sigkill",
+      "container": "350c5cdca110",
+      "in_flight": []
+    },
+    {
+      "t": 118.8,
+      "db_time": "2026-10-07 13:43:27.670353+00",
+      "kind": "sigkill",
+      "container": "350c5cdca110",
+      "in_flight": []
+    },
+    {
+      "t": 124.5,
+      "db_time": "2026-10-07 13:43:32.942716+00",
+      "kind": "sigterm",
+      "container": "f7a71b53fd93",
+      "in_flight": []
+    },
+    {
+      "t": 131.5,
+      "db_time": "2026-10-07 13:43:40.390035+00",
+      "kind": "sigkill",
+      "container": "f74244bd98b0",
+      "in_flight": []
+    },
+    {
+      "t": 139.5,
+      "db_time": "2026-10-07 13:43:48.374255+00",
+      "kind": "sigkill",
+      "container": "f74244bd98b0",
+      "in_flight": []
+    },
+    {
+      "t": 150.8,
+      "db_time": "2026-10-07 13:43:59.712031+00",
+      "kind": "sigkill",
+      "container": "350c5cdca110",
+      "in_flight": []
+    },
+    {
+      "t": 157.5,
+      "db_time": "2026-10-07 13:44:06.429912+00",
+      "kind": "sigkill",
+      "container": "f74244bd98b0",
+      "in_flight": []
+    },
+    {
+      "t": 163.4,
+      "db_time": "2026-10-07 13:44:12.180649+00",
+      "kind": "sigkill",
+      "container": "f74244bd98b0",
+      "in_flight": []
+    },
+    {
+      "t": 173.5,
+      "db_time": "2026-10-07 13:44:21.220443+00",
+      "kind": "freeze",
+      "container": "f7a71b53fd93",
+      "in_flight": []
+    },
+    {
+      "t": 176.1,
+      "db_time": "2026-10-07 13:44:24.916983+00",
+      "kind": "sigkill",
+      "container": "56e338f31e78",
+      "in_flight": []
+    },
+    {
+      "t": 183.7,
+      "db_time": "2026-10-07 13:44:32.481321+00",
+      "kind": "sigkill",
+      "container": "56e338f31e78",
+      "in_flight": [
+        "9c504045-58d2-4748-b2a0-a80905103cc9",
+        "827fc051-9618-4264-91cc-43619220a76f",
+        "afcdf29d-7622-4a2e-b26c-6991a09595f1",
+        "e99f30e0-c546-4afc-a494-a493188780f0",
+        "195bf60f-2b04-46ab-85d7-3ec9d38d37ea"
+      ]
+    },
+    {
+      "t": 193.7,
+      "db_time": "2026-10-07 13:44:42.509227+00",
+      "kind": "sigkill",
+      "container": "f74244bd98b0",
+      "in_flight": []
+    },
+    {
+      "t": 203.3,
+      "db_time": "2026-10-07 13:44:52.206357+00",
+      "kind": "sigkill",
+      "container": "350c5cdca110",
+      "in_flight": []
+    },
+    {
+      "t": 213.6,
+      "db_time": "2026-10-07 13:45:01.837984+00",
+      "kind": "redis-restart",
+      "container": "",
+      "in_flight": []
+    },
+    {
+      "t": 213.9,
+      "db_time": "2026-10-07 13:45:02.212212+00",
+      "kind": "thaw",
+      "container": "f7a71b53fd93",
+      "in_flight": []
+    },
+    {
+      "t": 221.6,
+      "db_time": "2026-10-07 13:45:10.43926+00",
+      "kind": "sigkill",
+      "container": "56e338f31e78",
+      "in_flight": []
+    },
+    {
+      "t": 232.2,
+      "db_time": "2026-10-07 13:45:21.048527+00",
+      "kind": "sigkill",
+      "container": "f7a71b53fd93",
+      "in_flight": []
+    },
+    {
+      "t": 239.7,
+      "db_time": "2026-10-07 13:45:28.548322+00",
+      "kind": "sigkill",
+      "container": "f74244bd98b0",
+      "in_flight": []
+    },
+    {
+      "t": 247.5,
+      "db_time": "2026-10-07 13:45:36.374943+00",
+      "kind": "sigkill",
+      "container": "f7a71b53fd93",
+      "in_flight": []
+    },
+    {
+      "t": 255.9,
+      "db_time": "2026-10-07 13:45:44.700674+00",
+      "kind": "sigkill",
+      "container": "f7a71b53fd93",
+      "in_flight": []
+    },
+    {
+      "t": 265.9,
+      "db_time": "2026-10-07 13:45:54.733621+00",
+      "kind": "sigkill",
+      "container": "f7a71b53fd93",
+      "in_flight": []
+    },
+    {
+      "t": 272.7,
+      "db_time": "2026-10-07 13:46:01.376396+00",
+      "kind": "sigkill",
+      "container": "f7a71b53fd93",
+      "in_flight": []
+    },
+    {
+      "t": 279.9,
+      "db_time": "2026-10-07 13:46:08.73348+00",
+      "kind": "sigkill",
+      "container": "f7a71b53fd93",
+      "in_flight": []
+    },
+    {
+      "t": 291.6,
+      "db_time": "2026-10-07 13:46:20.508158+00",
+      "kind": "sigkill",
+      "container": "f74244bd98b0",
+      "in_flight": []
+    },
+    {
+      "t": 297.6,
+      "db_time": "2026-10-07 13:46:26.450409+00",
+      "kind": "sigkill",
+      "container": "56e338f31e78",
+      "in_flight": []
+    }
+  ]
+}

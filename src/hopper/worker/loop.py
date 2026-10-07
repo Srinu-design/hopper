@@ -69,6 +69,10 @@ class Worker:
     Shutdown: stop() stops claiming. run() then waits up to `shutdown_grace` seconds for
     in-flight jobs, cancels the rest and releases them back to the queue without using up
     an attempt.
+
+    `ack_before_run` turns all of this into at-most-once delivery: each job is marked
+    succeeded before its handler runs. It exists only as the chaos test's negative control,
+    which must show that a test able to see lost jobs does see them.
     """
 
     def __init__(
@@ -83,6 +87,7 @@ class Worker:
         lease_seconds: float = 30.0,
         heartbeat_interval: float | None = None,
         shutdown_grace: float = 25.0,
+        ack_before_run: bool = False,
     ) -> None:
         if not queues:
             raise ValueError("a worker needs at least one queue")
@@ -99,6 +104,7 @@ class Worker:
         self._lease_seconds = lease_seconds
         self._heartbeat_interval = heartbeat_interval
         self._shutdown_grace = shutdown_grace
+        self._ack_before_run = ack_before_run
         self._running: dict[UUID, _Running] = {}
         self._stopping = asyncio.Event()
         self._slot_freed = asyncio.Event()
@@ -119,6 +125,12 @@ class Worker:
             lease_seconds=self._lease_seconds,
             heartbeat_seconds=self._heartbeat_interval,
         )
+        if self._ack_before_run:
+            log.warning(
+                "worker_acks_before_running",
+                worker_id=self.worker_id,
+                note="CHAOS_ACK_BEFORE_RUN is on: at-most-once, a crash loses jobs",
+            )
         heartbeats = asyncio.create_task(self._heartbeat_loop(), name="heartbeats")
         try:
             await self._claim_until_stopped()
@@ -270,6 +282,9 @@ class Worker:
         JOB_WAIT_SECONDS.labels(queue).observe(job.wait_seconds)
         jlog.info("job_claimed", waited=round(job.wait_seconds, 4))
         spec = registry.get_task(job.task)
+        if self._ack_before_run:
+            await self._process_acked_first(job, spec, jlog)
+            return
         started = time.monotonic()
         try:
             result = await self._execute(job, spec)
@@ -294,6 +309,37 @@ class Worker:
             ACKS_REJECTED.inc()
             jlog.warning("ack_rejected_lease_lost", seconds=round(elapsed, 4))
 
+    async def _process_acked_first(
+        self, job: ClaimedJob, spec: registry.TaskSpec | None, jlog: FilteringBoundLogger
+    ) -> None:
+        """At-most-once, for the chaos test's negative control only: ack, then run.
+
+        Once acked, the job is finished as far as the queue knows, so nothing ever runs it
+        again: a crash before the handler completes loses it, and a failure is never retried.
+        """
+        queue, task = queue_label(job.queue), task_label(job.task)
+        # The ack clears the lease, so from here on heartbeats and shutdown leave this run alone.
+        self._mark_finishing(job)
+        try:
+            acked = await self._broker.ack(job, self.worker_id, None)
+        except Exception:
+            jlog.exception("ack_failed")
+            return
+        if not acked:
+            ACKS_REJECTED.inc()
+            jlog.warning("ack_rejected_lease_lost")
+            return
+        JOB_ATTEMPTS.labels(queue, task, "succeeded").inc()
+        started = time.monotonic()
+        try:
+            await self._execute(job, spec)
+        except Exception as exc:
+            jlog.warning("job_failed_after_ack", error=f"{type(exc).__name__}: {exc}")
+        else:
+            jlog.info("job_succeeded", acked_before_run=True)
+        finally:
+            JOB_RUN_SECONDS.labels(queue, task).observe(time.monotonic() - started)
+
     async def _execute(
         self, job: ClaimedJob, spec: registry.TaskSpec | None
     ) -> dict[str, Any] | None:
@@ -307,7 +353,12 @@ class Worker:
             where = ".".join(str(part) for part in first["loc"]) or "payload"
             raise PermanentError(f"invalid payload: {where}: {first['msg']}") from exc
         context = JobContext(
-            job.id, job.tenant_id, job.attempt, job.max_attempts, job.signing_secret
+            job.id,
+            job.tenant_id,
+            job.attempt,
+            job.max_attempts,
+            job.signing_secret,
+            worker_id=self.worker_id,
         )
         deadline = asyncio.timeout(job.timeout_seconds)
         try:

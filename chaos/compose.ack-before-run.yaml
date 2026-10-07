@@ -1,0 +1,9 @@
+# The chaos test's negative control (chaos/kill_workers.py --mode ack-before-run adds this
+# file to docker/compose.yaml): workers mark each job succeeded BEFORE running it, which is
+# at-most-once delivery. Killing them mid-job must then lose jobs, and the chaos test must
+# see it; otherwise the test could not tell a safe queue from an unsafe one. Never use this
+# file anywhere else. The test puts the normal workers back when it ends.
+services:
+  worker:
+    environment:
+      CHAOS_ACK_BEFORE_RUN: "true"

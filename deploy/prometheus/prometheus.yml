@@ -32,6 +32,11 @@ scrape_configs:
         port: 9100
         refresh_interval: 10s
 
+  # Postgres itself, through postgres-exporter (connections, dead tuples, transactions).
+  - job_name: postgres
+    static_configs:
+      - targets: [postgres-exporter:9187]
+
   - job_name: prometheus
     static_configs:
       - targets: [localhost:9090]

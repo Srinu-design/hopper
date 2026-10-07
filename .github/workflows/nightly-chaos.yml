@@ -1,0 +1,54 @@
+name: nightly-chaos
+
+# The chaos test, every night and on demand (Actions > nightly-chaos > Run workflow): the
+# stack built from this commit, 10,000 effect jobs while workers are killed with SIGKILL every
+# 3-10 s for 5 minutes (plus one SIGTERM, one freeze past the lease and one Redis restart),
+# then SQL checks that no job was lost (chaos/kill_workers.py). The report is kept as an
+# artifact. Mode ack-before-run is the negative control: workers that ack before running must
+# lose jobs, and the job fails if they do not.
+on:
+  schedule:
+    - cron: "17 2 * * *"
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "normal, or ack-before-run (the negative control: it must lose jobs)"
+        type: choice
+        options: [normal, ack-before-run]
+        default: normal
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nightly-chaos
+  cancel-in-progress: false
+
+jobs:
+  chaos:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      MODE: ${{ inputs.mode || 'normal' }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Start the stack from this commit
+        run: |
+          cp .env.example .env
+          make up
+
+      - name: Chaos test
+        run: python3 chaos/kill_workers.py --mode "$MODE"
+
+      - name: Keep the report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: chaos-${{ env.MODE }}-${{ github.run_id }}
+          path: chaos/results/
+          if-no-files-found: warn
+
+      - name: Container logs, if it failed
+        if: failure()
+        run: docker compose -f docker/compose.yaml --env-file .env logs --no-color --tail 300

@@ -10,7 +10,7 @@ from hopper.config import get_settings
 from hopper.db import create_engine
 from hopper.logging import configure_logging
 from hopper.queue.postgres import PostgresBroker
-from hopper.tasks import http
+from hopper.tasks import effect, http
 from hopper.worker.loop import Worker
 
 
@@ -25,6 +25,7 @@ async def main() -> None:
             read_timeout=settings.http_read_timeout,
         )
     )
+    effect.configure(engine)
     worker = Worker(
         PostgresBroker(engine),
         worker_id=f"{socket.gethostname()}-{os.getpid()}-{uuid.uuid4().hex[:6]}",
@@ -35,6 +36,7 @@ async def main() -> None:
         lease_seconds=settings.lease_seconds,
         heartbeat_interval=settings.heartbeat_seconds,
         shutdown_grace=settings.shutdown_grace_seconds,
+        ack_before_run=settings.chaos_ack_before_run,
     )
     loop = asyncio.get_running_loop()
     for sig in (signal.SIGTERM, signal.SIGINT):
@@ -47,6 +49,7 @@ async def main() -> None:
     finally:
         stop_metrics()
         await http.aclose()
+        effect.configure(None)
         await engine.dispose()
 
 

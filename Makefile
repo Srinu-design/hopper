@@ -1,8 +1,8 @@
-# Targets: up, down, test, lint, fmt, migrate, alerts, rehearse. load, chaos and bench arrive in Week 8.
+# Targets: up, down, test, lint, fmt, migrate, alerts, rehearse, chaos, chaos-control, load, bench.
 COMPOSE := docker compose -f docker/compose.yaml --env-file .env
 PROMTOOL := docker run --rm -w /etc/prometheus -v "$(CURDIR)/deploy/prometheus:/etc/prometheus:ro" --entrypoint promtool prom/prometheus:v3.15.0
 
-.PHONY: env up down logs migrate test lint fmt alerts rehearse
+.PHONY: env up down logs migrate test lint fmt alerts rehearse chaos chaos-control load bench
 
 env:
 	@test -f .env || cp .env.example .env
@@ -37,3 +37,20 @@ alerts:
 # Deploys, broken releases and rollbacks on a throwaway Docker host (docker:dind), as CI does.
 rehearse:
 	bash deploy/rehearse-local.sh
+
+# Chaos test (chaos/kill_workers.py): 10,000 jobs while workers are killed for 5 minutes, then
+# SQL checks that none was lost. Report in chaos/results/. chaos-control is the negative
+# control (workers ack before running) and must lose jobs.
+chaos: up
+	python3 chaos/kill_workers.py
+
+chaos-control: up
+	python3 chaos/kill_workers.py --mode ack-before-run
+
+# Load test (loadtest/bench.py, k6 in Docker). load: scenario A, enqueue throughput.
+# bench: scenarios A-D, three runs each, about two hours. Results in loadtest/results/.
+load: up
+	python3 loadtest/bench.py --scenario A
+
+bench: up
+	python3 loadtest/bench.py --scenario all
