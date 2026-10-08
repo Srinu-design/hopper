@@ -1,8 +1,10 @@
-# Targets: up, down, test, lint, fmt, migrate, alerts, rehearse, chaos, chaos-control, load, bench.
+# Targets: up, down, test, lint, fmt, migrate, alerts, rehearse, chaos, chaos-control, demo, load,
+# bench, broker-bench, broker-chaos.
 COMPOSE := docker compose -f docker/compose.yaml --env-file .env
 PROMTOOL := docker run --rm -w /etc/prometheus -v "$(CURDIR)/deploy/prometheus:/etc/prometheus:ro" --entrypoint promtool prom/prometheus:v3.15.0
 
-.PHONY: env up down logs migrate test lint fmt alerts rehearse chaos chaos-control load bench
+.PHONY: env up down logs migrate test lint fmt alerts rehearse chaos chaos-control demo load bench \
+	broker-bench broker-chaos
 
 env:
 	@test -f .env || cp .env.example .env
@@ -29,6 +31,10 @@ lint:
 	uv run ruff format --check .
 	uv run mypy
 
+fmt:
+	uv run ruff format .
+	uv run ruff check --fix .
+
 # Check the Prometheus config and unit-test the alert rules (as CI does).
 alerts:
 	$(PROMTOOL) check config prometheus.yml
@@ -47,6 +53,10 @@ chaos: up
 chaos-control: up
 	python3 chaos/kill_workers.py --mode ack-before-run
 
+# The one-minute demo (docs/demo.md): each step runs when you press Enter.
+demo: up
+	python3 chaos/demo.py
+
 # Load test (loadtest/bench.py, k6 in Docker). load: scenario A, enqueue throughput.
 # bench: scenarios A-D, three runs each, about two hours. Results in loadtest/results/.
 load: up
@@ -54,3 +64,11 @@ load: up
 
 bench: up
 	python3 loadtest/bench.py --scenario all
+
+# The mini broker (the stretch goal, src/hopper/minibroker): its benchmark against the Postgres
+# broker (fsync modes x connections, about 12 minutes) and its chaos test (about 10 minutes).
+broker-bench: up
+	python3 loadtest/broker_bench.py
+
+broker-chaos: up
+	uv run python chaos/broker_chaos.py

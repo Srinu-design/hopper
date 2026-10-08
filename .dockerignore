@@ -14,3 +14,8 @@ chaos
 *.md
 # deploy/ is not ignored: it ships inside the image as the release's deploy bundle (see the
 # Dockerfile). "*.md" above only matches the top level, so deploy's README files ship too.
+# Except what only CI and the drills use, from the repository: releases broken on purpose and
+# the rehearsal scripts never belong in a release.
+deploy/broken
+deploy/rehearse.sh
+deploy/rehearse-local.sh

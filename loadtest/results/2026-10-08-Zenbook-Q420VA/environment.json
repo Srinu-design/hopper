@@ -1,0 +1,55 @@
+{
+  "host": "13th Gen Intel(R) Core(TM) i7-13700H, 20 threads, 14.7 GiB RAM",
+  "os": "Linux 7.0.0-38-generic",
+  "docker": "Ubuntu 26.04.1 LTS, engine 29.8.2, 20 CPUs and 14.7 GiB memory for containers",
+  "git": "17c37b4 + uncommitted changes",
+  "k6": "grafana/k6:2.3.0, in a container on the stack's network (hopper_default), sharing the host with the stack",
+  "target": "http://api:8000",
+  "stack": "docker/compose.yaml plus loadtest/compose.bench.yaml: 2 API replicas (one uvicorn process each, as in production; k6 spreads over both through Docker DNS), 3 workers x 20 slots (B: 1, 2, 4, 8 workers), 2 schedulers, Postgres 16.15, Redis 7.4.11",
+  "settings": "lease 30 s, heartbeat 10 s, poll 0.25 s (idle backoff to 0.5 s), DB pool 5 per process, Postgres defaults (max_connections 100, shared_buffers 128 MB)",
+  "power": {
+    "on_mains": true,
+    "power_profile": "balanced"
+  },
+  "args": {
+    "scenario": "A,D",
+    "runs": 3,
+    "quick": false,
+    "env_file": ".env",
+    "api_service": "api",
+    "network": "hopper_default",
+    "base": "http://api:8000",
+    "out": "loadtest/results",
+    "tag": null,
+    "warmup": "1m",
+    "api_key_settle": 2.0,
+    "allow_throttled": false,
+    "a_rates": [
+      100,
+      250,
+      500,
+      1000
+    ],
+    "a_duration": "2m",
+    "b_workers": [
+      1,
+      2,
+      4,
+      8
+    ],
+    "b_jobs": 100000,
+    "c_rate": 300,
+    "c_duration": "10m",
+    "d_start": 200,
+    "d_step": 100,
+    "d_step_duration": "1m",
+    "d_max": 6000,
+    "d_wait_limit": 5.0,
+    "d_error_limit": 0.01,
+    "scenarios": [
+      "A",
+      "D"
+    ]
+  },
+  "started": "2026-10-08 13:13:59 UTC"
+}

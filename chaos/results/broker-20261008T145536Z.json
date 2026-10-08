@@ -1,0 +1,280 @@
+{
+  "run": "broker-20261008T145536Z",
+  "host": "13th Gen Intel(R) Core(TM) i7-13700H, 20 threads, 14.7 GiB RAM",
+  "git": "17c37b4 + uncommitted changes",
+  "started": "2026-10-08 14:55:36 UTC",
+  "args": {
+    "part": "all",
+    "jobs": 10000,
+    "duration": 300.0,
+    "workers": 4,
+    "min_gap": 3.0,
+    "max_gap": 10.0,
+    "freeze_seconds": 40.0,
+    "drain_timeout": 600.0,
+    "push_seconds": 30.0,
+    "image": "hopper:dev",
+    "network": "hopper_default",
+    "redis_url": "redis://127.0.0.1:6379/0",
+    "out": "chaos/results"
+  },
+  "workers": {
+    "jobs": 10000,
+    "pushes_retried": 99,
+    "sigkills": 38,
+    "sigterms": 1,
+    "freezes": 1,
+    "broker_kills": 1,
+    "lost": 0,
+    "dead": 0,
+    "effects": 10000,
+    "runs": 10008,
+    "duplicate_runs": 8,
+    "acks_refused": 2,
+    "runs_cancelled": 0,
+    "acks_failed": 7,
+    "drain_seconds": 21.1,
+    "events": [
+      {
+        "t": 0.0,
+        "event": "sigkill",
+        "worker": "hopper-mbworker-3"
+      },
+      {
+        "t": 8.9,
+        "event": "sigkill",
+        "worker": "hopper-mbworker-0"
+      },
+      {
+        "t": 12.5,
+        "event": "sigkill",
+        "worker": "hopper-mbworker-1"
+      },
+      {
+        "t": 22.9,
+        "event": "sigkill",
+        "worker": "hopper-mbworker-2"
+      },
+      {
+        "t": 32.6,
+        "event": "sigkill",
+        "worker": "hopper-mbworker-2"
+      },
+      {
+        "t": 39.7,
+        "event": "sigkill",
+        "worker": "hopper-mbworker-0"
+      },
+      {
+        "t": 43.4,
+        "event": "sigkill",
+        "worker": "hopper-mbworker-2"
+      },
+      {
+        "t": 51.6,
+        "event": "sigkill",
+        "worker": "hopper-mbworker-3"
+      },
+      {
+        "t": 59.7,
+        "event": "sigkill",
+        "worker": "hopper-mbworker-3"
+      },
+      {
+        "t": 64.7,
+        "event": "sigkill",
+        "worker": "hopper-mbworker-1"
+      },
+      {
+        "t": 74.2,
+        "event": "sigkill",
+        "worker": "hopper-mbworker-1"
+      },
+      {
+        "t": 79.3,
+        "event": "sigkill",
+        "worker": "hopper-mbworker-0"
+      },
+      {
+        "t": 84.7,
+        "event": "sigkill",
+        "worker": "hopper-mbworker-3"
+      },
+      {
+        "t": 92.1,
+        "event": "freeze",
+        "worker": "hopper-mbworker-2"
+      },
+      {
+        "t": 101.6,
+        "event": "sigkill",
+        "worker": "hopper-mbworker-1"
+      },
+      {
+        "t": 105.9,
+        "event": "sigkill",
+        "worker": "hopper-mbworker-3"
+      },
+      {
+        "t": 115.1,
+        "event": "sigkill",
+        "worker": "hopper-mbworker-3"
+      },
+      {
+        "t": 125.5,
+        "event": "sigkill",
+        "worker": "hopper-mbworker-0"
+      },
+      {
+        "t": 131.8,
+        "event": "sigkill",
+        "worker": "hopper-mbworker-0"
+      },
+      {
+        "t": 139.8,
+        "event": "thaw",
+        "worker": "hopper-mbworker-2"
+      },
+      {
+        "t": 139.8,
+        "event": "sigkill",
+        "worker": "hopper-mbworker-0"
+      },
+      {
+        "t": 143.6,
+        "event": "sigkill",
+        "worker": "hopper-mbworker-3"
+      },
+      {
+        "t": 149.5,
+        "event": "sigkill",
+        "worker": "hopper-mbworker-1"
+      },
+      {
+        "t": 153.2,
+        "event": "sigkill",
+        "worker": "hopper-mbworker-0"
+      },
+      {
+        "t": 158.8,
+        "event": "sigkill",
+        "worker": "hopper-mbworker-2"
+      },
+      {
+        "t": 165.7,
+        "event": "sigkill",
+        "worker": "hopper-mbworker-2"
+      },
+      {
+        "t": 173.3,
+        "event": "sigkill",
+        "worker": "hopper-mbworker-3"
+      },
+      {
+        "t": 181.0,
+        "event": "sigkill",
+        "worker": "hopper-mbworker-1"
+      },
+      {
+        "t": 191.2,
+        "event": "sigkill",
+        "worker": "hopper-mbworker-3"
+      },
+      {
+        "t": 200.2,
+        "event": "broker sigkill"
+      },
+      {
+        "t": 208.7,
+        "event": "sigkill",
+        "worker": "hopper-mbworker-1"
+      },
+      {
+        "t": 217.4,
+        "event": "sigkill",
+        "worker": "hopper-mbworker-3"
+      },
+      {
+        "t": 227.5,
+        "event": "sigkill",
+        "worker": "hopper-mbworker-0"
+      },
+      {
+        "t": 232.3,
+        "event": "sigkill",
+        "worker": "hopper-mbworker-0"
+      },
+      {
+        "t": 238.3,
+        "event": "sigterm",
+        "worker": "hopper-mbworker-1"
+      },
+      {
+        "t": 243.5,
+        "event": "sigkill",
+        "worker": "hopper-mbworker-1"
+      },
+      {
+        "t": 253.4,
+        "event": "sigkill",
+        "worker": "hopper-mbworker-2"
+      },
+      {
+        "t": 258.0,
+        "event": "sigkill",
+        "worker": "hopper-mbworker-1"
+      },
+      {
+        "t": 264.8,
+        "event": "sigkill",
+        "worker": "hopper-mbworker-2"
+      },
+      {
+        "t": 274.9,
+        "event": "sigkill",
+        "worker": "hopper-mbworker-3"
+      },
+      {
+        "t": 282.1,
+        "event": "sigkill",
+        "worker": "hopper-mbworker-3"
+      },
+      {
+        "t": 291.5,
+        "event": "sigkill",
+        "worker": "hopper-mbworker-3"
+      }
+    ]
+  },
+  "broker": [
+    {
+      "fsync": "always",
+      "acknowledged": 49205,
+      "found": 49221,
+      "lost": 0,
+      "stored_without_reply": 16,
+      "kills": 3,
+      "pushes_per_second": 1640
+    },
+    {
+      "fsync": "everysec",
+      "acknowledged": 330173,
+      "found": 330173,
+      "lost": 0,
+      "stored_without_reply": 0,
+      "kills": 3,
+      "pushes_per_second": 11006
+    },
+    {
+      "fsync": "no",
+      "acknowledged": 398937,
+      "found": 398937,
+      "lost": 0,
+      "stored_without_reply": 0,
+      "kills": 3,
+      "pushes_per_second": 13298
+    }
+  ],
+  "verdict": "PASS: nothing lost",
+  "finished": "2026-10-08 15:02:47 UTC"
+}

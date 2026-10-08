@@ -2,23 +2,125 @@
 
 [![ci](https://github.com/Srinu-design/hopper/actions/workflows/ci.yml/badge.svg)](https://github.com/Srinu-design/hopper/actions/workflows/ci.yml)
 
-A multi-tenant job queue and scheduler on PostgreSQL: send a job over HTTP; it runs at least once,
-retries with backoff, parks in a dead-letter queue if it keeps failing, and can be replayed.
+A multi-tenant job queue and scheduler on PostgreSQL. **Send a job over HTTP; Hopper runs it at least once,
+retries it with backoff, parks it in a dead-letter queue if it keeps failing, and lets you replay it.** Jobs run now,
+after a delay, at a set time, or on a cron schedule.
 
-> **Status: Week 8 of 8 (proof).** Tenants enqueue jobs over HTTP with an API key (now, after
-> a delay, at a set time, or on a cron schedule), optionally with an `Idempotency-Key`. Workers claim them with
-> `FOR UPDATE SKIP LOCKED` under a heartbeated lease, retry with full-jitter backoff, and park failures in a
-> dead-letter queue you can list and replay. The `http` task calls a tenant's URL behind an SSRF guard and signs
-> every request. Each tenant is rate-limited by a Redis token bucket (429 with `Retry-After`), deep queues are
-> refused (429 per tenant, 503 overall), and every process reports to Prometheus, with a provisioned Grafana
-> dashboard and five tested alerts. Every merge to main deploys itself to one EC2 host: the API is replaced one
-> replica at a time behind Caddy, each release is smoke-tested with a real job, and a failing one is rolled back
-> automatically, as rehearsed in CI on every pull request ([docs/deploy.md](docs/deploy.md)). On that server a
-> chaos test killed workers 38 times while 10,000 jobs ran and lost none, and a load test measured where Hopper
-> breaks ([Week 8](#week-8)). Nothing here claims behaviour that is not built and tested.
+![A worker is killed mid-job; its jobs are reclaimed and the queue keeps draining](docs/images/crash-recovery.gif)
 
-The demo video, architecture diagram and live links will go at the top of this file with the write-up (design doc
-and benchmarks), which is still to come.
+*Two workers killed in the middle of 5,000 jobs: their leases expire, the reaper hands the jobs to the other
+workers, and the queue keeps draining. Nothing is lost.*
+
+## Live demo
+
+- API docs: <http://3.104.222.203/docs>
+- Dashboard (read-only): <http://3.104.222.203/grafana/>
+
+The server is a single EC2 instance that runs on demand to save cost. If the links do not answer, it is switched
+off; everything also runs locally with one command ([Quickstart](#quickstart)).
+
+## Headline numbers
+
+All measured, with the raw data linked from [docs/benchmarks.md](docs/benchmarks.md):
+
+| | |
+|---|---|
+| **Throughput** | **600 enqueues/s** held at p95 126 ms; 100,000 jobs drained at **2,773 jobs/s** with 8 workers |
+| **Latency** | 300 jobs/s for 10 minutes: API p95 **20 ms**, enqueue to done p95 **254 ms**, 0 errors |
+| **Chaos** | 10,000 jobs on the EC2 server, **38 workers killed, 0 jobs lost**; 9 duplicate runs, all harmless |
+
+The same chaos test with workers that ack *before* running (at-most-once) **lost 69 jobs**, and the checks caught
+every one. That shows the test can see a loss. A release broken on purpose was **rolled back by itself in 79 s**.
+
+## Architecture
+
+![Architecture](docs/images/architecture.png)
+
+PostgreSQL is both the queue and the source of truth: a job is a row, claimed with `FOR UPDATE SKIP LOCKED` under
+a 30 s lease that the worker renews every 10 s. Redis holds only rate-limit buckets and a cached queue depth, so
+losing it loses no job. Every process keeps no state and runs one per container. How and why:
+[docs/design.md](docs/design.md).
+
+## Features, and the test that proves each
+
+| Feature | Proof |
+|---|---|
+| Each job is claimed by exactly one worker (`SKIP LOCKED`) | [test_claim.py](tests/integration/test_claim.py): 10 claimers, 1,000 jobs, each claimed once |
+| `kill -9` a worker mid-job: another finishes it | [test_crash_recovery.py](tests/e2e/test_crash_recovery.py), and the [chaos test](chaos/results/) |
+| SIGTERM: finish or release running jobs, exit cleanly | [test_crash_recovery.py](tests/e2e/test_crash_recovery.py), [test_worker_reliability.py](tests/integration/test_worker_reliability.py) |
+| A paused worker cannot overwrite a newer run (fencing token) | [test_leases.py](tests/integration/test_leases.py) |
+| Retries with full-jitter exponential backoff | [test_retries.py](tests/integration/test_retries.py): every retry inside its window |
+| Dead-letter queue, list and replay | [test_dlq_api.py](tests/integration/test_dlq_api.py), [test_dead_letter_and_replay.py](tests/e2e/test_dead_letter_and_replay.py) |
+| Idempotency keys | [test_idempotency.py](tests/integration/test_idempotency.py): 50 concurrent requests, 1 job |
+| Delayed jobs, set times, cancel | [test_delayed_list_cancel.py](tests/integration/test_delayed_list_cancel.py) |
+| Cron with two schedulers, never fired twice | [test_schedules.py](tests/integration/test_schedules.py) |
+| One tenant can never see another's jobs | [test_isolation.py](tests/integration/test_isolation.py): every route, with the other tenant's key |
+| API keys hashed with a pepper; 15-minute admin JWT | [test_auth.py](tests/unit/test_auth.py), [test_auth_api.py](tests/integration/test_auth_api.py) |
+| Rate limits: 429 with `Retry-After`, shared by API replicas | [test_token_bucket.py](tests/integration/test_token_bucket.py), [test_limits_api.py](tests/integration/test_limits_api.py) |
+| Backpressure: 429 over a tenant's quota, 503 when overloaded | [test_limits_api.py](tests/integration/test_limits_api.py), [test_depth.py](tests/integration/test_depth.py) |
+| Postgres down: 503 with `Retry-After`, not 500 | [test_database_down.py](tests/integration/test_database_down.py) |
+| `http` task: SSRF guard and signed requests | [test_http_guard.py](tests/unit/test_http_guard.py), [test_http_task.py](tests/integration/test_http_task.py) |
+| At-least-once, and the at-most-once control that loses jobs | [test_negative_control.py](tests/e2e/test_negative_control.py) |
+| Metrics and five alerts | [test_metrics.py](tests/integration/test_metrics.py), [alerts_test.yml](deploy/prometheus/alerts_test.yml) |
+| Deploy with smoke test and automatic rollback | [test_deploy_script.py](tests/unit/test_deploy_script.py), [rehearse.sh](deploy/rehearse.sh) in CI, the [drill on EC2](https://github.com/Srinu-design/hopper/actions/runs/37630529905) |
+
+Built with Python 3.12, FastAPI, PostgreSQL 16, Redis 7, Prometheus, Grafana, Caddy, Docker Compose, GitHub
+Actions and one EC2 instance.
+
+## Stretch: a broker written from scratch
+
+I built the queue on Postgres, then built my own broker and measured both behind one interface.
+`src/hopper/minibroker` is a TCP server in Python asyncio that speaks the Redis protocol. It has:
+
+- an append-only log with an fsync knob (`always` with group commit, `everysec`, `no`);
+- leases with fencing tokens, retries and a dead-letter queue.
+
+The production `Worker` class runs on it unchanged, and the same 10 contract tests pass on both brokers.
+
+- **About 11,000 msgs/s with fsync every second, versus 3,900 with fsync on every write.** That is a full
+  push → pull → ack round trip, at 64 connections. Postgres's best is 1,125 msgs/s, also durable on every write.
+- **Chaos:** 38 workers and the broker itself killed during 10,000 jobs: 0 lost. The broker was killed with
+  `kill -9` 9 more times while clients pushed: 0 answered pushes lost, in every fsync mode.
+
+Why Hopper still runs on Postgres, and what this broker gives up: [ADR-0012](docs/adr/0012-own-broker.md) and
+[benchmarks](docs/benchmarks.md#stretch-the-mini-broker-against-postgres).
+
+## Docs
+
+- [Design](docs/design.md): architecture, delivery semantics, idempotency, what breaks at 10x, failure modes,
+  security, limitations
+- [Benchmarks](docs/benchmarks.md): load test, chaos test, rollback drill
+- [Chaos reports](chaos/results/) and [load test raw data](loadtest/results/)
+- [Deploying to EC2](docs/deploy.md): server setup, first deploy, rollback drill, day to day
+- [Demo script](docs/demo.md): the one-minute demo, step by step
+- Decision records:
+  [0001 Postgres as the queue](docs/adr/0001-postgres-as-queue.md) ·
+  [0002 At-least-once delivery](docs/adr/0002-at-least-once-delivery.md) ·
+  [0003 Leases, heartbeats, fencing](docs/adr/0003-leases-heartbeats-fencing.md) ·
+  [0004 Full-jitter backoff](docs/adr/0004-full-jitter-backoff.md) ·
+  [0005 DLQ as a status](docs/adr/0005-dlq-as-a-status.md) ·
+  [0006 Idempotency keys](docs/adr/0006-idempotency-keys.md) ·
+  [0007 Cron without leader election](docs/adr/0007-cron-without-leader-election.md) ·
+  [0008 Redis token bucket, fail open](docs/adr/0008-redis-token-bucket-fail-open.md) ·
+  [0009 Backpressure](docs/adr/0009-backpressure-429-503-cached-depth.md) ·
+  [0010 API keys and admin JWT](docs/adr/0010-api-keys-and-admin-jwt.md) ·
+  [0011 Single-host deploy with rollback](docs/adr/0011-single-host-deploy-with-rollback.md) ·
+  [0012 A broker written from scratch](docs/adr/0012-own-broker.md)
+- [AI usage notes](docs/ai-usage.md)
+
+## Known limitations
+
+- **One host.** No high availability, and backups are not automated yet.
+- **Plain HTTP on the live server**, because it has no domain yet; use only throwaway demo keys there. Caddy
+  switches to HTTPS by itself once a domain is set.
+- **No fairness between tenants.** Rate limits and quotas cap what a tenant sends, but workers pick jobs by
+  priority and age, not by tenant.
+- **About 35 s to recover** a crashed worker's job (lease plus reaper interval).
+- **Workers poll** the database; `LISTEN/NOTIFY` would wake them instead.
+- **The load test ran on a laptop**, sharing it with the load generator; the chaos test and the rollback drill ran
+  on the EC2 server.
+
+More, with the fixes for each: [design.md, section 8](docs/design.md#8-limitations-and-future-work).
 
 ## Quickstart
 
@@ -98,6 +200,7 @@ within 10 s.
 | 429 `rate_limited` | the tenant's token bucket for this route class is empty | wait `Retry-After` seconds (`retry_after_ms` in the body) |
 | 429 `queue_quota_exceeded` | the tenant already has `max_queue_depth` jobs queued (enqueue and replay only) | retry once some have run |
 | 503 `overloaded` | all tenants together have `GLOBAL_MAX_QUEUE_DEPTH` jobs queued | retry after `Retry-After` |
+| 503 `database_unavailable` | Postgres cannot be reached | retry after `Retry-After` (5 s) |
 
 Without `make` (for example on Windows), run what `make up` runs:
 
@@ -122,6 +225,9 @@ make alerts            # promtool: check the Prometheus config and unit-test the
 make rehearse          # deploys, broken releases and rollbacks on a throwaway Docker host (deploy/rehearse.sh)
 make chaos             # 10,000 jobs while workers are killed for 5 minutes, then SQL checks (about 7 minutes)
 make chaos-control     # the same with workers that ack before running: it must lose jobs
+make demo              # the one-minute demo, one step per Enter (docs/demo.md)
+make broker-bench      # the mini broker against the Postgres broker, about 12 minutes
+make broker-chaos      # workers and the mini broker itself killed, about 10 minutes
 make load              # load scenario A (enqueue throughput); make bench runs A to D, about two hours
 ```
 
@@ -136,15 +242,15 @@ not `localhost`: on Windows `localhost` resolves to `::1` first and the publishe
 
 | Path | Contents |
 |---|---|
-| `src/hopper/` | `api/` (routers, rate limits and backpressure, HTTP metrics), `auth/` (API keys, passwords, JWT, tenant context), `ratelimit/` (`token_bucket.lua`, the limiter and its in-process fallback, the depth gate), `queue/` (Broker interface and all queue SQL), `worker/` (run loop, heartbeats, shutdown), `scheduler/` (cron, reaper, queue-depth and retention loops), `tasks/` (registry, built-ins, `http`, `effect` for the chaos test), `bootstrap.py` (first admin, deploy smoke key, load-test key), `metrics.py`, `config.py`, `logging.py`, `db.py` |
+| `src/hopper/` | `api/` (routers, rate limits and backpressure, HTTP metrics), `auth/` (API keys, passwords, JWT, tenant context), `ratelimit/` (`token_bucket.lua`, the limiter and its in-process fallback, the depth gate), `queue/` (Broker interface and all queue SQL), `worker/` (run loop, heartbeats, shutdown), `scheduler/` (cron, reaper, queue-depth and retention loops), `tasks/` (registry, built-ins, `http`, `effect` for the chaos test), `minibroker/` (the stretch goal: a broker written from scratch, its client and a worker on it), `bootstrap.py` (first admin, deploy smoke key, load-test key), `metrics.py`, `config.py`, `logging.py`, `db.py` |
 | `migrations/` | Alembic revisions. Hand-written SQL, backward compatible with the previous release |
 | `docker/` | `Dockerfile` (one image, every role, carrying its deploy bundle), `compose.yaml` (development) and `compose.prod.yaml` (the server) |
 | `deploy/` | `deploy.sh` (deploy, smoke test, rollback), `smoke.py`, `host-setup.sh` (one-time server setup), `rehearse.sh` and `rehearse-local.sh`, `broken/` (releases broken on purpose for drills), `Caddyfile`, `prometheus/` (config, alerts and their tests), `grafana/provisioning/` (data source, dashboard JSON) |
 | `.github/workflows/` | `ci.yml` (lint, alerts, tests, delivery rehearsal, image), `deploy.yml` (main to the server), `drill.yml` (rollback drill), `nightly-chaos.yml` (the chaos test every night, either mode on demand) |
 | `tests/` | `unit/`, `integration/`, `e2e/` |
-| `loadtest/` | `bench.py` (scenarios A to D with k6 in Docker, three runs each), `k6/enqueue.js`, `compose.bench.yaml` (a second API replica), `results/` (summaries and raw k6 output) |
-| `chaos/` | `kill_workers.py` (the chaos test), `compose.ack-before-run.yaml` (the negative control), `on-server.sh` (the same test on the server), `results/` (reports) |
-| `docs/` | `adr/` decision records, `ai-usage.md` |
+| `loadtest/` | `bench.py` (scenarios A to D with k6 in Docker, three runs each), `k6/enqueue.js`, `compose.bench.yaml` (a second API replica), `broker_bench.py` and `broker_client.py` (the mini broker against Postgres), `results/` (summaries and raw k6 output) |
+| `chaos/` | `kill_workers.py` (the chaos test), `compose.ack-before-run.yaml` (the negative control), `on-server.sh` (the same test on the server), `demo.py` (the one-minute demo), `broker_chaos.py` (the chaos test for the mini broker), `results/` (reports) |
+| `docs/` | `design.md`, `benchmarks.md`, `demo.md` (the demo script), `deploy.md`, `adr/` (decision records), `images/`, `delivery/` (a rehearsal log), `ai-usage.md` |
 
 ## Roadmap and changelog
 
@@ -157,7 +263,8 @@ not `localhost`: on Windows `localhost` resolves to `::1` first and the publishe
 | 5 | Scheduling and tenancy: delayed and cron jobs, API keys, JWT, `http` task | done |
 | 6 | Limits and observability: token bucket, backpressure, metrics, Grafana | done |
 | 7 | Delivery: GHCR, EC2, deploy with rollback | done; live on EC2 |
-| 8 | Proof and write-up: load tests, chaos test, design doc, demo | load and chaos tests done; write-up and demo to come |
+| 8 | Proof and write-up: load tests, chaos test, design doc, demo | done |
+| 9–10 | Stretch: a broker written from scratch, with its benchmark and chaos run | done |
 
 ### Week 1
 - Repo layout, `pyproject.toml` with a committed `uv.lock`, ruff and `mypy --strict` on `src/`.
@@ -531,14 +638,44 @@ not `localhost`: on Windows `localhost` resolves to `::1` first and the publishe
   killed mid-job loses the job only with the switch on), the bench key, the new tables, the Postgres scrape, and the
   chaos and load-test scripts' verdicts, including the power check.
 
-## Docs
-
-- [ADR-0001: PostgreSQL as the job queue](docs/adr/0001-postgres-as-queue.md)
-- [ADR-0003: Leases with heartbeats and fencing tokens](docs/adr/0003-leases-heartbeats-fencing.md)
-- [ADR-0007: Cron without leader election; a missed tick fires once](docs/adr/0007-cron-without-leader-election.md)
-- [ADR-0008: Redis Lua token bucket; fail open when Redis is down](docs/adr/0008-redis-token-bucket-fail-open.md)
-- [ADR-0009: Backpressure: 429 for tenant quota, 503 for overload, cached depth](docs/adr/0009-backpressure-429-503-cached-depth.md)
-- [ADR-0010: API keys hashed with HMAC-SHA256 and a pepper; JWT only for admins](docs/adr/0010-api-keys-and-admin-jwt.md)
-- [ADR-0011: Single-host Compose deploy with health-check rollback; backward-compatible migrations](docs/adr/0011-single-host-deploy-with-rollback.md)
-- [Deploying to EC2: setup, first deploy, rollback drill, day to day](docs/deploy.md)
-- [AI usage notes](docs/ai-usage.md)
+### Write-up, fixes and the stretch goal
+- **Write-up.** [docs/design.md](docs/design.md) covers the architecture and job states, at-least-once versus
+  at-most-once, why handlers must be idempotent, what breaks first at 10x, failure modes, security and limits.
+  [docs/benchmarks.md](docs/benchmarks.md) has every load, chaos and drill number with its raw data. New ADRs:
+  0002 (at-least-once), 0004 (full-jitter backoff), 0005 (the DLQ as a status), 0006 (idempotency keys) and 0012
+  (the broker). The README now opens with a crash-recovery GIF, the live links, the headline numbers, the
+  architecture diagram and each feature's test. `make demo` (`chaos/demo.py`) runs the one-minute demo one step per
+  Enter, and [docs/demo.md](docs/demo.md) is the recording script.
+- **Found and fixed:**
+  - With Postgres down, every API call answered 500 `internal_error`. It is now 503 `database_unavailable` with
+    `Retry-After: 5`; any other database error is still a 500. Checked on the Docker stack: 201, then 503 with
+    Postgres stopped, then 201 again once it was back.
+  - Deleting a schedule scanned the whole `jobs` table to clear `schedule_id` on its jobs. Migration `0005` adds a
+    partial index, built `CONCURRENTLY` so the live release keeps writing to `jobs` meanwhile.
+  - The image shipped the releases broken on purpose and the rehearsal scripts; they stay in the repository now.
+  - `make fmt` was listed but did not exist.
+- **uvloop and httptools for the API**, measured against asyncio and `h11` on the same day and machine. At
+  500 req/s the p95 fell from 155 to 55 ms. Asked for 1,000 req/s, the old server collapsed (275 req/s accepted, 7%
+  errors) while the new one took 701 req/s with 0.4% errors. The highest rate held stayed at 600 req/s.
+  - The jump from the first day's 400 req/s came from moving off Docker Desktop's VM to the native Docker engine,
+    and the benchmarks say so.
+- **Stretch: the mini broker** (`src/hopper/minibroker`), described above and in ADR-0012:
+  - The same 10 contract tests run against both brokers.
+  - At 64 connections it did 3,917 durable round trips/s, against Postgres's best of 1,125, and about 11,000
+    with fsync once a second.
+  - Its chaos run killed 38 workers and the broker itself during 10,000 jobs, and lost none.
+  - Killed 9 more times under push load, it lost no answered push in any fsync mode. A process kill cannot show
+    what fsync is for (surviving a power cut), and the benchmarks page explains why.
+  - Bugs found while building it:
+    - the log writer resized its buffer while a view of it was still open, which made every fsynced PUSH hang;
+    - the startup check took a connection Docker's port proxy closed for a broker that was down;
+    - the first chaos report could not tell refused acks from failed ones.
+- Tests: 553 (up from 482). They cover:
+  - the 503 path, from the key lookup and after authentication;
+  - the index and its plan;
+  - the broker's store and log with a fake clock (fencing, retries, death, replay, recovery, a torn record,
+    compaction);
+  - the broker contract on both brokers;
+  - `kill -9` of the broker in each fsync mode and of a worker on it;
+  - the demo's refusal to run against anything but this machine;
+  - the new scripts' reports.

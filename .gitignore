@@ -16,3 +16,6 @@ rehearsal.log
 hopper-deploy
 hopper-deploy.pub
 hopper-known-hosts
+
+# The mini broker's default data folder when run locally (python -m hopper.minibroker).
+broker-data/
