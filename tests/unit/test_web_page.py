@@ -113,7 +113,7 @@ def test_every_github_link_points_at_a_file_in_this_repository(page: _Page) -> N
     assert external, "the page links to the repository"
     for link in external:
         assert link.startswith(REPO), f"{link}: only this repository's own pages"
-        path = re.sub(r"^/(blob|tree)/main/", "", link.removeprefix(REPO))
+        path = re.sub(r"^/(blob|tree)/main/", "", link.removeprefix(REPO).split("#")[0])
         assert path == "" or (ROOT / path).exists(), link
 
 

@@ -5,7 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Hopper · job queue on PostgreSQL</title>
   <meta name="description" content="Hopper: a multi-tenant job queue and scheduler on PostgreSQL. At-least-once delivery, retries with backoff, a dead-letter queue and replay.">
+  <meta name="color-scheme" content="light dark">
   <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+  <!-- Before the styles: applies a saved light or dark choice before the first paint. -->
+  <script src="/static/theme.js"></script>
   <link rel="stylesheet" href="/static/app.css">
   <script src="/static/app.js" defer></script>
 </head>
@@ -16,9 +19,8 @@
   <div class="wrap header-row">
     <a class="brand" href="#about" aria-label="Hopper, home">
       <svg class="logo" viewBox="0 0 32 32" aria-hidden="true">
-        <rect class="logo-bg" width="32" height="32" rx="8"/>
-        <path class="logo-fg" d="M10 9v14M22 9v14M10 16h12"/>
-        <circle class="logo-dot" cx="22" cy="9" r="2.6"/>
+        <rect class="logo-bg" width="32" height="32" rx="9"/>
+        <path class="logo-fg" d="M11 9v14M21 9v14M11 16h10"/>
       </svg>
       <span>Hopper</span>
     </a>
@@ -27,13 +29,16 @@
       <a href="#use" data-tab-link="use">How to use it</a>
       <a href="#try" data-tab-link="try">Try it</a>
     </nav>
-    <div class="header-links">
+    <div class="header-end">
       <span class="status" id="status" data-state="unknown" title="Live status from /readyz">
         <span class="status-dot" aria-hidden="true"></span><span id="status-text">Checking</span>
       </span>
-      <a href="/grafana/">Dashboard</a>
-      <a href="/docs">API docs</a>
-      <a href="https://github.com/Srinu-design/hopper">GitHub</a>
+      <a class="header-link" href="/docs">API docs</a>
+      <a class="header-link" href="https://github.com/Srinu-design/hopper">GitHub</a>
+      <button type="button" class="icon-btn" id="theme-toggle" aria-label="Switch to dark mode" title="Switch to dark mode">
+        <svg class="icon-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5Z"/></svg>
+        <svg class="icon-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.55 1.55M17.15 17.15l1.55 1.55M5.3 18.7l1.55-1.55M17.15 6.85l1.55-1.55"/></svg>
+      </button>
     </div>
   </div>
 </header>
@@ -43,37 +48,64 @@
 <!-- ============================================================ About -->
 <section id="about" data-tab="about" class="tab-panel">
   <div class="hero">
-    <div class="wrap">
-      <p class="eyebrow">Multi-tenant job queue and scheduler · PostgreSQL</p>
-      <h1>Send a job over HTTP. Hopper makes sure it runs.</h1>
-      <p class="lead">Hopper runs every job at least once, retries it with backoff, parks it in a dead-letter queue if
-        it keeps failing, and lets you replay it. Jobs run now, after a delay, at a set time, or on a cron schedule.</p>
+    <div class="wrap narrow">
+      <h1 class="display">Hopper</h1>
+      <p class="tagline">A job queue on PostgreSQL that doesn't lose jobs.</p>
+      <p class="lead">Send a job over HTTP. Hopper runs it at least once, retries it with backoff, parks it in a
+        dead-letter queue if it keeps failing, and lets you replay it. Jobs run now, after a delay, at a set time, or
+        on a cron schedule.</p>
       <div class="actions">
         <a class="btn primary" href="#try">Try it in the browser</a>
-        <a class="btn" href="#use">How to use it</a>
-        <a class="btn ghost" href="https://github.com/Srinu-design/hopper">Source on GitHub</a>
+        <a class="btn outlined" href="#use">How to use it</a>
       </div>
-      <div class="stats">
-        <div class="stat">
-          <span class="stat-value" data-figure>600 enqueues/s</span>
-          <span class="stat-label">held with API p95 at <span data-figure>126 ms</span>, in all 3 runs</span>
-        </div>
-        <div class="stat">
-          <span class="stat-value" data-figure>2,773 jobs/s</span>
-          <span class="stat-label">drained by 8 workers: <span data-figure>100,000 jobs in 36 s</span></span>
-        </div>
-        <div class="stat">
-          <span class="stat-value" data-figure>0 jobs lost</span>
-          <span class="stat-label"><span data-figure>38 workers killed</span> during 10,000 jobs on the live server</span>
-        </div>
-      </div>
-      <p class="footnote">All measured. The load tests ran on a laptop; the chaos test ran on the EC2 server.
-        Raw data: <a href="https://github.com/Srinu-design/hopper/blob/main/docs/benchmarks.md">benchmarks.md</a>.</p>
+    </div>
+    <div class="wrap">
+      <dl class="figures">
+        <div><dt data-figure>600 enqueues/s</dt><dd>held with API p95 at <span data-figure>126 ms</span></dd></div>
+        <div><dt data-figure>2,773 jobs/s</dt><dd>drained by 8 workers: <span data-figure>100,000 jobs in 36 s</span></dd></div>
+        <div><dt data-figure>0 jobs lost</dt><dd>with <span data-figure>38 workers killed</span> during 10,000 jobs</dd></div>
+      </dl>
+      <p class="footnote">All measured. Load tests ran on a laptop, the chaos test on the EC2 server.
+        <a href="https://github.com/Srinu-design/hopper/blob/main/docs/benchmarks.md">Raw data</a></p>
     </div>
   </div>
 
+  <nav class="wrap chip-row" aria-label="About this project">
+    <a class="chip" href="#features">Features</a>
+    <a class="chip" href="#architecture">Architecture</a>
+    <a class="chip" href="#database">Database</a>
+    <a class="chip" href="#lifecycle">Life of a job</a>
+    <a class="chip" href="#reliability">Reliability</a>
+    <a class="chip" href="#security">Security</a>
+    <a class="chip" href="#operations">Operations</a>
+    <a class="chip" href="#performance">Performance</a>
+    <a class="chip" href="#diagrams">Diagrams</a>
+    <a class="chip" href="#decisions">Decisions</a>
+  </nav>
+
   <div class="wrap">
-    <section class="block" aria-labelledby="recover-title">
+
+    <section class="section" id="features" aria-labelledby="features-title">
+      <h2 id="features-title">What it does</h2>
+      <p class="section-lead">Everything a production job queue needs, each feature proven by a test.
+        <a href="https://github.com/Srinu-design/hopper#features-and-the-test-that-proves-each">See the tests</a></p>
+      <ul class="feature-grid">
+        <li><h3>One worker per job</h3><p>Workers claim rows with <code>SKIP LOCKED</code>, so no two ever get the same job.</p></li>
+        <li><h3>Crash recovery</h3><p>A killed worker's jobs come back when its lease runs out and finish on another.</p></li>
+        <li><h3>Fencing tokens</h3><p>A worker that was paused too long can't overwrite the newer run.</p></li>
+        <li><h3>Retries with backoff</h3><p>Full-jitter exponential backoff, with limits set per task.</p></li>
+        <li><h3>Dead-letter queue</h3><p>Jobs that keep failing are parked with their history, and can be replayed.</p></li>
+        <li><h3>Idempotency keys</h3><p>A retried request returns the same job instead of creating a second one.</p></li>
+        <li><h3>Delayed and cron jobs</h3><p>Run later, at a set time, or on a schedule. Two schedulers, never a double fire.</p></li>
+        <li><h3>Many tenants</h3><p>Each tenant sees only its own jobs and has its own rate limit and queue quota.</p></li>
+        <li><h3>Backpressure</h3><p>Over the limits, the API answers 429 or 503 with <code>Retry-After</code> instead of falling over.</p></li>
+        <li><h3>Webhook jobs</h3><p>The <code>http</code> task calls your URL, signed, with an SSRF guard.</p></li>
+        <li><h3>Metrics and alerts</h3><p>Prometheus metrics from every process, five alerts and a dashboard.</p></li>
+        <li><h3>Safe deploys</h3><p>Every merge deploys itself; a bad release rolls back with no one involved.</p></li>
+      </ul>
+    </section>
+
+    <section class="section" id="recover" aria-labelledby="recover-title">
       <h2 id="recover-title">It keeps going when workers die</h2>
       <figure class="media">
         <img src="/static/images/crash-recovery.gif" width="960" height="484" loading="lazy"
@@ -83,60 +115,207 @@
       </figure>
     </section>
 
-    <section class="block" id="architecture" aria-labelledby="arch-title">
+    <section class="section" id="architecture" aria-labelledby="arch-title">
       <h2 id="arch-title">Architecture</h2>
-      <p class="section-lead"><strong>PostgreSQL is both the queue and the source of truth:</strong> a job is a row,
-        and every change to a job is one SQL statement. Redis holds only rate-limit buckets and a cached queue depth,
-        so losing it loses no job. Every process keeps no state of its own.</p>
+      <p class="section-lead">One image runs every role. Caddy is the only public entry point. The API, workers and
+        schedulers keep no state of their own: PostgreSQL holds every job, and Redis holds only rate-limit buckets and
+        a cached queue depth, so losing Redis loses no job.</p>
       <figure class="diagram">
-        <img src="/static/images/architecture.svg" width="1180" height="720"
-             alt="Tenant clients reach Caddy, which spreads requests over two API replicas. The APIs write jobs to PostgreSQL and use Redis for rate limits. Workers and schedulers work on PostgreSQL. Prometheus scrapes everything and Grafana shows it.">
+        <a href="/static/images/architecture.svg" target="_blank" rel="noopener" title="Open full size">
+          <img src="/static/images/architecture.svg" width="1180" height="720" loading="lazy"
+               alt="Tenant clients reach Caddy, which spreads requests over two API replicas. The APIs write jobs to PostgreSQL and use Redis for rate limits. Workers and schedulers work on PostgreSQL. Prometheus scrapes everything and Grafana shows it.">
+        </a>
       </figure>
-      <div class="components">
-        <div class="component"><h3>Caddy</h3><p>The only public entry point. Spreads requests over both API replicas and turns on HTTPS once a domain is set.</p></div>
-        <div class="component"><h3>API <span class="count">× 2</span></h3><p>FastAPI. Checks the API key, the tenant's rate limit and the queue depth, then writes the job row.</p></div>
-        <div class="component"><h3>PostgreSQL</h3><p>The queue itself. Workers claim rows with <code>FOR UPDATE SKIP LOCKED</code>, so no two get the same job.</p></div>
-        <div class="component"><h3>Workers <span class="count">× N</span></h3><p>Claim jobs, run them, renew their lease while running, then ack or nack.</p></div>
-        <div class="component"><h3>Schedulers <span class="count">× 2</span></h3><p>Fire cron schedules, reclaim expired leases, count queue depth, delete old jobs. Both run; neither fires twice.</p></div>
-        <div class="component"><h3>Redis</h3><p>Token buckets for rate limits and a cached queue depth. If it goes down, limits fall back to each API process.</p></div>
-        <div class="component"><h3>Prometheus + Grafana</h3><p>Metrics from every process, five alerts, and a <a href="/grafana/">read-only dashboard</a>.</p></div>
-        <div class="component"><h3>GitHub Actions</h3><p>Every merge to main is tested, built and deployed, and a bad release rolls itself back.</p></div>
-      </div>
+      <dl class="spec-list">
+        <div><dt>Caddy</dt><dd>Reverse proxy. Spreads requests over both API replicas, checks their health every 2 s, and turns on HTTPS once a domain is set.</dd></div>
+        <div><dt>API <span class="muted">× 2</span></dt><dd>FastAPI on uvicorn. Checks the API key, the tenant's rate limit and the queue depth, then writes the job row.</dd></div>
+        <div><dt>Workers <span class="muted">× N</span></dt><dd>Claim up to 20 jobs each, run them, renew their leases every 10 s, then ack or nack.</dd></div>
+        <div><dt>Schedulers <span class="muted">× 2</span></dt><dd>Fire cron schedules, reclaim expired leases, count queue depth and delete old jobs. Both run at once.</dd></div>
+        <div><dt>PostgreSQL 16</dt><dd>The queue and the source of truth. See <a href="#database">Database</a>.</dd></div>
+        <div><dt>Redis 7</dt><dd>Token buckets for rate limits and the cached queue depth. If it goes down, limits fall back to each API process.</dd></div>
+        <div><dt>Prometheus + Grafana</dt><dd>Metrics from every process, five alert rules and a <a href="/grafana/">read-only dashboard</a>.</dd></div>
+        <div><dt>GitHub Actions</dt><dd>Tests every change, builds the image, and deploys every merge to main.</dd></div>
+      </dl>
+      <p class="more">More detail:
+        <a href="https://github.com/Srinu-design/hopper/blob/main/docs/diagrams.md#2-components">component diagram</a> ·
+        <a href="https://github.com/Srinu-design/hopper/blob/main/docs/diagrams.md#4-classes">class diagram</a> ·
+        <a href="https://github.com/Srinu-design/hopper/blob/main/docs/design.md">design doc</a></p>
     </section>
 
-    <section class="block" aria-labelledby="life-title">
+    <section class="section" id="database" aria-labelledby="db-title">
+      <h2 id="db-title">Database</h2>
+      <p class="section-lead">PostgreSQL 16 is both the queue and the record. A job is one row in <code>jobs</code>,
+        and every change to a job is one guarded <code>UPDATE</code>, so a job is never half-updated. The SQL is
+        written by hand, and every migration works with the release still running.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th scope="col">Table</th><th scope="col">Holds</th><th scope="col">Key columns</th></tr></thead>
+          <tbody>
+            <tr><th scope="row"><code>tenants</code></th><td>One row per customer, with its limits</td><td><code>rate_per_sec</code>, <code>burst</code>, <code>max_queue_depth</code>, <code>signing_secret</code></td></tr>
+            <tr><th scope="row"><code>users</code></th><td>People who log in: tenant owners and platform admins</td><td><code>email</code>, <code>password_hash</code> (Argon2id), <code>role</code></td></tr>
+            <tr><th scope="row"><code>api_keys</code></th><td>Keys that programs use. Only a hash is stored</td><td><code>prefix</code>, <code>key_hash</code> (HMAC-SHA256 with a pepper), <code>revoked_at</code></td></tr>
+            <tr><th scope="row"><code>jobs</code></th><td>Every job: this table is the queue</td><td><code>status</code>, <code>run_at</code>, <code>priority</code>, <code>attempts</code>, <code>lease_token</code>, <code>lease_expires_at</code>, <code>idempotency_key</code></td></tr>
+            <tr><th scope="row"><code>job_attempts</code></th><td>One row per run of a job</td><td><code>worker_id</code>, <code>started_at</code>, <code>outcome</code>, <code>error</code></td></tr>
+            <tr><th scope="row"><code>schedules</code></th><td>Cron schedules</td><td><code>cron</code>, <code>timezone</code>, <code>next_run_at</code>, <code>enabled</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="two-col">
+        <div>
+          <h3>How a worker claims jobs</h3>
+          <p>One statement picks the next ready jobs and leases them. <code>SKIP LOCKED</code> makes other workers
+            pass over rows being claimed instead of waiting, so each gets a different batch.</p>
+          <div class="code"><pre><code>WITH next AS (
+  SELECT id FROM jobs
+  WHERE queue = :queue AND status = 'queued'
+    AND run_at &lt;= now()
+  ORDER BY priority DESC, run_at
+  LIMIT :limit
+  FOR UPDATE SKIP LOCKED
+)
+UPDATE jobs SET status = 'running',
+  attempts = attempts + 1,
+  lease_token = gen_random_uuid(),
+  lease_expires_at = now() + interval '30 s'
+FROM next WHERE jobs.id = next.id
+RETURNING ...</code></pre></div>
+        </div>
+        <div>
+          <h3>Indexes that stay small</h3>
+          <p>Each hot index is partial, so it holds only the rows it serves, however many finished jobs pile up.</p>
+          <ul class="plain">
+            <li><code>jobs_ready_idx</code>: queued jobs by queue, priority and time, for the claim</li>
+            <li><code>jobs_lease_idx</code>: running jobs by lease end, for the reaper</li>
+            <li><code>jobs_dead_idx</code>: dead jobs per tenant, for the dead-letter queue</li>
+            <li><code>jobs_idem_uidx</code>: unique idempotency key per tenant</li>
+            <li><code>schedules_due_idx</code>: enabled schedules by next run, for cron</li>
+          </ul>
+          <p>Finished jobs are deleted after 7 days, and <code>jobs</code> is vacuumed after 2% of its rows change
+            instead of the default 20%.</p>
+        </div>
+      </div>
+
+      <details class="diagram-toggle">
+        <summary>Show the entity–relationship diagram</summary>
+        <figure class="diagram">
+          <a href="/static/images/diagrams/database.svg" target="_blank" rel="noopener" title="Open full size">
+            <img src="/static/images/diagrams/database.svg" loading="lazy" alt="Entity–relationship diagram of tenants, users, api_keys, schedules, jobs and job_attempts, with every column.">
+          </a>
+        </figure>
+      </details>
+      <p class="more">More detail:
+        <a href="https://github.com/Srinu-design/hopper/blob/main/docs/diagrams.md#5-database">every column and index</a> ·
+        <a href="https://github.com/Srinu-design/hopper/blob/main/docs/adr/0001-postgres-as-queue.md">why PostgreSQL is the queue</a> ·
+        <a href="https://github.com/Srinu-design/hopper/tree/main/migrations/versions">the migrations</a></p>
+    </section>
+
+    <section class="section" id="lifecycle" aria-labelledby="life-title">
       <h2 id="life-title">The life of a job</h2>
       <ol class="steps">
-        <li><span class="step-name">Enqueued</span><p>The API checks the key, the rate limit and the queue depth, then inserts a row: <code>queued</code>, to run now or later.</p></li>
-        <li><span class="step-name">Claimed</span><p>A worker takes it with <code>SKIP LOCKED</code> and gets a 30 s <strong>lease</strong> and a fresh <strong>lease token</strong>.</p></li>
-        <li><span class="step-name">Running</span><p>The worker renews the lease every 10 s. If the worker dies, the lease expires and the reaper puts the job back.</p></li>
-        <li><span class="step-name">Done or retried</span><p>Success: <code>succeeded</code>. Failure: back to the queue after a full-jitter backoff, or <code>dead</code> after the last attempt.</p></li>
-        <li><span class="step-name">Replayed</span><p>A dead job keeps its id and history. Replay puts it back in the queue with a fresh set of attempts.</p></li>
+        <li><span class="step-name">Enqueued</span><p>The API checks the key, the rate limit and the queue depth, then inserts a <code>queued</code> row, to run now or later.</p></li>
+        <li><span class="step-name">Claimed</span><p>A worker takes it with <code>SKIP LOCKED</code> and gets a 30 s lease and a fresh lease token.</p></li>
+        <li><span class="step-name">Running</span><p>The worker renews the lease every 10 s. If the worker dies, the lease runs out and the reaper puts the job back.</p></li>
+        <li><span class="step-name">Done or retried</span><p>Success: <code>succeeded</code>. Failure: back to the queue after a backoff, or <code>dead</code> after the last attempt.</p></li>
+        <li><span class="step-name">Replayed</span><p>A dead job keeps its id and history. Replay puts it back with a fresh set of attempts.</p></li>
       </ol>
-      <p class="note">A worker that was paused past its lease can't overwrite the newer run: every write must carry the
-        current lease token (a <strong>fencing token</strong>), and the old token no longer matches.
-        <a href="https://github.com/Srinu-design/hopper/blob/main/docs/design.md">Read the design doc</a></p>
+      <figure class="diagram">
+        <a href="/static/images/diagrams/job-states.svg" target="_blank" rel="noopener" title="Open full size">
+          <img src="/static/images/diagrams/job-states.svg" loading="lazy" class="medium"
+               alt="State machine: queued to running on claim; running to succeeded on ack; running back to queued on retry, lease expiry or shutdown; running to dead on a permanent error or the last attempt; dead back to queued on replay; queued to cancelled on cancel.">
+        </a>
+        <figcaption>Every status a job can have, and every move between them.</figcaption>
+      </figure>
+      <p class="more">More detail:
+        <a href="https://github.com/Srinu-design/hopper/blob/main/docs/diagrams.md#7-enqueue-a-job">enqueue, step by step</a> ·
+        <a href="https://github.com/Srinu-design/hopper/blob/main/docs/diagrams.md#8-run-a-job">claim, heartbeat and ack</a> ·
+        <a href="https://github.com/Srinu-design/hopper/blob/main/docs/diagrams.md#11-when-a-run-fails">when a run fails</a></p>
     </section>
 
-    <section class="block" aria-labelledby="break-title">
+    <section class="section" id="reliability" aria-labelledby="break-title">
       <h2 id="break-title">When things break</h2>
+      <p class="section-lead">Delivery is at least once: if a worker dies at the wrong moment, a job can run twice,
+        but an accepted job is never lost. Exactly-once is impossible when workers can crash, so handlers are written
+        to be safe to repeat.</p>
       <div class="table-wrap">
         <table>
           <thead><tr><th scope="col">What fails</th><th scope="col">What happens</th><th scope="col">Jobs lost?</th></tr></thead>
           <tbody>
-            <tr><th scope="row">A worker</th><td>Its jobs come back when the lease expires (about 35 s) and run on another worker.</td><td><span class="pill ok">No</span></td></tr>
+            <tr><th scope="row">A worker</th><td>Its jobs come back when the lease runs out (about 35 s) and run on another worker.</td><td><span class="pill ok">No</span></td></tr>
             <tr><th scope="row">All workers</th><td>Jobs wait in the queue; an alert fires after a minute.</td><td><span class="pill ok">No</span></td></tr>
             <tr><th scope="row">Redis</th><td>Rate limits fall back to each API process. <code>/readyz</code> says <code>degraded</code>.</td><td><span class="pill ok">No</span></td></tr>
             <tr><th scope="row">PostgreSQL</th><td>The API answers <code>503</code> with <code>Retry-After: 5</code>; workers keep retrying their claim.</td><td><span class="pill ok">No committed job</span></td></tr>
-            <tr><th scope="row">A client retries a request</th><td>The same <code>Idempotency-Key</code> returns the same job instead of creating a second one.</td><td><span class="pill ok">No duplicates</span></td></tr>
-            <tr><th scope="row">A bad release</th><td>The health check and smoke test fail, and the deploy puts the old release back by itself, serving again after <span data-figure>79 s</span>.</td><td><span class="pill ok">No</span></td></tr>
+            <tr><th scope="row">A client retries</th><td>The same <code>Idempotency-Key</code> returns the same job instead of making a second one.</td><td><span class="pill ok">No duplicates</span></td></tr>
+            <tr><th scope="row">A bad release</th><td>The smoke test fails and the old release comes back by itself, serving again after <span data-figure>79 s</span>.</td><td><span class="pill ok">No</span></td></tr>
             <tr><th scope="row">The EC2 host</th><td>Everything is down until it is back. Data is on its disk, so a restart keeps it.</td><td><span class="pill warn">Only if the disk is lost</span></td></tr>
           </tbody>
         </table>
       </div>
+      <details class="diagram-toggle">
+        <summary>Show how a dead worker's job is recovered</summary>
+        <figure class="diagram">
+          <a href="/static/images/diagrams/seq-crash.svg" target="_blank" rel="noopener" title="Open full size">
+            <img src="/static/images/diagrams/seq-crash.svg" loading="lazy" alt="Sequence: worker 1 claims a job with token A and dies; the reaper puts the job back; worker 2 claims it with token B; worker 1's late ack with token A is refused; worker 2's ack succeeds.">
+          </a>
+        </figure>
+      </details>
+      <p class="more">More detail:
+        <a href="https://github.com/Srinu-design/hopper/blob/main/docs/design.md#6-failure-modes">failure modes</a> ·
+        <a href="https://github.com/Srinu-design/hopper/blob/main/docs/adr/0002-at-least-once-delivery.md">why at least once</a> ·
+        <a href="https://github.com/Srinu-design/hopper/blob/main/docs/adr/0003-leases-heartbeats-fencing.md">leases and fencing</a></p>
     </section>
 
-    <section class="block" aria-labelledby="numbers-title">
+    <section class="section" id="security" aria-labelledby="security-title">
+      <h2 id="security-title">Security</h2>
+      <dl class="spec-list">
+        <div><dt>API keys</dt><dd>32 random bytes. Only a prefix and an HMAC-SHA256 hash with a secret pepper are stored, and keys are compared in constant time.</dd></div>
+        <div><dt>People</dt><dd>Passwords hashed with Argon2id. Logging in gives a 15-minute token, and login attempts are rate-limited per email.</dd></div>
+        <div><dt>Tenant isolation</dt><dd>The tenant comes only from the key, and every query filters on it. Another tenant's job answers 404, so ids never leak.</dd></div>
+        <div><dt>Webhook jobs</dt><dd>Private and internal addresses are refused, even through DNS tricks, and every call is signed so the receiver can check it.</dd></div>
+        <div><dt>Abuse limits</dt><dd>A rate limit per tenant, queue quotas, and request bodies over 256 KB refused.</dd></div>
+        <div><dt>The server</dt><dd>Only Caddy has public ports. Secrets live in a mode-600 file on the host, never in the image or the repository.</dd></div>
+      </dl>
+      <p class="more">More detail:
+        <a href="https://github.com/Srinu-design/hopper/blob/main/docs/design.md#7-security">security in the design doc</a> ·
+        <a href="https://github.com/Srinu-design/hopper/blob/main/docs/adr/0010-api-keys-and-admin-jwt.md">API keys and admin tokens</a></p>
+    </section>
+
+    <section class="section" id="operations" aria-labelledby="ops-title">
+      <h2 id="ops-title">Operations</h2>
+      <div class="two-col">
+        <div>
+          <h3>Watching it</h3>
+          <ul class="plain">
+            <li>Every process exports Prometheus metrics: enqueues, runs by outcome, queue depth and wait, lease losses, HTTP latency.</li>
+            <li>Five alerts: <code>QueueBacklog</code>, <code>HighFailureRate</code>, <code>DLQGrowing</code>, <code>NoWorkers</code>, <code>NoScheduler</code>.</li>
+            <li>A <a href="/grafana/">read-only Grafana dashboard</a> anyone can open.</li>
+            <li>JSON logs, each line carrying the request id, which follows a job from the API to its worker.</li>
+          </ul>
+        </div>
+        <div>
+          <h3>Shipping it</h3>
+          <ul class="plain">
+            <li>Every pull request runs lint, type checks, the tests and a full deploy rehearsal.</li>
+            <li>A merge to main builds one image and deploys it to the EC2 host.</li>
+            <li>The deploy migrates, replaces the API one replica at a time with no downtime, then smoke-tests a real job.</li>
+            <li>If anything fails, the old release comes back by itself. The drill: caught at <span data-figure>42 s</span>, serving again at 79 s.</li>
+          </ul>
+        </div>
+      </div>
+      <details class="diagram-toggle">
+        <summary>Show the deployment diagram</summary>
+        <figure class="diagram">
+          <a href="/static/images/diagrams/deployment.svg" target="_blank" rel="noopener" title="Open full size">
+            <img src="/static/images/diagrams/deployment.svg" loading="lazy" alt="Deployment: GitHub Actions builds an image to GHCR and asks deploy.sh on the EC2 host to deploy it; on the host, Docker Compose runs Caddy, two API replicas, workers, schedulers, PostgreSQL, Redis, Prometheus and Grafana.">
+          </a>
+        </figure>
+      </details>
+      <p class="more">More detail:
+        <a href="https://github.com/Srinu-design/hopper/blob/main/docs/diagrams.md#12-deploy-and-roll-back">deploy and roll back, step by step</a> ·
+        <a href="https://github.com/Srinu-design/hopper/blob/main/docs/deploy.md">deploying to EC2</a></p>
+    </section>
+
+    <section class="section" id="performance" aria-labelledby="numbers-title">
       <h2 id="numbers-title">Measured, not claimed</h2>
       <div class="table-wrap">
         <table>
@@ -147,32 +326,50 @@
             <tr><th scope="row">Steady load</th><td><span data-figure>300 jobs/s for 10 minutes</span>: API p95 20 ms, enqueue to done p95 <span data-figure>254 ms</span>, 0 errors</td><td>Laptop</td></tr>
             <tr><th scope="row">Chaos test</th><td>10,000 jobs, 38 workers killed, 0 lost, <span data-figure>9 duplicate runs</span>, all harmless</td><td>EC2</td></tr>
             <tr><th scope="row">Negative control</th><td>Workers that ack <em>before</em> running <span data-figure>lost 69 jobs</span>, and the checks caught every one: the test can see a loss</td><td>EC2</td></tr>
-            <tr><th scope="row">Rollback drill</th><td>A broken release caught after <span data-figure>42 s</span>; the old one serving again after 79 s</td><td>EC2</td></tr>
+            <tr><th scope="row">Rollback drill</th><td>A broken release caught after 42 s; the old one serving again after 79 s</td><td>EC2</td></tr>
           </tbody>
         </table>
       </div>
-      <p class="note">What breaks first under load is the API's CPU, while PostgreSQL still has room.
+      <p class="more">What breaks first under load is the API's CPU, while PostgreSQL still has room.
         <a href="https://github.com/Srinu-design/hopper/blob/main/docs/benchmarks.md">All numbers and raw data</a></p>
-    </section>
 
-    <section class="block" aria-labelledby="stretch-title">
-      <h2 id="stretch-title">Stretch: a message broker written from scratch</h2>
-      <p class="section-lead">After building the queue on PostgreSQL, I wrote my own broker and measured both behind
-        one interface. It's a TCP server in Python asyncio that speaks the Redis protocol, with an append-only log,
-        leases with fencing tokens, retries and a dead-letter queue. The production worker runs on it unchanged.</p>
-      <div class="stats compact">
-        <div class="stat"><span class="stat-value" data-figure>11,000 msgs/s</span><span class="stat-label">with fsync every second (push → pull → ack, 64 connections)</span></div>
-        <div class="stat"><span class="stat-value"><span data-figure>3,900</span> msgs/s</span><span class="stat-label">with fsync on every write; PostgreSQL's best is <span data-figure>1,125 msgs/s</span></span></div>
-        <div class="stat"><span class="stat-value">0 lost</span><span class="stat-label">when the broker itself was killed with <code>kill -9</code> while clients pushed</span></div>
-      </div>
-      <p class="note">Why Hopper still runs on PostgreSQL:
+      <h3 class="sub">Stretch: a message broker written from scratch</h3>
+      <p>After building the queue on PostgreSQL, I wrote my own broker and measured both behind one interface: a TCP
+        server in Python asyncio that speaks the Redis protocol, with an append-only log, leases with fencing tokens,
+        retries and a dead-letter queue. The production worker runs on it unchanged.</p>
+      <dl class="figures small">
+        <div><dt data-figure>11,000 msgs/s</dt><dd>with fsync every second, 64 connections</dd></div>
+        <div><dt><span data-figure>3,900</span> msgs/s</dt><dd>with fsync on every write; PostgreSQL's best is <span data-figure>1,125 msgs/s</span></dd></div>
+        <div><dt>0 lost</dt><dd>with the broker itself killed by <code>kill -9</code> under load</dd></div>
+      </dl>
+      <p class="more">Why Hopper still runs on PostgreSQL:
         <a href="https://github.com/Srinu-design/hopper/blob/main/docs/adr/0012-own-broker.md">ADR-0012</a></p>
     </section>
 
-    <section class="block" aria-labelledby="decisions-title">
+    <section class="section" id="diagrams" aria-labelledby="diagrams-title">
+      <h2 id="diagrams-title">Diagrams</h2>
+      <p class="section-lead">Twelve UML diagrams, from who uses Hopper down to single requests. GitHub draws each
+        one from text kept next to the code.</p>
+      <ul class="diagram-grid">
+        <li><a href="https://github.com/Srinu-design/hopper/blob/main/docs/diagrams.md#1-use-cases"><span class="kind">Use case</span>Who uses Hopper, and for what</a></li>
+        <li><a href="https://github.com/Srinu-design/hopper/blob/main/docs/diagrams.md#2-components"><span class="kind">Component</span>The processes and their parts</a></li>
+        <li><a href="https://github.com/Srinu-design/hopper/blob/main/docs/diagrams.md#3-deployment"><span class="kind">Deployment</span>From GitHub to the EC2 host</a></li>
+        <li><a href="https://github.com/Srinu-design/hopper/blob/main/docs/diagrams.md#4-classes"><span class="kind">Class</span>Broker, worker, tasks, limits</a></li>
+        <li><a href="https://github.com/Srinu-design/hopper/blob/main/docs/diagrams.md#5-database"><span class="kind">Entity–relationship</span>Every table and column</a></li>
+        <li><a href="https://github.com/Srinu-design/hopper/blob/main/docs/diagrams.md#6-job-states"><span class="kind">State machine</span>Every status of a job</a></li>
+        <li><a href="https://github.com/Srinu-design/hopper/blob/main/docs/diagrams.md#7-enqueue-a-job"><span class="kind">Sequence</span>Enqueue a job</a></li>
+        <li><a href="https://github.com/Srinu-design/hopper/blob/main/docs/diagrams.md#8-run-a-job"><span class="kind">Sequence</span>Claim, heartbeat, ack</a></li>
+        <li><a href="https://github.com/Srinu-design/hopper/blob/main/docs/diagrams.md#9-a-worker-dies"><span class="kind">Sequence</span>A worker dies</a></li>
+        <li><a href="https://github.com/Srinu-design/hopper/blob/main/docs/diagrams.md#10-cron-with-two-schedulers"><span class="kind">Sequence</span>Cron with two schedulers</a></li>
+        <li><a href="https://github.com/Srinu-design/hopper/blob/main/docs/diagrams.md#11-when-a-run-fails"><span class="kind">Activity</span>Retry or dead-letter</a></li>
+        <li><a href="https://github.com/Srinu-design/hopper/blob/main/docs/diagrams.md#12-deploy-and-roll-back"><span class="kind">Sequence</span>Deploy and roll back</a></li>
+      </ul>
+    </section>
+
+    <section class="section" id="decisions" aria-labelledby="decisions-title">
       <h2 id="decisions-title">Design decisions</h2>
-      <p class="section-lead">Each choice is written down with its trade-offs.</p>
-      <ul class="decisions">
+      <p class="section-lead">Each choice is written down with the options and the trade-offs.</p>
+      <ul class="link-list">
         <li><a href="https://github.com/Srinu-design/hopper/blob/main/docs/adr/0001-postgres-as-queue.md"><span>0001</span>PostgreSQL as the queue</a></li>
         <li><a href="https://github.com/Srinu-design/hopper/blob/main/docs/adr/0002-at-least-once-delivery.md"><span>0002</span>At-least-once delivery</a></li>
         <li><a href="https://github.com/Srinu-design/hopper/blob/main/docs/adr/0003-leases-heartbeats-fencing.md"><span>0003</span>Leases, heartbeats, fencing</a></li>
@@ -188,10 +385,10 @@
       </ul>
     </section>
 
-    <section class="block two-col" aria-label="Stack and limitations">
+    <section class="section two-col last" aria-label="Stack and limitations">
       <div>
         <h2>Built with</h2>
-        <ul class="chips">
+        <ul class="tags">
           <li>Python 3.12</li><li>FastAPI</li><li>PostgreSQL 16</li><li>Redis 7</li><li>Prometheus</li>
           <li>Grafana</li><li>Caddy</li><li>Docker Compose</li><li>GitHub Actions</li><li>AWS EC2</li>
         </ul>
@@ -204,7 +401,7 @@
           <li><strong>No fairness between tenants:</strong> rate limits cap what each sends, but workers pick by priority and age.</li>
           <li><strong>About 35 s</strong> to recover a crashed worker's job (lease plus reaper interval).</li>
         </ul>
-        <p class="note"><a href="https://github.com/Srinu-design/hopper/blob/main/docs/design.md">More in the design doc, with the fix for each</a></p>
+        <p class="more"><a href="https://github.com/Srinu-design/hopper/blob/main/docs/design.md#8-limitations-and-future-work">The fix for each</a></p>
       </div>
     </section>
   </div>

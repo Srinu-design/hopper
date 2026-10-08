@@ -40,7 +40,8 @@ every one. That shows the test can see a loss. A release broken on purpose was *
 PostgreSQL is both the queue and the source of truth: a job is a row, claimed with `FOR UPDATE SKIP LOCKED` under
 a 30 s lease that the worker renews every 10 s. Redis holds only rate-limit buckets and a cached queue depth, so
 losing it loses no job. Every process keeps no state and runs one per container. How and why:
-[docs/design.md](docs/design.md).
+[docs/design.md](docs/design.md). Twelve UML diagrams, from use cases to the database and each request:
+[docs/diagrams.md](docs/diagrams.md).
 
 ## Features, and the test that proves each
 
@@ -90,6 +91,8 @@ Why Hopper still runs on Postgres, and what this broker gives up: [ADR-0012](doc
 
 - [Design](docs/design.md): architecture, delivery semantics, idempotency, what breaks at 10x, failure modes,
   security, limitations
+- [Diagrams](docs/diagrams.md): 12 UML diagrams: use cases, components, deployment, classes, the database
+  (entity–relationship), job states, five sequences and the failure activity
 - [Benchmarks](docs/benchmarks.md): load test, chaos test, rollback drill
 - [Chaos reports](chaos/results/) and [load test raw data](loadtest/results/)
 - [Deploying to EC2](docs/deploy.md): server setup, first deploy, rollback drill, day to day
@@ -251,7 +254,7 @@ not `localhost`: on Windows `localhost` resolves to `::1` first and the publishe
 | `tests/` | `unit/`, `integration/`, `e2e/` |
 | `loadtest/` | `bench.py` (scenarios A to D with k6 in Docker, three runs each), `k6/enqueue.js`, `compose.bench.yaml` (a second API replica), `broker_bench.py` and `broker_client.py` (the mini broker against Postgres), `results/` (summaries and raw k6 output) |
 | `chaos/` | `kill_workers.py` (the chaos test), `compose.ack-before-run.yaml` (the negative control), `on-server.sh` (the same test on the server), `demo.py` (the one-minute demo), `broker_chaos.py` (the chaos test for the mini broker), `results/` (reports) |
-| `docs/` | `design.md`, `benchmarks.md`, `demo.md` (the demo script), `deploy.md`, `adr/` (decision records), `images/`, `delivery/` (a rehearsal log), `ai-usage.md` |
+| `docs/` | `design.md`, `diagrams.md` (the UML diagrams; `render_diagrams.py` draws them as SVG for the web page), `benchmarks.md`, `demo.md` (the demo script), `deploy.md`, `adr/` (decision records), `images/`, `delivery/` (a rehearsal log), `ai-usage.md` |
 
 ## Roadmap and changelog
 
@@ -683,23 +686,30 @@ not `localhost`: on Windows `localhost` resolves to `::1` first and the publishe
 
 ### The web page
 - **A page at the server's root**, which used to answer 404. It has three tabs:
-  - **About:** what Hopper is, the crash-recovery GIF, the architecture, the life of a job, what happens when each
-    part fails, the measured numbers (each marked laptop or EC2), the stretch broker, the ADRs and the known
-    limits. It reuses the README's images and numbers and links to the docs here.
+  - **About:** what Hopper does, the crash-recovery GIF, the architecture, the database (tables, the claim query,
+    the indexes), the life of a job, what happens when each part fails, security, operations, the measured
+    numbers (each marked laptop or EC2), the stretch broker, the diagrams, the ADRs and the known limits. Big
+    topics stay short on the page and link to the full docs here; big diagrams open on a click.
   - **How to use it:** curl for each step (enqueue, status, delays, cancel, idempotency keys, the DLQ and replay,
     cron), a Python client that retries on 429 and 503 as long as `Retry-After` says, the error table and the
     built-in tasks.
   - **Try it:** paste an API key, enqueue one job or up to 50, and watch them run. Open a job for its payload,
     result and every attempt, cancel it, or replay one dead job or all of them.
+- Simple and flat: white space, one blue, thin grey lines. Light and dark themes follow the system, and a
+  button in the header switches them; the choice is remembered in the browser.
 - Plain HTML, CSS and JavaScript in `src/hopper/web/`, served by the API: no build step and no new server logic.
   The console calls the same `/v1` routes as any client. The key stays in the browser tab (`sessionStorage`) and
   is gone when the tab closes.
 - The page sends a strict Content-Security-Policy: only its own script and style, and requests only to this
   server. Everything the API returns is put on the page as text, never as HTML.
+- **Twelve UML diagrams** in [docs/diagrams.md](docs/diagrams.md): use cases, components, deployment, classes,
+  the database (every table, column, key and index), job states, five sequences (enqueue, run, a worker dying,
+  cron with two schedulers, deploy and roll back) and the failure activity. They are Mermaid text, so GitHub
+  draws them; `make diagrams` draws the same text as SVG for the page, and a test fails if one is out of date.
 - `docs/images` stays the only copy of the images; the Dockerfile copies them into the image.
 - Found while writing the examples: the README's `run_at` example was 53 days ahead, over the 30-day limit, so it
   got 422. It is now within the limit.
-- Tests: 561 (up from 553). The test suite runs every curl and Python example on the page, as written, against
+- Tests: 564 (up from 553). The test suite runs every curl and Python example on the page, as written, against
   a real API process with a worker. Other tests check the policy header, that nothing on the page needs inline
-  script, that every file, anchor and GitHub link it names exists, and that every number on it matches the
-  README or the benchmarks.
+  script, that every file, anchor and GitHub link it names exists, that every number on it matches the README
+  or the benchmarks, and that every diagram's SVG was drawn from its current text.

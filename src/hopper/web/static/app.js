@@ -65,6 +65,34 @@ function showFromHash() {
   if (tab === "try") resumePolling();
 }
 
+// ------------------------------------------------------------------ light and dark
+
+const THEME_STORAGE = "hopper.theme"; // theme.js reads it before the page is drawn
+
+function currentTheme() {
+  const chosen = document.documentElement.dataset.theme;
+  if (chosen) return chosen;
+  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+}
+
+function labelThemeButton() {
+  const label = `Switch to ${currentTheme() === "dark" ? "light" : "dark"} mode`;
+  const button = $("#theme-toggle");
+  button.setAttribute("aria-label", label);
+  button.title = label;
+}
+
+function toggleTheme() {
+  const next = currentTheme() === "dark" ? "light" : "dark";
+  document.documentElement.dataset.theme = next;
+  try {
+    localStorage.setItem(THEME_STORAGE, next);
+  } catch {
+    // storage blocked: the choice lasts until the page is reloaded
+  }
+  labelThemeButton();
+}
+
 // ------------------------------------------------------------------ live status
 
 async function checkStatus() {
@@ -633,6 +661,9 @@ function actionButton(label, kind, path, message) {
 
 document.addEventListener("DOMContentLoaded", () => {
   setUpCodeBlocks();
+  labelThemeButton();
+  $("#theme-toggle").addEventListener("click", toggleTheme);
+  window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", labelThemeButton);
 
   $("#key-form").addEventListener("submit", connect);
   $("#sign-out").addEventListener("click", () => signOut());
