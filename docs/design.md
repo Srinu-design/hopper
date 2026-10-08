@@ -185,10 +185,15 @@ process. It ran each scenario 3 times and reports the median ([benchmarks.md](be
 
 | Scenario | Result |
 |---|---|
-| A. Enqueue | 400 req/s comfortably; the API tops out at about 545 req/s |
+| A. Enqueue | 500 req/s at p95 55 ms; asked for 1,000, the API took about 700 req/s |
 | B. Drain 100,000 jobs | 956 jobs/s with 1 worker, 2,773 jobs/s with 8 |
 | C. 300 jobs/s for 10 min | API p95 20 ms, enqueue to done p95 254 ms, 0 errors |
-| D. Step up to failure | 400 req/s held in all 3 runs; at 500 the API accepted only 463 to 491 |
+| D. Step up to failure | 600 req/s held in all 3 runs; at 700 the API accepted 668 to 686 |
+
+A and D are with the current API (uvloop and httptools, on the native Docker engine). The first measurement, on
+Docker Desktop with asyncio's own loop, held 400 req/s and topped out at about 545. A same-day comparison shows
+what each change did: uvloop cut the p95 at 500 req/s from 155 to 55 ms and stopped the API collapsing when
+overloaded, but the move off Docker Desktop's VM is what raised the rate held.
 
 ### Predicted order versus measured
 
@@ -196,7 +201,7 @@ The build guide predicted Postgres write load would break first. **It was the AP
 
 | Order | What breaks | Evidence | Fix |
 |---|---|---|---|
-| 1 (measured) | **API CPU** | at 500 req/s both API processes were at 100% of a core each, while Postgres used under one core and the queue wait stayed under 0.3 s | add API replicas, which is easy because the API keeps no state; uvloop and httptools (Week 8) make each one cheaper |
+| 1 (measured) | **API CPU** | at the limit both API processes were at about 100% of a core each, while Postgres used under one core and the queue wait stayed under 0.7 s | add API replicas, which is easy because the API keeps no state. uvloop and httptools (Week 8) lowered latency under load, not the limit |
 | 2 (predicted) | **Postgres CPU and writes** | each job is about 5 writes (insert, claim, ack, attempt row, heartbeats). Postgres used 3.2 cores while 8 workers drained, and dead tuples on `jobs` reached about 97,000 | batch claims and acks; tune autovacuum further; partition finished jobs by day and drop old partitions |
 | 3 (predicted) | **Connections** | 60 of 100 with 8 workers (pool of 5 per process) | PgBouncer in transaction mode |
 | 4 (predicted) | **Empty polling** | idle workers poll every 250 to 500 ms each | `LISTEN/NOTIFY` wake-ups |
@@ -206,7 +211,8 @@ The build guide predicted Postgres write load would break first. **It was the AP
 **Redis is not close to breaking.** It does one small Lua call per request, and a single Redis can typically do
 tens of thousands of those a second.
 
-**At 10x** (about 5,000 enqueues/s): the API needs about 10 replicas, which means more than one host. Postgres
+**At 10x** (about 5,000 enqueues/s): at about 350 req/s per API process, the API needs about 15 processes, which
+means more than one host. Postgres
 would then be the limit, and the steps above (batching, partitioning, PgBouncer) come next. Past that, the hot path
 would move to a log built for it (Kafka, or Redis Streams) with Postgres keeping job state. That brings back the
 dual-write problem that ADR-0001 avoided, so it would need the outbox pattern.
@@ -262,3 +268,22 @@ Stated plainly:
 - **Deploys over SSH** with a key stored in GitHub. Next: GitHub OIDC into an AWS role, and SSM instead of SSH.
 - **No tracing.** Logs carry the request id from the API call into every worker line for the job, but there are
   no OpenTelemetry traces yet.
+
+## 9. Stretch: a broker written from scratch
+
+To see what a dedicated broker buys over a Postgres queue, Hopper also has its own: `src/hopper/minibroker`, about
+1,300 lines of Python asyncio ([ADR-0012](adr/0012-own-broker.md)).
+
+- A TCP server speaking RESP, the Redis protocol, so `redis-cli` can talk to it.
+- Messages in memory: a heap per queue ordered by ready time, and a heap of lease deadlines.
+- Leases with fencing tokens, retries with a delay, and a dead-letter queue, with the same rules as the Postgres
+  queue. The same 10 contract tests run against both brokers.
+- An append-only log written before every reply, read back on start (a torn last record is cut off), and
+  compacted when it grows. An fsync knob decides when the log reaches the disk: `always` (with group commit),
+  `everysec` or `no`.
+- The same `Broker` interface, so the production `Worker` class runs on it unchanged.
+
+Measured against Postgres, with every write durable before the answer in both, it did 3,917 push → pull → ack
+round trips a second against Postgres's 1,125. With fsync once a second, about 11,000. It keeps much less: an acked
+message is gone, with no result or history, and every message must fit in memory. That trade-off is the reason the
+main system stays on Postgres ([benchmarks.md](benchmarks.md#stretch-the-mini-broker-against-postgres)).

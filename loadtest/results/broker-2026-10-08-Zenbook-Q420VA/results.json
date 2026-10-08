@@ -1,0 +1,408 @@
+{
+  "environment": {
+    "host": "13th Gen Intel(R) Core(TM) i7-13700H, 20 threads, 14.7 GiB RAM",
+    "docker": "Ubuntu 26.04.1 LTS, 20 CPUs and 14.7 GiB memory for containers",
+    "git": "17c37b4 + uncommitted changes",
+    "power": {
+      "on_mains": true,
+      "power_profile": "balanced"
+    },
+    "args": {
+      "runs": 3,
+      "seconds": 10,
+      "warmup": 2,
+      "connections": "1,8,32,64",
+      "modes": "always,everysec,no",
+      "quick": false,
+      "image": "hopper:dev",
+      "network": "hopper_default",
+      "env_file": ".env",
+      "out": "loadtest/results",
+      "tag": null,
+      "allow_throttled": false
+    },
+    "started": "2026-10-08 14:36:45 UTC"
+  },
+  "results": {
+    "postgres": [
+      [
+        {
+          "connections": 1,
+          "round_trips_per_s": 117.0,
+          "p50_ms": 8.951718999014702,
+          "p99_ms": 16.100013830346143,
+          "failed": 0
+        },
+        {
+          "connections": 8,
+          "round_trips_per_s": 798.5,
+          "p50_ms": 8.940306999647873,
+          "p99_ms": 23.026369480940048,
+          "failed": 0
+        },
+        {
+          "connections": 32,
+          "round_trips_per_s": 1181.9,
+          "p50_ms": 26.727213999038213,
+          "p99_ms": 36.998759180387424,
+          "failed": 0
+        },
+        {
+          "connections": 64,
+          "round_trips_per_s": 835.0,
+          "p50_ms": 73.68347699866717,
+          "p99_ms": 143.0813113410477,
+          "failed": 0
+        }
+      ],
+      [
+        {
+          "connections": 1,
+          "round_trips_per_s": 131.0,
+          "p50_ms": 7.848272999581241,
+          "p99_ms": 15.549602310748014,
+          "failed": 0
+        },
+        {
+          "connections": 8,
+          "round_trips_per_s": 680.2,
+          "p50_ms": 10.606999499941594,
+          "p99_ms": 24.75867724924683,
+          "failed": 0
+        },
+        {
+          "connections": 32,
+          "round_trips_per_s": 1125.4,
+          "p50_ms": 27.97791899956792,
+          "p99_ms": 40.30829406970952,
+          "failed": 0
+        },
+        {
+          "connections": 64,
+          "round_trips_per_s": 824.7,
+          "p50_ms": 75.42346999980509,
+          "p99_ms": 125.06744700007403,
+          "failed": 0
+        }
+      ],
+      [
+        {
+          "connections": 1,
+          "round_trips_per_s": 99.9,
+          "p50_ms": 10.053193000203464,
+          "p99_ms": 17.97038746004546,
+          "failed": 0
+        },
+        {
+          "connections": 8,
+          "round_trips_per_s": 747.0,
+          "p50_ms": 9.658842000135337,
+          "p99_ms": 23.43220105050932,
+          "failed": 0
+        },
+        {
+          "connections": 32,
+          "round_trips_per_s": 1105.1,
+          "p50_ms": 26.613615000314894,
+          "p99_ms": 81.73076350067277,
+          "failed": 0
+        },
+        {
+          "connections": 64,
+          "round_trips_per_s": 767.2,
+          "p50_ms": 82.22298350028723,
+          "p99_ms": 129.56126074905114,
+          "failed": 0
+        }
+      ]
+    ],
+    "mini-always": [
+      [
+        {
+          "connections": 1,
+          "round_trips_per_s": 209.9,
+          "p50_ms": 4.799932001333218,
+          "p99_ms": 7.310042100689316,
+          "failed": 0
+        },
+        {
+          "connections": 8,
+          "round_trips_per_s": 1059.5,
+          "p50_ms": 7.0280540003295755,
+          "p99_ms": 14.734737661092367,
+          "failed": 0
+        },
+        {
+          "connections": 32,
+          "round_trips_per_s": 2651.4,
+          "p50_ms": 10.50513750033133,
+          "p99_ms": 26.39323650086226,
+          "failed": 0
+        },
+        {
+          "connections": 64,
+          "round_trips_per_s": 3546.0,
+          "p50_ms": 16.85155449922604,
+          "p99_ms": 37.16304411072997,
+          "failed": 0
+        }
+      ],
+      [
+        {
+          "connections": 1,
+          "round_trips_per_s": 206.8,
+          "p50_ms": 4.7865904998616315,
+          "p99_ms": 7.321384640054021,
+          "failed": 0
+        },
+        {
+          "connections": 8,
+          "round_trips_per_s": 967.9,
+          "p50_ms": 7.876634001149796,
+          "p99_ms": 15.25532397958159,
+          "failed": 0
+        },
+        {
+          "connections": 32,
+          "round_trips_per_s": 2118.0,
+          "p50_ms": 14.58933300091303,
+          "p99_ms": 28.018122079047316,
+          "failed": 0
+        },
+        {
+          "connections": 64,
+          "round_trips_per_s": 4608.5,
+          "p50_ms": 13.665795000633807,
+          "p99_ms": 27.35406715903082,
+          "failed": 0
+        }
+      ],
+      [
+        {
+          "connections": 1,
+          "round_trips_per_s": 204.3,
+          "p50_ms": 4.859882001255755,
+          "p99_ms": 7.240985680218728,
+          "failed": 0
+        },
+        {
+          "connections": 8,
+          "round_trips_per_s": 1058.2,
+          "p50_ms": 6.997166499786545,
+          "p99_ms": 15.331930070242379,
+          "failed": 0
+        },
+        {
+          "connections": 32,
+          "round_trips_per_s": 2602.3,
+          "p50_ms": 10.668360000636312,
+          "p99_ms": 28.439987980054866,
+          "failed": 0
+        },
+        {
+          "connections": 64,
+          "round_trips_per_s": 3916.7,
+          "p50_ms": 15.895573000307195,
+          "p99_ms": 31.665888160678147,
+          "failed": 0
+        }
+      ]
+    ],
+    "mini-everysec": [
+      [
+        {
+          "connections": 1,
+          "round_trips_per_s": 1880.1,
+          "p50_ms": 0.29181999889260624,
+          "p99_ms": 2.713872001550044,
+          "failed": 0
+        },
+        {
+          "connections": 8,
+          "round_trips_per_s": 10496.8,
+          "p50_ms": 0.7557364997410332,
+          "p99_ms": 0.8530421495561313,
+          "failed": 0
+        },
+        {
+          "connections": 32,
+          "round_trips_per_s": 10905.6,
+          "p50_ms": 2.854792999642086,
+          "p99_ms": 6.708443799016095,
+          "failed": 0
+        },
+        {
+          "connections": 64,
+          "round_trips_per_s": 10902.6,
+          "p50_ms": 5.736335999245057,
+          "p99_ms": 9.187018998545682,
+          "failed": 0
+        }
+      ],
+      [
+        {
+          "connections": 1,
+          "round_trips_per_s": 2342.0,
+          "p50_ms": 0.2368455006944714,
+          "p99_ms": 2.4981144007506373,
+          "failed": 0
+        },
+        {
+          "connections": 8,
+          "round_trips_per_s": 9340.8,
+          "p50_ms": 0.7433645005221479,
+          "p99_ms": 2.126532459824375,
+          "failed": 0
+        },
+        {
+          "connections": 32,
+          "round_trips_per_s": 10297.6,
+          "p50_ms": 2.8013029996145633,
+          "p99_ms": 7.661392249701748,
+          "failed": 0
+        },
+        {
+          "connections": 64,
+          "round_trips_per_s": 11129.6,
+          "p50_ms": 5.558213000767864,
+          "p99_ms": 14.018205199772638,
+          "failed": 0
+        }
+      ],
+      [
+        {
+          "connections": 1,
+          "round_trips_per_s": 2253.6,
+          "p50_ms": 0.2540679997764528,
+          "p99_ms": 2.582416350105632,
+          "failed": 0
+        },
+        {
+          "connections": 8,
+          "round_trips_per_s": 10652.0,
+          "p50_ms": 0.7454169999618898,
+          "p99_ms": 0.8401345901802415,
+          "failed": 0
+        },
+        {
+          "connections": 32,
+          "round_trips_per_s": 11346.0,
+          "p50_ms": 2.797444500174606,
+          "p99_ms": 3.2017822295529186,
+          "failed": 0
+        },
+        {
+          "connections": 64,
+          "round_trips_per_s": 11264.0,
+          "p50_ms": 5.586211499576166,
+          "p99_ms": 7.269629110014648,
+          "failed": 0
+        }
+      ]
+    ],
+    "mini-no": [
+      [
+        {
+          "connections": 1,
+          "round_trips_per_s": 2583.6,
+          "p50_ms": 0.22772050033381674,
+          "p99_ms": 2.1055972506474063,
+          "failed": 0
+        },
+        {
+          "connections": 8,
+          "round_trips_per_s": 10378.0,
+          "p50_ms": 0.7666559995413991,
+          "p99_ms": 0.8460990503954235,
+          "failed": 0
+        },
+        {
+          "connections": 32,
+          "round_trips_per_s": 10266.5,
+          "p50_ms": 2.861801000108244,
+          "p99_ms": 7.634102680240176,
+          "failed": 0
+        },
+        {
+          "connections": 64,
+          "round_trips_per_s": 11008.0,
+          "p50_ms": 5.734124499213067,
+          "p99_ms": 7.060045639809687,
+          "failed": 0
+        }
+      ],
+      [
+        {
+          "connections": 1,
+          "round_trips_per_s": 2785.2,
+          "p50_ms": 0.20590399981301744,
+          "p99_ms": 2.460528489336866,
+          "failed": 0
+        },
+        {
+          "connections": 8,
+          "round_trips_per_s": 10403.2,
+          "p50_ms": 0.7539159996667877,
+          "p99_ms": 0.9777218397903197,
+          "failed": 0
+        },
+        {
+          "connections": 32,
+          "round_trips_per_s": 11232.8,
+          "p50_ms": 2.821127499373688,
+          "p99_ms": 3.2812407700839685,
+          "failed": 0
+        },
+        {
+          "connections": 64,
+          "round_trips_per_s": 11308.8,
+          "p50_ms": 5.611457000668452,
+          "p99_ms": 6.528818699352996,
+          "failed": 0
+        }
+      ],
+      [
+        {
+          "connections": 1,
+          "round_trips_per_s": 2005.0,
+          "p50_ms": 0.2909595004894072,
+          "p99_ms": 2.9263091101893224,
+          "failed": 0
+        },
+        {
+          "connections": 8,
+          "round_trips_per_s": 10368.0,
+          "p50_ms": 0.7502859989472199,
+          "p99_ms": 1.5094952007348184,
+          "failed": 0
+        },
+        {
+          "connections": 32,
+          "round_trips_per_s": 11136.0,
+          "p50_ms": 2.839647499968123,
+          "p99_ms": 3.3270525197258394,
+          "failed": 0
+        },
+        {
+          "connections": 64,
+          "round_trips_per_s": 11242.5,
+          "p50_ms": 5.641638999804854,
+          "p99_ms": 6.634197159000905,
+          "failed": 0
+        }
+      ]
+    ]
+  },
+  "commands_per_fsync": {
+    "always": [
+      11.032561329890251,
+      11.811651770936775,
+      11.394617043367143
+    ],
+    "everysec": [
+      25870.291666666668,
+      24817.916666666668,
+      26644.416666666668
+    ]
+  }
+}

@@ -7,9 +7,9 @@ Status: Accepted · Date: 2026-10-03
 Hopper must run jobs now, later or on a schedule and never lose one. Each job has state (attempts, lease,
 last error, result) that tenants query, and that state has to change atomically with queue operations.
 A separate broker would split "what is queued" from "what happened to the job" across two stores.
-Measured in Week 8 on a laptop (`loadtest/results/2026-10-07-Zenbook-Q420VA/`): 8 workers drained 100,000
-jobs at 2,773 jobs/s, and the enqueue ceiling, about 545 req/s, was set by the two API processes while
-Postgres used about one core.
+Measured in Week 8 on a laptop (`loadtest/results/`): 8 workers drained 100,000 jobs at 2,773 jobs/s, and the
+enqueue ceiling, about 545 req/s (about 700 later, on the native Docker engine with uvloop), was set by the two
+API processes while Postgres used about one core.
 
 ## Decision
 

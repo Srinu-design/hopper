@@ -1,0 +1,7 @@
+# The comparison run only: the API on asyncio's own loop and the pure-Python h11 parser, as
+# before the Week 8 change, so the only difference from the uvloop run is the server.
+services:
+  api:
+    command: ["uvicorn", "hopper.api.main:app", "--host", "0.0.0.0", "--port", "8000", "--loop", "asyncio", "--http", "h11"]
+  api-2:
+    command: ["uvicorn", "hopper.api.main:app", "--host", "0.0.0.0", "--port", "8000", "--loop", "asyncio", "--http", "h11"]
