@@ -5,7 +5,8 @@ retries it with backoff if it fails, parks it in a dead-letter queue if it keeps
 replay it. Jobs can run now, after a delay, at a set time, or on a cron schedule.
 
 This document explains how it works and why it is built this way. Every number in it was measured; the raw data is
-linked from [benchmarks.md](benchmarks.md). Short records of each decision are in [adr/](adr/).
+linked from [benchmarks.md](benchmarks.md). Short records of each decision are in [adr/](adr/). The UML diagrams are
+in [diagrams.md](diagrams.md).
 
 ## 1. Problem, goals and non-goals
 

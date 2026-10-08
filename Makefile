@@ -1,10 +1,10 @@
 # Targets: up, down, test, lint, fmt, migrate, alerts, rehearse, chaos, chaos-control, demo, load,
-# bench, broker-bench, broker-chaos.
+# bench, broker-bench, broker-chaos, diagrams.
 COMPOSE := docker compose -f docker/compose.yaml --env-file .env
 PROMTOOL := docker run --rm -w /etc/prometheus -v "$(CURDIR)/deploy/prometheus:/etc/prometheus:ro" --entrypoint promtool prom/prometheus:v3.15.0
 
 .PHONY: env up down logs migrate test lint fmt alerts rehearse chaos chaos-control demo load bench \
-	broker-bench broker-chaos
+	broker-bench broker-chaos diagrams
 
 env:
 	@test -f .env || cp .env.example .env
@@ -72,3 +72,8 @@ broker-bench: up
 
 broker-chaos: up
 	uv run python chaos/broker_chaos.py
+
+# Draw docs/diagrams.md's Mermaid diagrams as SVG for the web page (needs Chrome and Mermaid 11's
+# mermaid.min.js: MERMAID_JS=/path/to/mermaid.min.js make diagrams).
+diagrams:
+	python3 docs/render_diagrams.py

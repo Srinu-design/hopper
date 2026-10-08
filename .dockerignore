@@ -9,6 +9,7 @@
 .pytest_cache
 tests
 docs
+!docs/images
 loadtest
 chaos
 *.md
