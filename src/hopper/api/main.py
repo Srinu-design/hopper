@@ -7,7 +7,7 @@ from importlib.metadata import version
 import structlog
 from fastapi import FastAPI, Request, Response
 
-from hopper import metrics
+from hopper import metrics, web
 from hopper.api import admin, dlq, health, jobs, schedules
 from hopper.api.body_limit import BodySizeLimitMiddleware
 from hopper.api.errors import install_error_handlers
@@ -94,6 +94,7 @@ def create_app() -> FastAPI:
     app.include_router(dlq.router)
     app.include_router(schedules.router)
     app.include_router(admin.router)
+    web.install(app)  # the page at /, after the API's routes
     return app
 
 

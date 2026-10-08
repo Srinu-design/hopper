@@ -5,6 +5,9 @@ WORKDIR /app
 COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen --no-dev --no-install-project
 COPY src ./src
+# The page at / shows the README's images. They live once, in docs/images, and are copied in
+# here so the installed package carries them next to the page.
+COPY docs/images ./src/hopper/web/static/images
 COPY migrations ./migrations
 COPY alembic.ini ./
 RUN uv sync --frozen --no-dev --no-editable

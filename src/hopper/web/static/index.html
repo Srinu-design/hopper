@@ -1,0 +1,576 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Hopper · job queue on PostgreSQL</title>
+  <meta name="description" content="Hopper: a multi-tenant job queue and scheduler on PostgreSQL. At-least-once delivery, retries with backoff, a dead-letter queue and replay.">
+  <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/static/app.css">
+  <script src="/static/app.js" defer></script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="site-header">
+  <div class="wrap header-row">
+    <a class="brand" href="#about" aria-label="Hopper, home">
+      <svg class="logo" viewBox="0 0 32 32" aria-hidden="true">
+        <rect class="logo-bg" width="32" height="32" rx="8"/>
+        <path class="logo-fg" d="M10 9v14M22 9v14M10 16h12"/>
+        <circle class="logo-dot" cx="22" cy="9" r="2.6"/>
+      </svg>
+      <span>Hopper</span>
+    </a>
+    <nav class="tabs" aria-label="Sections">
+      <a href="#about" data-tab-link="about">About</a>
+      <a href="#use" data-tab-link="use">How to use it</a>
+      <a href="#try" data-tab-link="try">Try it</a>
+    </nav>
+    <div class="header-links">
+      <span class="status" id="status" data-state="unknown" title="Live status from /readyz">
+        <span class="status-dot" aria-hidden="true"></span><span id="status-text">Checking</span>
+      </span>
+      <a href="/grafana/">Dashboard</a>
+      <a href="/docs">API docs</a>
+      <a href="https://github.com/Srinu-design/hopper">GitHub</a>
+    </div>
+  </div>
+</header>
+
+<main id="main">
+
+<!-- ============================================================ About -->
+<section id="about" data-tab="about" class="tab-panel">
+  <div class="hero">
+    <div class="wrap">
+      <p class="eyebrow">Multi-tenant job queue and scheduler · PostgreSQL</p>
+      <h1>Send a job over HTTP. Hopper makes sure it runs.</h1>
+      <p class="lead">Hopper runs every job at least once, retries it with backoff, parks it in a dead-letter queue if
+        it keeps failing, and lets you replay it. Jobs run now, after a delay, at a set time, or on a cron schedule.</p>
+      <div class="actions">
+        <a class="btn primary" href="#try">Try it in the browser</a>
+        <a class="btn" href="#use">How to use it</a>
+        <a class="btn ghost" href="https://github.com/Srinu-design/hopper">Source on GitHub</a>
+      </div>
+      <div class="stats">
+        <div class="stat">
+          <span class="stat-value" data-figure>600 enqueues/s</span>
+          <span class="stat-label">held with API p95 at <span data-figure>126 ms</span>, in all 3 runs</span>
+        </div>
+        <div class="stat">
+          <span class="stat-value" data-figure>2,773 jobs/s</span>
+          <span class="stat-label">drained by 8 workers: <span data-figure>100,000 jobs in 36 s</span></span>
+        </div>
+        <div class="stat">
+          <span class="stat-value" data-figure>0 jobs lost</span>
+          <span class="stat-label"><span data-figure>38 workers killed</span> during 10,000 jobs on the live server</span>
+        </div>
+      </div>
+      <p class="footnote">All measured. The load tests ran on a laptop; the chaos test ran on the EC2 server.
+        Raw data: <a href="https://github.com/Srinu-design/hopper/blob/main/docs/benchmarks.md">benchmarks.md</a>.</p>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <section class="block" aria-labelledby="recover-title">
+      <h2 id="recover-title">It keeps going when workers die</h2>
+      <figure class="media">
+        <img src="/static/images/crash-recovery.gif" width="960" height="484" loading="lazy"
+             alt="A dashboard while two workers are killed during 5,000 jobs: the queue keeps draining to zero.">
+        <figcaption>Two workers killed in the middle of 5,000 jobs. Their leases expire, the reaper hands the jobs to
+          the other workers, and the queue keeps draining. Nothing is lost.</figcaption>
+      </figure>
+    </section>
+
+    <section class="block" id="architecture" aria-labelledby="arch-title">
+      <h2 id="arch-title">Architecture</h2>
+      <p class="section-lead"><strong>PostgreSQL is both the queue and the source of truth:</strong> a job is a row,
+        and every change to a job is one SQL statement. Redis holds only rate-limit buckets and a cached queue depth,
+        so losing it loses no job. Every process keeps no state of its own.</p>
+      <figure class="diagram">
+        <img src="/static/images/architecture.svg" width="1180" height="720"
+             alt="Tenant clients reach Caddy, which spreads requests over two API replicas. The APIs write jobs to PostgreSQL and use Redis for rate limits. Workers and schedulers work on PostgreSQL. Prometheus scrapes everything and Grafana shows it.">
+      </figure>
+      <div class="components">
+        <div class="component"><h3>Caddy</h3><p>The only public entry point. Spreads requests over both API replicas and turns on HTTPS once a domain is set.</p></div>
+        <div class="component"><h3>API <span class="count">× 2</span></h3><p>FastAPI. Checks the API key, the tenant's rate limit and the queue depth, then writes the job row.</p></div>
+        <div class="component"><h3>PostgreSQL</h3><p>The queue itself. Workers claim rows with <code>FOR UPDATE SKIP LOCKED</code>, so no two get the same job.</p></div>
+        <div class="component"><h3>Workers <span class="count">× N</span></h3><p>Claim jobs, run them, renew their lease while running, then ack or nack.</p></div>
+        <div class="component"><h3>Schedulers <span class="count">× 2</span></h3><p>Fire cron schedules, reclaim expired leases, count queue depth, delete old jobs. Both run; neither fires twice.</p></div>
+        <div class="component"><h3>Redis</h3><p>Token buckets for rate limits and a cached queue depth. If it goes down, limits fall back to each API process.</p></div>
+        <div class="component"><h3>Prometheus + Grafana</h3><p>Metrics from every process, five alerts, and a <a href="/grafana/">read-only dashboard</a>.</p></div>
+        <div class="component"><h3>GitHub Actions</h3><p>Every merge to main is tested, built and deployed, and a bad release rolls itself back.</p></div>
+      </div>
+    </section>
+
+    <section class="block" aria-labelledby="life-title">
+      <h2 id="life-title">The life of a job</h2>
+      <ol class="steps">
+        <li><span class="step-name">Enqueued</span><p>The API checks the key, the rate limit and the queue depth, then inserts a row: <code>queued</code>, to run now or later.</p></li>
+        <li><span class="step-name">Claimed</span><p>A worker takes it with <code>SKIP LOCKED</code> and gets a 30 s <strong>lease</strong> and a fresh <strong>lease token</strong>.</p></li>
+        <li><span class="step-name">Running</span><p>The worker renews the lease every 10 s. If the worker dies, the lease expires and the reaper puts the job back.</p></li>
+        <li><span class="step-name">Done or retried</span><p>Success: <code>succeeded</code>. Failure: back to the queue after a full-jitter backoff, or <code>dead</code> after the last attempt.</p></li>
+        <li><span class="step-name">Replayed</span><p>A dead job keeps its id and history. Replay puts it back in the queue with a fresh set of attempts.</p></li>
+      </ol>
+      <p class="note">A worker that was paused past its lease can't overwrite the newer run: every write must carry the
+        current lease token (a <strong>fencing token</strong>), and the old token no longer matches.
+        <a href="https://github.com/Srinu-design/hopper/blob/main/docs/design.md">Read the design doc</a></p>
+    </section>
+
+    <section class="block" aria-labelledby="break-title">
+      <h2 id="break-title">When things break</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th scope="col">What fails</th><th scope="col">What happens</th><th scope="col">Jobs lost?</th></tr></thead>
+          <tbody>
+            <tr><th scope="row">A worker</th><td>Its jobs come back when the lease expires (about 35 s) and run on another worker.</td><td><span class="pill ok">No</span></td></tr>
+            <tr><th scope="row">All workers</th><td>Jobs wait in the queue; an alert fires after a minute.</td><td><span class="pill ok">No</span></td></tr>
+            <tr><th scope="row">Redis</th><td>Rate limits fall back to each API process. <code>/readyz</code> says <code>degraded</code>.</td><td><span class="pill ok">No</span></td></tr>
+            <tr><th scope="row">PostgreSQL</th><td>The API answers <code>503</code> with <code>Retry-After: 5</code>; workers keep retrying their claim.</td><td><span class="pill ok">No committed job</span></td></tr>
+            <tr><th scope="row">A client retries a request</th><td>The same <code>Idempotency-Key</code> returns the same job instead of creating a second one.</td><td><span class="pill ok">No duplicates</span></td></tr>
+            <tr><th scope="row">A bad release</th><td>The health check and smoke test fail, and the deploy puts the old release back by itself, serving again after <span data-figure>79 s</span>.</td><td><span class="pill ok">No</span></td></tr>
+            <tr><th scope="row">The EC2 host</th><td>Everything is down until it is back. Data is on its disk, so a restart keeps it.</td><td><span class="pill warn">Only if the disk is lost</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="block" aria-labelledby="numbers-title">
+      <h2 id="numbers-title">Measured, not claimed</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th scope="col">Test</th><th scope="col">Result</th><th scope="col">Where</th></tr></thead>
+          <tbody>
+            <tr><th scope="row">Enqueue throughput</th><td><span data-figure>600 req/s held</span> in all 3 runs (p95 126 ms); asked for 1,000, the API took about 700 req/s</td><td>Laptop</td></tr>
+            <tr><th scope="row">Drain throughput</th><td>2,773 jobs/s with 8 workers (100,000 jobs in 36 s)</td><td>Laptop</td></tr>
+            <tr><th scope="row">Steady load</th><td><span data-figure>300 jobs/s for 10 minutes</span>: API p95 20 ms, enqueue to done p95 <span data-figure>254 ms</span>, 0 errors</td><td>Laptop</td></tr>
+            <tr><th scope="row">Chaos test</th><td>10,000 jobs, 38 workers killed, 0 lost, <span data-figure>9 duplicate runs</span>, all harmless</td><td>EC2</td></tr>
+            <tr><th scope="row">Negative control</th><td>Workers that ack <em>before</em> running <span data-figure>lost 69 jobs</span>, and the checks caught every one: the test can see a loss</td><td>EC2</td></tr>
+            <tr><th scope="row">Rollback drill</th><td>A broken release caught after <span data-figure>42 s</span>; the old one serving again after 79 s</td><td>EC2</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="note">What breaks first under load is the API's CPU, while PostgreSQL still has room.
+        <a href="https://github.com/Srinu-design/hopper/blob/main/docs/benchmarks.md">All numbers and raw data</a></p>
+    </section>
+
+    <section class="block" aria-labelledby="stretch-title">
+      <h2 id="stretch-title">Stretch: a message broker written from scratch</h2>
+      <p class="section-lead">After building the queue on PostgreSQL, I wrote my own broker and measured both behind
+        one interface. It's a TCP server in Python asyncio that speaks the Redis protocol, with an append-only log,
+        leases with fencing tokens, retries and a dead-letter queue. The production worker runs on it unchanged.</p>
+      <div class="stats compact">
+        <div class="stat"><span class="stat-value" data-figure>11,000 msgs/s</span><span class="stat-label">with fsync every second (push → pull → ack, 64 connections)</span></div>
+        <div class="stat"><span class="stat-value"><span data-figure>3,900</span> msgs/s</span><span class="stat-label">with fsync on every write; PostgreSQL's best is <span data-figure>1,125 msgs/s</span></span></div>
+        <div class="stat"><span class="stat-value">0 lost</span><span class="stat-label">when the broker itself was killed with <code>kill -9</code> while clients pushed</span></div>
+      </div>
+      <p class="note">Why Hopper still runs on PostgreSQL:
+        <a href="https://github.com/Srinu-design/hopper/blob/main/docs/adr/0012-own-broker.md">ADR-0012</a></p>
+    </section>
+
+    <section class="block" aria-labelledby="decisions-title">
+      <h2 id="decisions-title">Design decisions</h2>
+      <p class="section-lead">Each choice is written down with its trade-offs.</p>
+      <ul class="decisions">
+        <li><a href="https://github.com/Srinu-design/hopper/blob/main/docs/adr/0001-postgres-as-queue.md"><span>0001</span>PostgreSQL as the queue</a></li>
+        <li><a href="https://github.com/Srinu-design/hopper/blob/main/docs/adr/0002-at-least-once-delivery.md"><span>0002</span>At-least-once delivery</a></li>
+        <li><a href="https://github.com/Srinu-design/hopper/blob/main/docs/adr/0003-leases-heartbeats-fencing.md"><span>0003</span>Leases, heartbeats, fencing</a></li>
+        <li><a href="https://github.com/Srinu-design/hopper/blob/main/docs/adr/0004-full-jitter-backoff.md"><span>0004</span>Full-jitter backoff</a></li>
+        <li><a href="https://github.com/Srinu-design/hopper/blob/main/docs/adr/0005-dlq-as-a-status.md"><span>0005</span>Dead-letter queue as a status</a></li>
+        <li><a href="https://github.com/Srinu-design/hopper/blob/main/docs/adr/0006-idempotency-keys.md"><span>0006</span>Idempotency keys</a></li>
+        <li><a href="https://github.com/Srinu-design/hopper/blob/main/docs/adr/0007-cron-without-leader-election.md"><span>0007</span>Cron without leader election</a></li>
+        <li><a href="https://github.com/Srinu-design/hopper/blob/main/docs/adr/0008-redis-token-bucket-fail-open.md"><span>0008</span>Redis token bucket, fail open</a></li>
+        <li><a href="https://github.com/Srinu-design/hopper/blob/main/docs/adr/0009-backpressure-429-503-cached-depth.md"><span>0009</span>Backpressure: 429 and 503</a></li>
+        <li><a href="https://github.com/Srinu-design/hopper/blob/main/docs/adr/0010-api-keys-and-admin-jwt.md"><span>0010</span>API keys and admin JWT</a></li>
+        <li><a href="https://github.com/Srinu-design/hopper/blob/main/docs/adr/0011-single-host-deploy-with-rollback.md"><span>0011</span>Single-host deploy with rollback</a></li>
+        <li><a href="https://github.com/Srinu-design/hopper/blob/main/docs/adr/0012-own-broker.md"><span>0012</span>A broker written from scratch</a></li>
+      </ul>
+    </section>
+
+    <section class="block two-col" aria-label="Stack and limitations">
+      <div>
+        <h2>Built with</h2>
+        <ul class="chips">
+          <li>Python 3.12</li><li>FastAPI</li><li>PostgreSQL 16</li><li>Redis 7</li><li>Prometheus</li>
+          <li>Grafana</li><li>Caddy</li><li>Docker Compose</li><li>GitHub Actions</li><li>AWS EC2</li>
+        </ul>
+      </div>
+      <div>
+        <h2>Known limitations</h2>
+        <ul class="plain">
+          <li><strong>One host:</strong> no high availability, and backups are not automated yet.</li>
+          <li><strong>Plain HTTP</strong> on this server until it has a domain: use only throwaway demo keys here.</li>
+          <li><strong>No fairness between tenants:</strong> rate limits cap what each sends, but workers pick by priority and age.</li>
+          <li><strong>About 35 s</strong> to recover a crashed worker's job (lease plus reaper interval).</li>
+        </ul>
+        <p class="note"><a href="https://github.com/Srinu-design/hopper/blob/main/docs/design.md">More in the design doc, with the fix for each</a></p>
+      </div>
+    </section>
+  </div>
+</section>
+
+<!-- ============================================================ How to use it -->
+<section id="use" data-tab="use" class="tab-panel" hidden>
+  <div class="wrap">
+    <header class="page-head">
+      <h1>How to use it</h1>
+      <p class="lead">Hopper is an HTTP API. Every call under <code>/v1</code> carries a tenant's API key, and the
+        tenant always comes from the key, never from the request. The test suite runs every example from step 3 on
+        against a real server, so they work as written.</p>
+    </header>
+
+    <div class="docs">
+      <nav class="toc" aria-label="On this page">
+        <p class="toc-title">On this page</p>
+        <ol>
+          <li><a href="#use-setup">Point at the server</a></li>
+          <li><a href="#get-a-key">Get an API key</a></li>
+          <li><a href="#use-enqueue">Enqueue a job</a></li>
+          <li><a href="#use-status">Check on it</a></li>
+          <li><a href="#use-later">Run it later, or cancel</a></li>
+          <li><a href="#use-idempotency">Retry safely</a></li>
+          <li><a href="#use-dlq">Dead letters and replay</a></li>
+          <li><a href="#use-cron">On a schedule</a></li>
+          <li><a href="#use-python">From a program</a></li>
+          <li><a href="#use-errors">When the answer is an error</a></li>
+          <li><a href="#use-tasks">Built-in tasks</a></li>
+        </ol>
+      </nav>
+
+      <div class="docs-body">
+        <section id="use-setup" class="doc-step">
+          <h2><span class="num">1</span>Point at the server</h2>
+          <p>The examples use two shell variables. The first is this server's address:</p>
+          <div class="code"><pre><code>export HOPPER_URL=<span data-origin>http://localhost:8000</span></code></pre></div>
+        </section>
+
+        <section id="get-a-key" class="doc-step">
+          <h2><span class="num">2</span>Get an API key</h2>
+          <p>A tenant's owner logs in and creates a key. The full key is shown only once, and Hopper stores only a
+            hash of it.</p>
+          <div class="code"><pre><code># log in as the tenant owner (the token lasts 15 minutes)
+curl -X POST "$HOPPER_URL/auth/token" \
+  -H "Content-Type: application/json" \
+  -d '{"email": "ops@acme.example", "password": "&lt;owner password&gt;"}'
+
+# create a key with the access_token from that answer
+curl -X POST "$HOPPER_URL/admin/api-keys" \
+  -H "Authorization: Bearer &lt;access_token&gt;" \
+  -H "Content-Type: application/json" \
+  -d '{"name": "my app"}'</code></pre></div>
+          <p>Then keep the <code>key</code> field from the answer in the second variable:</p>
+          <div class="code"><pre><code>export HOPPER_API_KEY=hop_live_...</code></pre></div>
+          <p class="callout">On this demo server, tenants and owners are created by the operator. It runs on plain
+            HTTP, so the key crosses the network unencrypted: use a throwaway demo key.</p>
+        </section>
+
+        <section id="use-enqueue" class="doc-step">
+          <h2><span class="num">3</span>Enqueue a job</h2>
+          <p>Name a task and give it a payload. The answer is <code>201</code> with the new job.</p>
+          <div class="code"><pre data-run="enqueue"><code>curl -X POST "$HOPPER_URL/v1/jobs" \
+  -H "Authorization: Bearer $HOPPER_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"task": "sleep", "payload": {"ms": 500}}'</code></pre></div>
+          <div class="code response"><pre><code>{"id": "0f8c2d4e-…", "task": "sleep", "queue": "default", "status": "queued",
+ "attempts": 0, "max_attempts": 5, "run_at": "…", "attempt_history": [], …}</code></pre></div>
+          <p>Keep the <code>id</code>: the next examples use it as <code>$JOB_ID</code>.</p>
+        </section>
+
+        <section id="use-status" class="doc-step">
+          <h2><span class="num">4</span>Check on it</h2>
+          <p>One job, with its result or error and every attempt (which worker ran it, when, and how it ended):</p>
+          <div class="code"><pre data-run="status"><code>curl "$HOPPER_URL/v1/jobs/$JOB_ID" -H "Authorization: Bearer $HOPPER_API_KEY"</code></pre></div>
+          <p>Or a list, newest first. Filter by <code>status</code> or <code>queue</code>; pass
+            <code>next_cursor</code> back as <code>cursor</code> for the next page.</p>
+          <div class="code"><pre data-run="list"><code>curl "$HOPPER_URL/v1/jobs?status=succeeded&amp;limit=10" -H "Authorization: Bearer $HOPPER_API_KEY"</code></pre></div>
+        </section>
+
+        <section id="use-later" class="doc-step">
+          <h2><span class="num">5</span>Run it later, or cancel</h2>
+          <p>Give <code>delay_seconds</code> or a <code>run_at</code> time, at most 30 days ahead. A
+            <code>run_at</code> in the past simply runs now.</p>
+          <div class="code"><pre data-run="later"><code># in 30 seconds
+curl -X POST "$HOPPER_URL/v1/jobs" \
+  -H "Authorization: Bearer $HOPPER_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"task": "sleep", "payload": {"ms": 100}, "delay_seconds": 30}'
+
+# at a set time, in any time zone
+curl -X POST "$HOPPER_URL/v1/jobs" \
+  -H "Authorization: Bearer $HOPPER_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"task": "sleep", "payload": {"ms": 100}, "run_at": "2026-11-01T09:00:00+05:30"}'</code></pre></div>
+          <p>A job that is still waiting can be cancelled. One that already started can't (<code>409</code>).</p>
+          <div class="code"><pre data-run="cancel"><code>curl -X POST "$HOPPER_URL/v1/jobs/$JOB_ID/cancel" -H "Authorization: Bearer $HOPPER_API_KEY"</code></pre></div>
+        </section>
+
+        <section id="use-idempotency" class="doc-step">
+          <h2><span class="num">6</span>Retry safely</h2>
+          <p>A request can time out after Hopper already created the job. Send an <code>Idempotency-Key</code>, and a
+            retry with the same key and body returns the same job (<code>200</code>, with
+            <code>Idempotent-Replayed: true</code>) instead of creating a second one. The same key with a different
+            body is refused (<code>422</code>).</p>
+          <div class="code"><pre data-run="idempotency"><code>curl -X POST "$HOPPER_URL/v1/jobs" \
+  -H "Authorization: Bearer $HOPPER_API_KEY" \
+  -H "Content-Type: application/json" \
+  -H "Idempotency-Key: order-42" \
+  -d '{"task": "sleep", "payload": {"ms": 100}}'</code></pre></div>
+          <p class="callout">Delivery is <strong>at least once</strong>: if a worker dies at the wrong moment, a job
+            can run twice. Make handlers safe to repeat, for example by keying their side effects on the job id.</p>
+        </section>
+
+        <section id="use-dlq" class="doc-step">
+          <h2><span class="num">7</span>Dead letters and replay</h2>
+          <p>A job that keeps failing is retried with backoff. After its last attempt, or at once for a permanent
+            error, it becomes <code>dead</code>. This one fails for good straight away:</p>
+          <div class="code"><pre data-run="fail"><code>curl -X POST "$HOPPER_URL/v1/jobs" \
+  -H "Authorization: Bearer $HOPPER_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"task": "fail_always", "payload": {"permanent": true}}'</code></pre></div>
+          <p>List the dead-letter queue (filter by <code>queue</code>, <code>task</code> or <code>since</code>):</p>
+          <div class="code"><pre data-run="dlq"><code>curl "$HOPPER_URL/v1/dlq" -H "Authorization: Bearer $HOPPER_API_KEY"</code></pre></div>
+          <p>Replay one dead job now, with a fresh set of attempts:</p>
+          <div class="code"><pre data-run="replay"><code>curl -X POST "$HOPPER_URL/v1/jobs/$JOB_ID/replay" -H "Authorization: Bearer $HOPPER_API_KEY"</code></pre></div>
+          <p>Or replay many at once (up to 1,000 per call), spread over a minute so they don't all land together:</p>
+          <div class="code"><pre data-run="replay-many"><code>curl -X POST "$HOPPER_URL/v1/dlq/replay" \
+  -H "Authorization: Bearer $HOPPER_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"filter": {"task": "fail_always"}, "spread_seconds": 60}'</code></pre></div>
+        </section>
+
+        <section id="use-cron" class="doc-step">
+          <h2><span class="num">8</span>On a schedule</h2>
+          <p>Five-field cron, in the schedule's own time zone. Two schedulers run, and a tick never fires twice.</p>
+          <div class="code"><pre data-run="schedule"><code>curl -X POST "$HOPPER_URL/v1/schedules" \
+  -H "Authorization: Bearer $HOPPER_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"name": "morning-report", "cron": "0 9 * * 1-5", "timezone": "Asia/Kolkata",
+       "task": "sleep", "payload": {"ms": 10}}'</code></pre></div>
+          <p>List them with <code>GET /v1/schedules</code>; turn one off with <code>PATCH /v1/schedules/{id}</code>
+            and <code>{"enabled": false}</code>.</p>
+        </section>
+
+        <section id="use-python" class="doc-step">
+          <h2><span class="num">9</span>From a program</h2>
+          <p>The same calls from Python. This client retries on network errors, <code>429</code> and
+            <code>503</code>, waiting as long as <code>Retry-After</code> says. The idempotency key makes the retried
+            enqueue safe. It needs <code>pip install httpx</code>.</p>
+          <div class="code"><pre data-run="python"><code>import os
+import time
+import uuid
+
+import httpx
+
+client = httpx.Client(
+    base_url=os.environ["HOPPER_URL"],
+    headers={"Authorization": f"Bearer {os.environ['HOPPER_API_KEY']}"},
+    timeout=10,
+)
+
+
+def call(method, path, **kwargs):
+    """One API call, retried on network errors, 429 and 503."""
+    for attempt in range(5):
+        try:
+            response = client.request(method, path, **kwargs)
+        except httpx.TransportError:
+            time.sleep(2**attempt)
+            continue
+        if response.status_code in (429, 503):
+            time.sleep(float(response.headers.get("Retry-After", 1)))
+            continue
+        if response.is_error:
+            raise RuntimeError(f"{method} {path}: {response.status_code} {response.text}")
+        return response.json()
+    raise RuntimeError(f"{method} {path}: gave up after 5 tries")
+
+
+# One key for this job, reused by every retry, so it is created only once.
+job = call(
+    "POST",
+    "/v1/jobs",
+    json={"task": "sleep", "payload": {"ms": 500}},
+    headers={"Idempotency-Key": f"report-{uuid.uuid4()}"},
+)
+print("enqueued", job["id"])
+
+while job["status"] in ("queued", "running"):
+    time.sleep(0.5)
+    job = call("GET", f"/v1/jobs/{job['id']}")
+
+print(job["status"], job["result"] or job["last_error"])</code></pre></div>
+        </section>
+
+        <section id="use-errors" class="doc-step">
+          <h2><span class="num">10</span>When the answer is an error</h2>
+          <p>Every error has the same shape: <code>{"error": {"code", "message", "request_id"}}</code>.</p>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th scope="col">Status</th><th scope="col">Code</th><th scope="col">When</th><th scope="col">What to do</th></tr></thead>
+              <tbody>
+                <tr><td>401</td><td><code>unauthorized</code></td><td>The key is missing, wrong or revoked</td><td>Check the key</td></tr>
+                <tr><td>404</td><td><code>not_found</code></td><td>No such job for this tenant (another tenant's job looks the same)</td><td>Check the id</td></tr>
+                <tr><td>409</td><td><code>not_queued</code>, <code>not_dead</code></td><td>Cancel a job that started, or replay one that is not dead</td><td>Nothing to do</td></tr>
+                <tr><td>413</td><td><code>payload_too_large</code></td><td>The body is over 256 KB</td><td>Send less</td></tr>
+                <tr><td>422</td><td><code>validation_error</code>, <code>unknown_task</code>, <code>invalid_payload</code>, <code>idempotency_key_reused</code></td><td>The request is wrong</td><td>Fix it; retrying won't help</td></tr>
+                <tr><td>429</td><td><code>rate_limited</code></td><td>The tenant's rate limit is used up</td><td>Wait <code>Retry-After</code> seconds</td></tr>
+                <tr><td>429</td><td><code>queue_quota_exceeded</code></td><td>The tenant already has its maximum of jobs queued</td><td>Retry once some have run</td></tr>
+                <tr><td>503</td><td><code>overloaded</code></td><td>All tenants together are over the global limit</td><td>Wait <code>Retry-After</code> seconds</td></tr>
+                <tr><td>503</td><td><code>database_unavailable</code></td><td>PostgreSQL can't be reached</td><td>Wait <code>Retry-After</code> (5 s)</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section id="use-tasks" class="doc-step">
+          <h2><span class="num">11</span>Built-in tasks</h2>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th scope="col">Task</th><th scope="col">Payload</th><th scope="col">What it does</th></tr></thead>
+              <tbody>
+                <tr><td><code>sleep</code></td><td><code>{"ms": 100}</code></td><td>Waits, then succeeds</td></tr>
+                <tr><td><code>flaky</code></td><td><code>{"p": 0.3}</code></td><td>Fails with probability <code>p</code>, to show retries</td></tr>
+                <tr><td><code>fail_always</code></td><td><code>{}</code> or <code>{"permanent": true}</code></td><td>Retries until it is dead, or goes to the dead-letter queue at once</td></tr>
+                <tr><td><code>cpu</code></td><td><code>{"n": 1000000}</code></td><td>Hashes <code>n</code> times: real CPU work</td></tr>
+                <tr><td><code>http</code></td><td><code>{"url", "method", "headers", "body"}</code></td><td>Calls your URL with a signed request; 8 attempts, retries on 408, 429 and 5xx</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p>Every route, with request and response schemas: <a href="/docs">API reference</a>.</p>
+        </section>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ Try it -->
+<section id="try" data-tab="try" class="tab-panel" hidden>
+  <div class="wrap">
+    <header class="page-head">
+      <h1>Try it in the browser</h1>
+      <p class="lead">Connect with a tenant API key to enqueue jobs and watch them run. This page calls the same API
+        as any other client.</p>
+    </header>
+
+    <div id="signed-out" class="card signin">
+      <form id="key-form" autocomplete="off" novalidate>
+        <label for="key-input">API key</label>
+        <div class="input-row">
+          <input id="key-input" type="password" placeholder="hop_live_…" spellcheck="false" autocomplete="off" autocapitalize="off">
+          <button type="submit" class="btn primary">Connect</button>
+        </div>
+        <p class="hint">The key stays in this browser tab and is forgotten when you close it. This server uses plain
+          HTTP, so use a throwaway demo key. <a href="#get-a-key">How to get a key</a></p>
+        <p id="key-error" class="form-error" role="alert" hidden></p>
+      </form>
+    </div>
+
+    <div id="signed-in" hidden>
+      <div class="console-bar">
+        <span class="connected">Connected with <code id="key-label"></code></span>
+        <span class="live" id="live" data-state="ok"><span class="status-dot" aria-hidden="true"></span><span id="live-text">Live</span></span>
+        <button type="button" id="sign-out" class="btn small">Forget key</button>
+      </div>
+      <p id="notice" class="notice" role="status" hidden></p>
+
+      <div class="console-grid">
+        <section class="card" aria-labelledby="new-job-title">
+          <h2 id="new-job-title">New job</h2>
+          <form id="job-form" novalidate>
+            <label for="task">Task</label>
+            <select id="task">
+              <option value="sleep">sleep</option>
+              <option value="flaky">flaky</option>
+              <option value="fail_always">fail_always</option>
+              <option value="cpu">cpu</option>
+              <option value="http">http</option>
+            </select>
+            <p id="task-help" class="hint"></p>
+            <label for="payload">Payload <span class="optional">JSON</span></label>
+            <textarea id="payload" rows="4" spellcheck="false"></textarea>
+            <div class="fields-2">
+              <div>
+                <label for="count">How many</label>
+                <input id="count" type="number" min="1" max="50" value="1" inputmode="numeric">
+              </div>
+              <div>
+                <label for="delay">Start after <span class="optional">seconds</span></label>
+                <input id="delay" type="number" min="0" step="any" placeholder="now" inputmode="decimal">
+              </div>
+            </div>
+            <label for="idem">Idempotency key <span class="optional">optional</span></label>
+            <input id="idem" type="text" placeholder="e.g. order-42" spellcheck="false" autocomplete="off">
+            <button type="submit" class="btn primary full" id="enqueue-btn">Enqueue</button>
+            <p id="job-form-result" class="form-result" role="status"></p>
+          </form>
+        </section>
+
+        <section class="card" aria-labelledby="jobs-title">
+          <div class="card-head">
+            <h2 id="jobs-title">Jobs</h2>
+            <div class="segmented" role="group" aria-label="Show jobs by status" id="status-filter">
+              <button type="button" data-status="" aria-pressed="true">All</button>
+              <button type="button" data-status="queued" aria-pressed="false">Queued</button>
+              <button type="button" data-status="running" aria-pressed="false">Running</button>
+              <button type="button" data-status="succeeded" aria-pressed="false">Succeeded</button>
+              <button type="button" data-status="dead" aria-pressed="false">Dead</button>
+              <button type="button" data-status="cancelled" aria-pressed="false">Cancelled</button>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table class="jobs">
+              <thead><tr><th scope="col">Status</th><th scope="col">Task</th><th scope="col">Attempts</th><th scope="col">Created</th><th scope="col">Took</th><th scope="col">ID</th></tr></thead>
+              <tbody id="jobs-body"></tbody>
+            </table>
+          </div>
+          <p id="jobs-empty" class="empty" hidden>No jobs here yet. Enqueue one, and it shows up within a few seconds.</p>
+          <p class="hint">The 20 newest. Click a job for its payload, result and attempts.</p>
+        </section>
+      </div>
+
+      <section class="card" aria-labelledby="dlq-title">
+        <div class="card-head">
+          <div>
+            <h2 id="dlq-title">Dead letters</h2>
+            <p class="hint flush">Jobs that failed for good or ran out of attempts. Replay puts one back in the queue
+              with a fresh set of attempts.</p>
+          </div>
+          <button type="button" id="replay-all" class="btn" disabled>Replay all</button>
+        </div>
+        <div class="table-wrap">
+          <table class="jobs">
+            <thead><tr><th scope="col">Task</th><th scope="col">Last error</th><th scope="col">Attempts</th><th scope="col">Died</th><th scope="col"><span class="sr-only">Action</span></th></tr></thead>
+            <tbody id="dlq-body"></tbody>
+          </table>
+        </div>
+        <p id="dlq-empty" class="empty" hidden>The dead-letter queue is empty. Enqueue <code>fail_always</code> to fill it.</p>
+      </section>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<dialog id="job-dialog" aria-labelledby="dialog-title">
+  <div class="dialog-head">
+    <h2 id="dialog-title">Job</h2>
+    <button type="button" class="btn small" id="dialog-close">Close</button>
+  </div>
+  <div id="dialog-body" class="dialog-body"></div>
+</dialog>
+
+<footer class="site-footer">
+  <div class="wrap footer-row">
+    <span>Hopper: a multi-tenant job queue on PostgreSQL</span>
+    <span class="footer-links">
+      <a href="https://github.com/Srinu-design/hopper">Source</a>
+      <a href="https://github.com/Srinu-design/hopper/blob/main/docs/design.md">Design</a>
+      <a href="https://github.com/Srinu-design/hopper/blob/main/docs/benchmarks.md">Benchmarks</a>
+      <a href="/docs">API reference</a>
+      <a href="/grafana/">Dashboard</a>
+    </span>
+  </div>
+</footer>
+</body>
+</html>

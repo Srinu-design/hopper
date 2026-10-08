@@ -13,6 +13,7 @@ workers, and the queue keeps draining. Nothing is lost.*
 
 ## Live demo
 
+- Web page: <http://3.104.222.203/>. What Hopper is, how to call it, and a console to try it with an API key
 - API docs: <http://3.104.222.203/docs>
 - Dashboard (read-only): <http://3.104.222.203/grafana/>
 
@@ -154,7 +155,7 @@ J='content-type: application/json'
 # -i shows X-RateLimit-Limit and X-RateLimit-Remaining; past the burst you get 429 with Retry-After.
 curl -i -X POST localhost:8000/v1/jobs -H "$KEY" -H "$J" -d '{"task":"sleep","payload":{"ms":100}}'
 curl -X POST localhost:8000/v1/jobs -H "$KEY" -H "$J" -d '{"task":"sleep","payload":{"ms":100},"delay_seconds":30}'
-curl -X POST localhost:8000/v1/jobs -H "$KEY" -H "$J" -d '{"task":"sleep","payload":{"ms":100},"run_at":"2026-12-01T09:00:00+05:30"}'
+curl -X POST localhost:8000/v1/jobs -H "$KEY" -H "$J" -d '{"task":"sleep","payload":{"ms":100},"run_at":"2026-11-01T09:00:00+05:30"}'
 curl localhost:8000/v1/jobs/<id> -H "$KEY"                   # status, result and attempt history
 curl "localhost:8000/v1/jobs?status=queued" -H "$KEY"        # newest first; ?queue=&limit=&cursor=
 curl -X POST localhost:8000/v1/jobs/<id>/cancel -H "$KEY"    # only while still queued
@@ -242,7 +243,7 @@ not `localhost`: on Windows `localhost` resolves to `::1` first and the publishe
 
 | Path | Contents |
 |---|---|
-| `src/hopper/` | `api/` (routers, rate limits and backpressure, HTTP metrics), `auth/` (API keys, passwords, JWT, tenant context), `ratelimit/` (`token_bucket.lua`, the limiter and its in-process fallback, the depth gate), `queue/` (Broker interface and all queue SQL), `worker/` (run loop, heartbeats, shutdown), `scheduler/` (cron, reaper, queue-depth and retention loops), `tasks/` (registry, built-ins, `http`, `effect` for the chaos test), `minibroker/` (the stretch goal: a broker written from scratch, its client and a worker on it), `bootstrap.py` (first admin, deploy smoke key, load-test key), `metrics.py`, `config.py`, `logging.py`, `db.py` |
+| `src/hopper/` | `api/` (routers, rate limits and backpressure, HTTP metrics), `auth/` (API keys, passwords, JWT, tenant context), `ratelimit/` (`token_bucket.lua`, the limiter and its in-process fallback, the depth gate), `queue/` (Broker interface and all queue SQL), `worker/` (run loop, heartbeats, shutdown), `scheduler/` (cron, reaper, queue-depth and retention loops), `tasks/` (registry, built-ins, `http`, `effect` for the chaos test), `minibroker/` (the stretch goal: a broker written from scratch, its client and a worker on it), `web/` (the page at `/`: about, how to use it, and the console), `bootstrap.py` (first admin, deploy smoke key, load-test key), `metrics.py`, `config.py`, `logging.py`, `db.py` |
 | `migrations/` | Alembic revisions. Hand-written SQL, backward compatible with the previous release |
 | `docker/` | `Dockerfile` (one image, every role, carrying its deploy bundle), `compose.yaml` (development) and `compose.prod.yaml` (the server) |
 | `deploy/` | `deploy.sh` (deploy, smoke test, rollback), `smoke.py`, `host-setup.sh` (one-time server setup), `rehearse.sh` and `rehearse-local.sh`, `broken/` (releases broken on purpose for drills), `Caddyfile`, `prometheus/` (config, alerts and their tests), `grafana/provisioning/` (data source, dashboard JSON) |
@@ -679,3 +680,26 @@ not `localhost`: on Windows `localhost` resolves to `::1` first and the publishe
   - `kill -9` of the broker in each fsync mode and of a worker on it;
   - the demo's refusal to run against anything but this machine;
   - the new scripts' reports.
+
+### The web page
+- **A page at the server's root**, which used to answer 404. It has three tabs:
+  - **About:** what Hopper is, the crash-recovery GIF, the architecture, the life of a job, what happens when each
+    part fails, the measured numbers (each marked laptop or EC2), the stretch broker, the ADRs and the known
+    limits. It reuses the README's images and numbers and links to the docs here.
+  - **How to use it:** curl for each step (enqueue, status, delays, cancel, idempotency keys, the DLQ and replay,
+    cron), a Python client that retries on 429 and 503 as long as `Retry-After` says, the error table and the
+    built-in tasks.
+  - **Try it:** paste an API key, enqueue one job or up to 50, and watch them run. Open a job for its payload,
+    result and every attempt, cancel it, or replay one dead job or all of them.
+- Plain HTML, CSS and JavaScript in `src/hopper/web/`, served by the API: no build step and no new server logic.
+  The console calls the same `/v1` routes as any client. The key stays in the browser tab (`sessionStorage`) and
+  is gone when the tab closes.
+- The page sends a strict Content-Security-Policy: only its own script and style, and requests only to this
+  server. Everything the API returns is put on the page as text, never as HTML.
+- `docs/images` stays the only copy of the images; the Dockerfile copies them into the image.
+- Found while writing the examples: the README's `run_at` example was 53 days ahead, over the 30-day limit, so it
+  got 422. It is now within the limit.
+- Tests: 561 (up from 553). The test suite runs every curl and Python example on the page, as written, against
+  a real API process with a worker. Other tests check the policy header, that nothing on the page needs inline
+  script, that every file, anchor and GitHub link it names exists, and that every number on it matches the
+  README or the benchmarks.
