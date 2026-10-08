@@ -5,13 +5,49 @@ Some errors add fields of their own inside "error", such as retry_after_ms on a 
 
 from typing import Any
 
+import asyncpg
 import structlog
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from sqlalchemy import exc as sa_exc
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 log = structlog.get_logger()
+
+# How long a client is told to wait when Postgres cannot be reached.
+DATABASE_RETRY_AFTER_SECONDS = 5
+
+# asyncpg errors that mean the server is down, restarting, or out of connections, not that
+# the query was wrong. SQLAlchemy wraps them, so they are found on the exception chain.
+_POSTGRES_UNAVAILABLE = (
+    asyncpg.exceptions.PostgresConnectionError,
+    asyncpg.exceptions.CannotConnectNowError,
+    asyncpg.exceptions.AdminShutdownError,
+    asyncpg.exceptions.CrashShutdownError,
+    asyncpg.exceptions.TooManyConnectionsError,
+)
+
+
+def database_unavailable(exc: BaseException) -> bool:
+    """True when an error means Postgres could not be reached or dropped the connection.
+
+    Such a request did nothing wrong and may succeed in a few seconds, so it gets 503 with
+    Retry-After, not 500. A connect that fails (refused, or the host name does not resolve
+    while the container is down) raises a plain OSError; a connection lost mid-query comes
+    back from SQLAlchemy marked connection_invalidated; a pool with no free connection in
+    time raises sqlalchemy's TimeoutError. Any other database error is a bug: 500.
+    """
+    if isinstance(exc, sa_exc.DBAPIError) and exc.connection_invalidated:
+        return True
+    if isinstance(exc, sa_exc.TimeoutError):
+        return True
+    seen: BaseException | None = exc
+    while seen is not None:
+        if isinstance(seen, (OSError, *_POSTGRES_UNAVAILABLE)):
+            return True
+        seen = seen.__cause__
+    return False
 
 
 class ApiError(Exception):
@@ -62,6 +98,25 @@ def install_error_handlers(app: FastAPI) -> None:
         first = exc.errors()[0]
         where = ".".join(str(part) for part in first["loc"])
         return _response(request, 422, "validation_error", f"{where}: {first['msg']}")
+
+    # Registered per class, not only under Exception: Starlette sends those to its outermost
+    # middleware, which re-raises after answering and skips the X-Request-ID header.
+    @app.exception_handler(OSError)
+    @app.exception_handler(sa_exc.DBAPIError)
+    @app.exception_handler(sa_exc.TimeoutError)
+    async def database_error(request: Request, exc: Exception) -> JSONResponse:
+        if not database_unavailable(exc):
+            return await unexpected(request, exc)
+        log.warning(
+            "database_unavailable", path=request.url.path, error=f"{type(exc).__name__}: {exc}"
+        )
+        return _response(
+            request,
+            503,
+            "database_unavailable",
+            "the database is unavailable; retry after Retry-After seconds",
+            headers={"Retry-After": str(DATABASE_RETRY_AFTER_SECONDS)},
+        )
 
     @app.exception_handler(Exception)
     async def unexpected(request: Request, exc: Exception) -> JSONResponse:

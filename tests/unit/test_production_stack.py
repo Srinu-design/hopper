@@ -112,6 +112,26 @@ def test_the_image_carries_its_deploy_bundle() -> None:
     assert "deploy" not in ignored and "deploy/" not in ignored
 
 
+def test_the_api_runs_on_uvloop_and_httptools() -> None:
+    """The API's CPU saturates first under load (docs/benchmarks.md); both are faster than
+    asyncio's own loop and h11, and naming them makes a missing one fail at start."""
+    dockerfile = (ROOT / "docker/Dockerfile").read_text(encoding="utf-8")
+    assert '"--loop", "uvloop", "--http", "httptools"' in dockerfile
+    if sys.platform != "win32":  # uvloop has no Windows build; the image is Linux
+        import httptools  # noqa: F401
+        import uvloop  # noqa: F401
+
+
+def test_the_image_leaves_out_what_only_drills_use() -> None:
+    """The broken releases and the rehearsal scripts are built and run from the repository;
+    the deploy bundle needs only deploy.sh, smoke.py and the config."""
+    ignored = [line.strip() for line in (ROOT / ".dockerignore").read_text().splitlines()]
+    for path in ("deploy/broken", "deploy/rehearse.sh", "deploy/rehearse-local.sh"):
+        assert path in ignored
+    kept = {"deploy/deploy.sh", "deploy/smoke.py", "deploy/Caddyfile", "deploy/prometheus"}
+    assert not kept & {line.rstrip("/") for line in ignored}
+
+
 def test_what_ships_to_the_server_keeps_lf_line_endings() -> None:
     """bash and Caddy fail on CRLF. .gitattributes keeps deploy/ and docker/ LF even in a Windows
     checkout; this catches a file written with CRLF since, before it is copied into an image."""

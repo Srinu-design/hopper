@@ -22,5 +22,7 @@ ENV PATH="/app/.venv/bin:$PATH" PYTHONUNBUFFERED=1
 COPY docker/compose.prod.yaml /app/release/docker/compose.prod.yaml
 COPY deploy /app/release/deploy
 USER app
-# Exec form, so uvicorn is the process that receives SIGTERM.
-CMD ["uvicorn", "hopper.api.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Exec form, so uvicorn is the process that receives SIGTERM. uvloop and httptools in place of
+# asyncio's loop and the pure-Python h11 parser: the load test found the API's CPU is what
+# saturates first. Named here, not left to uvicorn's "auto", so a missing one fails at start.
+CMD ["uvicorn", "hopper.api.main:app", "--host", "0.0.0.0", "--port", "8000", "--loop", "uvloop", "--http", "httptools"]

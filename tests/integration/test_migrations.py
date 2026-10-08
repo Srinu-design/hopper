@@ -28,6 +28,7 @@ EXPECTED_INDEXES = {
     "job_attempts_job_idx",
     "api_keys_tenant_idx",
     "job_executions_job_idx",
+    "jobs_schedule_idx",
 }
 
 
@@ -56,6 +57,28 @@ async def test_hot_path_indexes_are_partial(migrated_engine: AsyncEngine) -> Non
     assert "WHERE (status = 'queued'::text)" in defs["jobs_ready_idx"]
     assert "WHERE (status = 'running'::text)" in defs["jobs_lease_idx"]
     assert "WHERE (status = 'dead'::text)" in defs["jobs_dead_idx"]
+
+
+async def test_deleting_a_schedule_finds_its_jobs_through_an_index(
+    migrated_engine: AsyncEngine,
+) -> None:
+    """ON DELETE SET NULL runs this UPDATE for every deleted schedule. Without
+    jobs_schedule_idx it can only scan the whole jobs table; the index is partial (only cron
+    jobs have a schedule), and Postgres knows schedule_id = $1 implies IS NOT NULL."""
+    async with migrated_engine.begin() as conn:
+        await conn.execute(text("SET LOCAL enable_seqscan = off"))
+        plan = "\n".join(
+            row[0]
+            for row in await conn.execute(
+                text(
+                    "EXPLAIN UPDATE jobs SET schedule_id = NULL "
+                    "WHERE schedule_id = '00000000-0000-0000-0000-000000000001'"
+                )
+            )
+        )
+    # Looked up by schedule_id in the index, not a whole index read and filtered.
+    assert "jobs_schedule_idx" in plan, plan
+    assert "Index Cond: (schedule_id = " in plan, plan
 
 
 async def test_jobs_autovacuum_is_tuned(migrated_engine: AsyncEngine) -> None:

@@ -9,6 +9,7 @@ dependencies = [
     "asyncpg>=0.30",
     "croniter>=6.0",
     "fastapi>=0.115",
+    "httptools>=0.6",
     "httpx>=0.28",
     "prometheus-client>=0.26",
     "pydantic>=2.11",
@@ -19,6 +20,7 @@ dependencies = [
     "structlog>=25.1",
     "tzdata>=2025.2",
     "uvicorn>=0.35",
+    "uvloop>=0.21 ; sys_platform != 'win32'",
 ]
 
 [dependency-groups]
@@ -49,6 +51,11 @@ select = ["E", "F", "I", "B", "UP", "SIM", "ASYNC", "RUF"]
 strict = true
 files = ["src"]
 plugins = ["pydantic.mypy"]
+
+# asyncpg ships no type information; only its exception classes are used directly.
+[[tool.mypy.overrides]]
+module = ["asyncpg", "asyncpg.*"]
+ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
