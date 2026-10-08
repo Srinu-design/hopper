@@ -1,8 +1,10 @@
-# Targets: up, down, test, lint, fmt, migrate, alerts, rehearse, chaos, chaos-control, demo, load, bench.
+# Targets: up, down, test, lint, fmt, migrate, alerts, rehearse, chaos, chaos-control, demo, load,
+# bench, broker-bench, broker-chaos.
 COMPOSE := docker compose -f docker/compose.yaml --env-file .env
 PROMTOOL := docker run --rm -w /etc/prometheus -v "$(CURDIR)/deploy/prometheus:/etc/prometheus:ro" --entrypoint promtool prom/prometheus:v3.15.0
 
-.PHONY: env up down logs migrate test lint fmt alerts rehearse chaos chaos-control demo load bench
+.PHONY: env up down logs migrate test lint fmt alerts rehearse chaos chaos-control demo load bench \
+	broker-bench broker-chaos
 
 env:
 	@test -f .env || cp .env.example .env
@@ -62,3 +64,11 @@ load: up
 
 bench: up
 	python3 loadtest/bench.py --scenario all
+
+# The mini broker (the stretch goal, src/hopper/minibroker): its benchmark against the Postgres
+# broker (fsync modes x connections, about 12 minutes) and its chaos test (about 10 minutes).
+broker-bench: up
+	python3 loadtest/broker_bench.py
+
+broker-chaos: up
+	uv run python chaos/broker_chaos.py

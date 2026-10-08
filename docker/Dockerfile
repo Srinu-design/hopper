@@ -10,7 +10,9 @@ COPY alembic.ini ./
 RUN uv sync --frozen --no-dev --no-editable
 
 FROM python:3.12.15-slim
-RUN useradd --create-home app
+# /var/lib/minibroker: where the mini broker (the stretch goal) keeps its log when it runs from
+# this image; owned by app, so a fresh Docker volume mounted there is writable.
+RUN useradd --create-home app && install -d -o app -g app /var/lib/minibroker
 WORKDIR /app
 COPY --from=build /app/.venv /app/.venv
 COPY --from=build /app/migrations /app/migrations

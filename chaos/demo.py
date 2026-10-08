@@ -35,32 +35,21 @@ import urllib.parse
 import urllib.request
 from datetime import UTC, datetime
 from email.message import Message
+from pathlib import Path
 from typing import Any
 
-try:  # run as a script: chaos/ is on sys.path
-    from kill_workers import (
-        DEFAULT_COMPOSE,
-        NORMAL_WORKERS,
-        ROOT,
-        Annotator,
-        ChaosError,
-        Stack,
-        log,
-        post_job,
-        read_env_file,
-    )
-except ImportError:  # imported as chaos.demo, from the repository root (the tests)
-    from chaos.kill_workers import (
-        DEFAULT_COMPOSE,
-        NORMAL_WORKERS,
-        ROOT,
-        Annotator,
-        ChaosError,
-        Stack,
-        log,
-        post_job,
-        read_env_file,
-    )
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from chaos.kill_workers import (  # shared with the chaos test
+    DEFAULT_COMPOSE,
+    NORMAL_WORKERS,
+    ROOT,
+    Annotator,
+    ChaosError,
+    Stack,
+    log,
+    post_job,
+    read_env_file,
+)
 
 DRILL_RUN = "https://github.com/Srinu-design/hopper/actions/runs/37630529905"
 LOCAL_HOSTS = {"localhost", "127.0.0.1", "::1"}
