@@ -1,0 +1,109 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1180" height="720" viewBox="0 0 1180 720" font-family="DejaVu Sans, Arial, Helvetica, sans-serif">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#4b5563"/>
+    </marker>
+    <style>
+      .t { font-size: 15px; font-weight: bold; fill: #111827; text-anchor: middle; }
+      .s { font-size: 12px; fill: #4b5563; text-anchor: middle; }
+      .l { font-size: 12px; fill: #374151; text-anchor: middle; }
+      .edge { stroke: #4b5563; stroke-width: 1.6; fill: none; marker-end: url(#arrow); }
+      .ext { fill: #f3f4f6; stroke: #9ca3af; stroke-width: 1.4; }
+      .app { fill: #e8f0fe; stroke: #3b6fd8; stroke-width: 1.4; }
+      .proxy { fill: #ffffff; stroke: #6b7280; stroke-width: 1.4; }
+      .data { fill: #fff7e6; stroke: #d48806; stroke-width: 1.4; }
+      .obs { fill: #f0f9eb; stroke: #52a447; stroke-width: 1.4; }
+    </style>
+  </defs>
+  <rect width="1180" height="720" fill="#ffffff"/>
+
+  <!-- the host -->
+  <rect x="250" y="40" width="900" height="650" rx="16" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.5"/>
+  <text x="270" y="68" font-size="14" font-weight="bold" fill="#475569">One EC2 host · Docker Compose</text>
+
+  <!-- outside: the tenant and CI -->
+  <rect class="ext" x="20" y="150" width="170" height="64" rx="10"/>
+  <text class="t" x="105" y="177">Tenant client</text>
+  <text class="s" x="105" y="197">any HTTP client</text>
+
+  <rect class="ext" x="20" y="330" width="170" height="64" rx="10"/>
+  <text class="t" x="105" y="357">Tenant endpoints</text>
+  <text class="s" x="105" y="377">webhook targets</text>
+
+  <rect class="ext" x="20" y="540" width="170" height="110" rx="10"/>
+  <text class="t" x="105" y="570">GitHub Actions</text>
+  <text class="s" x="105" y="592">CI, image on GHCR</text>
+  <text class="s" x="105" y="612">deploy.sh over SSH:</text>
+  <text class="s" x="105" y="630">smoke test, rollback</text>
+
+  <!-- inside the host -->
+  <rect class="proxy" x="290" y="150" width="160" height="64" rx="10"/>
+  <text class="t" x="370" y="177">Caddy</text>
+  <text class="s" x="370" y="197">proxy, health checks</text>
+
+  <rect class="app" x="510" y="140" width="200" height="84" rx="10"/>
+  <text class="t" x="610" y="168">API × 2</text>
+  <text class="s" x="610" y="189">FastAPI: keys, rate limits,</text>
+  <text class="s" x="610" y="206">enqueue, status, DLQ</text>
+
+  <rect class="app" x="510" y="320" width="200" height="84" rx="10"/>
+  <text class="t" x="610" y="348">Workers × N</text>
+  <text class="s" x="610" y="369">20 jobs at a time each</text>
+  <text class="s" x="610" y="386">lease 30 s, heartbeat 10 s</text>
+
+  <rect class="app" x="510" y="500" width="200" height="84" rx="10"/>
+  <text class="t" x="610" y="528">Scheduler × 2</text>
+  <text class="s" x="610" y="549">cron, lease reaper,</text>
+  <text class="s" x="610" y="566">depth count, retention</text>
+
+  <!-- Redis -->
+  <path class="data" d="M850,132 a90,12 0 0,1 180,0 v76 a90,12 0 0,1 -180,0 z"/>
+  <path d="M850,132 a90,12 0 0,0 180,0" fill="none" stroke="#d48806" stroke-width="1.4"/>
+  <text class="t" x="940" y="170">Redis</text>
+  <text class="s" x="940" y="190">rate limits, cached depth</text>
+
+  <!-- PostgreSQL -->
+  <path class="data" d="M850,322 a90,12 0 0,1 180,0 v106 a90,12 0 0,1 -180,0 z"/>
+  <path d="M850,322 a90,12 0 0,0 180,0" fill="none" stroke="#d48806" stroke-width="1.4"/>
+  <text class="t" x="940" y="362">PostgreSQL</text>
+  <text class="s" x="940" y="383">jobs table = the queue</text>
+  <text class="s" x="940" y="401">the source of truth</text>
+
+  <!-- observability -->
+  <rect class="obs" x="760" y="612" width="160" height="52" rx="10"/>
+  <text class="t" x="840" y="634">Prometheus</text>
+  <text class="s" x="840" y="653">scrapes every process</text>
+  <rect class="obs" x="960" y="612" width="160" height="52" rx="10"/>
+  <text class="t" x="1040" y="634">Grafana</text>
+  <text class="s" x="1040" y="653">dashboard, 5 alerts</text>
+
+  <!-- edges -->
+  <path class="edge" d="M190,182 H288"/>
+  <text class="l" x="239" y="174">API key</text>
+
+  <path class="edge" d="M450,182 H508"/>
+
+  <path class="edge" d="M710,165 H848"/>
+  <text class="l" x="779" y="143">token bucket,</text>
+  <text class="l" x="779" y="157">cached depth</text>
+
+  <path class="edge" d="M680,224 V270 H900 V308"/>
+  <text class="l" x="790" y="262">insert job</text>
+
+  <path class="edge" d="M710,350 H848"/>
+  <text class="l" x="779" y="372">claim (SKIP LOCKED),</text>
+  <text class="l" x="779" y="387">heartbeat, ack, nack</text>
+
+  <path class="edge" d="M510,362 H192"/>
+  <text class="l" x="350" y="352">http jobs, signed</text>
+
+  <path class="edge" d="M710,515 H940 V442"/>
+  <text class="l" x="825" y="507">cron jobs, reclaim expired leases</text>
+
+  <path class="edge" d="M710,570 H1090 V170 H1032"/>
+  <text class="l" x="900" y="562">publish queue depth</text>
+
+  <path class="edge" d="M960,638 H922"/>
+
+  <path class="edge" d="M190,595 H248"/>
+</svg>
