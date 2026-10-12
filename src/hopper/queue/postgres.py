@@ -46,6 +46,7 @@ class PostgresBroker:
                     timeout_seconds=r.timeout_seconds,
                     lease_token=r.lease_token,
                     signing_secret=r.signing_secret,
+                    internal_hosts=frozenset(r.internal_hosts),
                     request_id=r.request_id,
                     wait_seconds=max(0.0, float(r.wait_seconds)),
                 )

@@ -17,6 +17,7 @@ from hopper.tasks.http import (
     GuardedBackend,
     HttpPayload,
     is_blocked,
+    is_blocked_internal,
     retry_after_seconds,
     sign,
 )
@@ -165,3 +166,46 @@ async def test_the_checked_address_is_the_one_dialled() -> None:
 async def test_unix_sockets_are_refused() -> None:
     with pytest.raises(BlockedAddress):
         await GuardedBackend().connect_unix_socket("/var/run/docker.sock")
+
+
+@pytest.mark.parametrize(
+    "address",
+    [
+        "169.254.169.254",  # the metadata endpoint stays out of reach for an internal host
+        "::ffff:169.254.169.254",
+        "64:ff9b::a9fe:a9fe",  # NAT64 wrapping it
+        "fe80::1",
+        "224.0.0.1",
+        "0.0.0.0",
+    ],
+)
+def test_an_internal_host_still_cannot_reach_link_local_or_multicast(address: str) -> None:
+    assert is_blocked_internal(ipaddress.ip_address(address))
+
+
+@pytest.mark.parametrize("address", ["10.1.2.3", "172.18.0.5", "192.168.1.1", "fd00::1"])
+def test_an_internal_host_may_resolve_to_a_private_address(address: str) -> None:
+    assert not is_blocked_internal(ipaddress.ip_address(address))
+
+
+async def test_the_internal_guard_dials_private_and_refuses_metadata() -> None:
+    inner = RecordingBackend()
+    backend = GuardedBackend(
+        blocked=is_blocked_internal, resolver=resolver_for(["172.18.0.5"]), inner=inner
+    )
+    with pytest.raises(httpcore.ConnectError):
+        await backend.connect_tcp("sift-ingest", 8000)
+    assert inner.dialled == ["172.18.0.5"]
+    metadata = GuardedBackend(
+        blocked=is_blocked_internal, resolver=resolver_for(["169.254.169.254"]), inner=inner
+    )
+    with pytest.raises(BlockedAddress):
+        await metadata.connect_tcp("sift-ingest", 8000)
+    assert inner.dialled == ["172.18.0.5"]
+
+
+def test_a_payload_timeout_is_bounded() -> None:
+    assert HttpPayload(url="https://example.com/x", timeout=120).timeout == 120
+    for bad in (0, -1, 121):
+        with pytest.raises(ValidationError):
+            HttpPayload(url="https://example.com/x", timeout=bad)

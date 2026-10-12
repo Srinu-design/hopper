@@ -359,6 +359,7 @@ class Worker:
             job.max_attempts,
             job.signing_secret,
             worker_id=self.worker_id,
+            internal_hosts=job.internal_hosts,
         )
         deadline = asyncio.timeout(job.timeout_seconds)
         try:

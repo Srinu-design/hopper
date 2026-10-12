@@ -19,6 +19,7 @@ class JobContext:
     max_attempts: int
     signing_secret: bytes = field(repr=False)
     worker_id: str = ""
+    internal_hosts: frozenset[str] = frozenset()
 
 
 _current: ContextVar[JobContext] = ContextVar("hopper_job")

@@ -62,6 +62,7 @@ losing it loses no job. Every process keeps no state and runs one per container.
 | Backpressure: 429 over a tenant's quota, 503 when overloaded | [test_limits_api.py](tests/integration/test_limits_api.py), [test_depth.py](tests/integration/test_depth.py) |
 | Postgres down: 503 with `Retry-After`, not 500 | [test_database_down.py](tests/integration/test_database_down.py) |
 | `http` task: SSRF guard and signed requests | [test_http_guard.py](tests/unit/test_http_guard.py), [test_http_task.py](tests/integration/test_http_task.py) |
+| Per-tenant internal hosts (platform admin only; metadata endpoint still refused) and a per-job `timeout`, for Sift's ingestion | [test_http_guard.py](tests/unit/test_http_guard.py), [test_http_task.py](tests/integration/test_http_task.py), [test_auth_api.py](tests/integration/test_auth_api.py) |
 | At-least-once, and the at-most-once control that loses jobs | [test_negative_control.py](tests/e2e/test_negative_control.py) |
 | Metrics and five alerts | [test_metrics.py](tests/integration/test_metrics.py), [alerts_test.yml](deploy/prometheus/alerts_test.yml) |
 | Deploy with smoke test and automatic rollback | [test_deploy_script.py](tests/unit/test_deploy_script.py), [rehearse.sh](deploy/rehearse.sh) in CI, the [drill on EC2](https://github.com/Srinu-design/hopper/actions/runs/37630529905) |
