@@ -263,3 +263,61 @@ async def test_the_job_id_header_matches_on_a_retry(
     keys = {first.headers["idempotency-key"], second.headers["idempotency-key"]}
     assert keys == {str(job["id"])}
     assert uuid.UUID(first.headers["hopper-job-id"]) == job["id"]
+
+
+async def allow_internal(engine: AsyncEngine, tenant: TenantCreds, *hosts: str) -> None:
+    async with engine.begin() as conn:
+        await conn.execute(
+            text("UPDATE tenants SET internal_hosts = :h WHERE id = :t"),
+            {"h": list(hosts), "t": tenant.id},
+        )
+
+
+@pytest.fixture
+async def strict_guard_on_loopback() -> AsyncIterator[None]:
+    """Production's guard (no allow_private), with every name resolving to this machine."""
+    await http.configure(
+        http.HttpSettings(connect_timeout=2, read_timeout=0.5, resolver=loopback_only)
+    )
+    try:
+        yield
+    finally:
+        await http.configure(http.HttpSettings())
+
+
+@pytest.mark.usefixtures("strict_guard_on_loopback")
+async def test_an_allowed_internal_host_is_reached_by_its_tenant_only(
+    migrated_engine: AsyncEngine, acme: TenantCreds, target: Target
+) -> None:
+    """Sift's case: sift-ingest is a private address on Hopper's network. The tenant a
+    platform admin allowed reaches it; another tenant naming the same URL is refused."""
+    await allow_internal(migrated_engine, acme, "sift-ingest.test")
+    url = f"http://sift-ingest.test:{target.port}/ok"
+
+    allowed = await run_http_job(migrated_engine, acme, url=url)
+    stranger = await make_tenant(migrated_engine, "other")
+    other = await run_http_job(migrated_engine, stranger, url=url)
+
+    assert allowed["status"] == "succeeded"
+    assert (other["status"], other["attempts"]) == ("dead", 1)
+    assert other["last_error"].startswith("BlockedAddress: refused")
+    assert [r.path for r in target.seen] == ["/ok"]
+
+
+@pytest.mark.usefixtures("strict_guard_on_loopback")
+async def test_the_allowlist_is_by_name_not_by_address(
+    migrated_engine: AsyncEngine, acme: TenantCreds, target: Target
+) -> None:
+    await allow_internal(migrated_engine, acme, "sift-ingest.test")
+    job = await run_http_job(migrated_engine, acme, url=target.url("/ok"))  # localhost
+    assert job["status"] == "dead"
+    assert target.seen == []
+
+
+@pytest.mark.usefixtures("local_targets_allowed")
+async def test_a_job_can_wait_longer_than_the_default_read_timeout(
+    migrated_engine: AsyncEngine, acme: TenantCreds, target: Target
+) -> None:
+    """/slow answers after 2 s; the workers' read timeout here is 0.5 s."""
+    job = await run_http_job(migrated_engine, acme, url=target.url("/slow"), timeout=5)
+    assert (job["status"], job["result"]["body"]) == ("succeeded", "late")

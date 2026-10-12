@@ -290,3 +290,41 @@ async def test_short_owner_passwords_are_refused(
         json={"name": "weak", "owner": {"email": "a@weak.test", "password": "short"}},
     )
     assert resp.status_code == 422
+
+
+async def test_only_a_platform_admin_sets_a_tenants_internal_hosts(
+    anon_client: httpx.AsyncClient, api_app: FastAPI, tenant: TenantCreds, platform_token: str
+) -> None:
+    path = f"/admin/tenants/{tenant.id}/internal-hosts"
+    owner_token = await owner_of(api_app, anon_client, tenant)
+
+    by_owner = await anon_client.put(path, headers=bearer(owner_token), json={"hosts": ["x"]})
+    by_admin = await anon_client.put(
+        path, headers=bearer(platform_token), json={"hosts": ["sift-ingest", "sift-ingest"]}
+    )
+    unknown = await anon_client.put(
+        f"/admin/tenants/{uuid.uuid4()}/internal-hosts",
+        headers=bearer(platform_token),
+        json={"hosts": ["sift-ingest"]},
+    )
+
+    assert by_owner.status_code == 403
+    assert (by_admin.status_code, by_admin.json()["hosts"]) == (200, ["sift-ingest"])
+    assert unknown.status_code == 404
+    async with api_app.state.engine.connect() as conn:
+        stored = await conn.scalar(
+            text("SELECT internal_hosts FROM tenants WHERE id = :t"), {"t": tenant.id}
+        )
+    assert stored == ["sift-ingest"]
+
+
+@pytest.mark.parametrize("host", ["10.0.0.5", "::1", "localhost", "Sift-Ingest", "-bad", "a" * 64])
+async def test_internal_hosts_must_be_plain_host_names(
+    anon_client: httpx.AsyncClient, tenant: TenantCreds, platform_token: str, host: str
+) -> None:
+    resp = await anon_client.put(
+        f"/admin/tenants/{tenant.id}/internal-hosts",
+        headers=bearer(platform_token),
+        json={"hosts": [host]},
+    )
+    assert resp.status_code == 422

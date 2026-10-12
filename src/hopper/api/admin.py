@@ -2,13 +2,14 @@
 
 import base64
 import hashlib
+import ipaddress
 from datetime import datetime
 from decimal import Decimal
 from typing import Annotated, Literal
 from uuid import UUID
 
 from fastapi import APIRouter, Query, Request, Response
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from hopper.api.errors import ApiError
 from hopper.api.limits import take_token
@@ -20,6 +21,9 @@ router = APIRouter(tags=["admin"])
 
 EMAIL_PATTERN = r"^[^@\s]{1,64}@[^@\s]+\.[^@\s]+$"
 NAME_PATTERN = r"^[A-Za-z0-9_.-]{1,64}$"
+# A DNS name in lower case: labels of letters, digits and inner hyphens.
+_LABEL = r"[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?"
+HOST_PATTERN = rf"^{_LABEL}(\.{_LABEL})*$"
 # Password guessing: 10 attempts at once per email, then one every 6 s (10 a minute).
 LOGIN_BURST = 10
 LOGIN_RATE_PER_SEC = 10 / 60
@@ -65,6 +69,31 @@ class TenantOut(BaseModel):
     owner_id: UUID | None
     # Verifies the Hopper-Signature header on http task requests. Shown only here, once.
     signing_secret: str
+
+
+class InternalHostsIn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    hosts: list[Annotated[str, Field(pattern=HOST_PATTERN, max_length=253)]] = Field(max_length=20)
+
+    @field_validator("hosts")
+    @classmethod
+    def _names_only(cls, hosts: list[str]) -> list[str]:
+        for host in hosts:
+            try:
+                ipaddress.ip_address(host)
+            except ValueError:
+                pass
+            else:
+                raise ValueError(f"{host!r} is an address; allow a host name")
+            if host == "localhost" or host.endswith(".localhost"):
+                raise ValueError("localhost is the worker itself, never a tenant's service")
+        return sorted(set(hosts))
+
+
+class InternalHostsOut(BaseModel):
+    tenant_id: UUID
+    hosts: list[str]
 
 
 class ApiKeyIn(BaseModel):
@@ -191,3 +220,19 @@ async def revoke_api_key(key_id: UUID, request: Request, admin: AdminUser) -> Re
         raise ApiError(404, "not_found", "API key not found")
     request.app.state.api_keys.evict(prefix)
     return Response(status_code=204)
+
+
+@router.put("/admin/tenants/{tenant_id}/internal-hosts", response_model=InternalHostsOut)
+async def set_internal_hosts(
+    tenant_id: UUID, body: InternalHostsIn, request: Request, _: PlatformAdmin
+) -> InternalHostsOut:
+    """Host names this tenant's http jobs may call although they resolve to private addresses:
+    a service on Hopper's own network, such as Sift's ingest service. Replaces the list; send
+    [] to clear it. Platform admins only: a tenant that could set this could reach anything
+    inside the network. Link-local addresses (the metadata endpoint) stay refused."""
+    found = await store.set_internal_hosts(
+        request.app.state.engine, tenant_id=tenant_id, hosts=body.hosts
+    )
+    if not found:
+        raise ApiError(404, "not_found", "tenant not found")
+    return InternalHostsOut(tenant_id=tenant_id, hosts=body.hosts)

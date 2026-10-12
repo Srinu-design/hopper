@@ -39,6 +39,7 @@ ADMIN = {
     ("GET", "/admin/api-keys"),
     ("POST", "/admin/api-keys"),
     ("DELETE", "/admin/api-keys/{key_id}"),
+    ("PUT", "/admin/tenants/{tenant_id}/internal-hosts"),  # platform admins only (test_auth_api)
 }
 PUBLIC = {("GET", "/healthz"), ("GET", "/readyz"), ("POST", "/auth/token")}
 

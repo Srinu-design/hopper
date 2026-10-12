@@ -6,10 +6,15 @@ Guard rails:
   the connect (DNS rebinding). Private, loopback, link-local (including 169.254.169.254, the
   cloud metadata endpoint), shared, reserved and multicast addresses are refused, also when
   wrapped in IPv6 (IPv4-mapped, 6to4 or NAT64).
+- Internal hosts: a platform admin can allow named hosts for one tenant (another service on
+  Hopper's network, such as Sift's ingest service). Those calls go through a separate client
+  whose guard accepts private addresses but still refuses link-local (the metadata endpoint)
+  and multicast. Other tenants never share its pooled connections.
 - Only http and https, no credentials in the URL, and redirects are never followed.
 - Hopper-Job-Id, Hopper-Attempt and Idempotency-Key: <job id>, so receivers can drop repeats.
 - Hopper-Signature: t=<unix time>,v1=<hex HMAC-SHA256(tenant secret, "<t>.<body>")>.
-- Connect and read timeouts, and at most 64 KB of the response is read.
+- Connect and read timeouts (a job may ask for up to 120 s), a total-time bound, and at most
+  64 KB of the response is read.
 """
 
 import asyncio
@@ -39,6 +44,7 @@ from hopper.tasks.registry import TaskPayload, task
 MAX_RESPONSE_BYTES = 64 * 1024
 RESULT_BODY_CHARS = 1024  # what the job result keeps of the response body
 MAX_RETRY_AFTER = 3600.0
+MAX_TIMEOUT = 120.0  # the task's own deadline (below) leaves room for this plus connecting
 # Set by Hopper on every request; a payload cannot override them.
 RESERVED_HEADERS = frozenset(
     {
@@ -68,7 +74,7 @@ class BlockedAddress(PermanentError):
 _NAT64 = ipaddress.IPv6Network("64:ff9b::/96")
 
 
-def is_blocked(ip: IPAddress) -> bool:
+def _unwrap(ip: IPAddress) -> IPAddress:
     if isinstance(ip, ipaddress.IPv6Address):
         # ::ffff:127.0.0.1, 2002:7f00:1:: and 64:ff9b::7f00:1 are IPv4 addresses in IPv6
         # clothing: judge the IPv4 address inside.
@@ -76,10 +82,22 @@ def is_blocked(ip: IPAddress) -> bool:
         if embedded is None and ip in _NAT64:
             embedded = ipaddress.IPv4Address(int(ip) & 0xFFFFFFFF)
         if embedded is not None:
-            ip = embedded
+            return embedded
+    return ip
+
+
+def is_blocked(ip: IPAddress) -> bool:
+    ip = _unwrap(ip)
     # is_global is False for private, loopback, link-local, shared (100.64/10) and reserved
     # ranges, but True for multicast, so multicast is refused explicitly.
     return not ip.is_global or ip.is_multicast
+
+
+def is_blocked_internal(ip: IPAddress) -> bool:
+    """For a host allowed as internal: private addresses are the point, but link-local
+    (169.254.169.254, the cloud metadata endpoint) and multicast are still refused."""
+    ip = _unwrap(ip)
+    return ip.is_link_local or ip.is_multicast or ip.is_unspecified
 
 
 class HttpPayload(TaskPayload):
@@ -87,6 +105,9 @@ class HttpPayload(TaskPayload):
     method: Literal["GET", "POST", "PUT", "PATCH", "DELETE"] = "POST"
     headers: dict[str, str] = Field(default_factory=dict, max_length=20)
     body: Any = None  # any JSON value, sent as the request body
+    # Seconds to wait for the answer; None means the worker's HTTP_READ_TIMEOUT. A receiver
+    # doing real work per call (Sift parsing a document) needs longer than the default.
+    timeout: float | None = Field(default=None, gt=0, le=MAX_TIMEOUT)
 
     @field_validator("url")
     @classmethod
@@ -137,10 +158,11 @@ class GuardedBackend(httpcore.AsyncNetworkBackend):
         self,
         *,
         allow_private: bool = False,
+        blocked: Callable[[IPAddress], bool] = is_blocked,
         resolver: Resolver = system_resolver,
         inner: httpcore.AsyncNetworkBackend | None = None,
     ) -> None:
-        self._allow_private = allow_private
+        self._blocked: Callable[[IPAddress], bool] = (lambda _: False) if allow_private else blocked
         self._resolver = resolver
         self._inner = inner or httpcore.AnyIOBackend()
 
@@ -157,11 +179,10 @@ class GuardedBackend(httpcore.AsyncNetworkBackend):
         addresses = [ipaddress.ip_address(a.split("%")[0]) for a in answers]
         if not addresses:
             raise httpcore.ConnectError(f"{host} did not resolve")
-        if not self._allow_private:
-            for ip in addresses:
-                if is_blocked(ip):
-                    # Every answer must be public: one bad answer is enough to refuse.
-                    raise BlockedAddress(f"refused: {host} resolves to non-public {ip}")
+        for ip in addresses:
+            if self._blocked(ip):
+                # Every answer must pass: one bad answer is enough to refuse.
+                raise BlockedAddress(f"refused: {host} resolves to non-public {ip}")
         last: Exception | None = None
         for ip in addresses:  # every one was checked; try them in the resolver's order
             try:
@@ -196,7 +217,9 @@ class HttpSettings:
     resolver: Resolver = system_resolver
 
 
-def build_client(settings: HttpSettings) -> httpx.AsyncClient:
+def build_client(
+    settings: HttpSettings, blocked: Callable[[IPAddress], bool] = is_blocked
+) -> httpx.AsyncClient:
     """One client per worker process. trust_env=False: no proxy from the environment, so the
     connection always goes where the guard says."""
     transport = httpx.AsyncHTTPTransport(trust_env=False)
@@ -209,7 +232,7 @@ def build_client(settings: HttpSettings) -> httpx.AsyncClient:
         max_keepalive_connections=20,
         keepalive_expiry=5.0,
         network_backend=GuardedBackend(
-            allow_private=settings.allow_private, resolver=settings.resolver
+            allow_private=settings.allow_private, blocked=blocked, resolver=settings.resolver
         ),
     )
     timeout = httpx.Timeout(settings.read_timeout, connect=settings.connect_timeout)
@@ -222,20 +245,29 @@ class _Http:
     def __init__(self) -> None:
         self.settings = HttpSettings()
         self._client: httpx.AsyncClient | None = None
+        self._internal: httpx.AsyncClient | None = None
 
     def client(self) -> httpx.AsyncClient:
         if self._client is None:
             self._client = build_client(self.settings)
         return self._client
 
+    def internal_client(self) -> httpx.AsyncClient:
+        """Only for hosts a tenant is allowed to call as internal. A separate pool, so no
+        other job can reuse a connection this guard let through."""
+        if self._internal is None:
+            self._internal = build_client(self.settings, blocked=is_blocked_internal)
+        return self._internal
+
     async def configure(self, settings: HttpSettings) -> None:
         await self.aclose()
         self.settings = settings
 
     async def aclose(self) -> None:
-        if self._client is not None:
-            await self._client.aclose()
-            self._client = None
+        for client in (self._client, self._internal):
+            if client is not None:
+                await client.aclose()
+        self._client = self._internal = None
 
 
 _http = _Http()
@@ -275,7 +307,9 @@ async def _read_capped(response: httpx.Response, limit: int) -> bytes:
     return bytes(received[:limit])
 
 
-@task("http", payload=HttpPayload, max_attempts=8, timeout=15, backoff_base=10, backoff_cap=3600)
+# timeout: the job's deadline must outlast the longest call a payload may ask for (120 s) plus
+# connecting; each call is bounded more tightly below.
+@task("http", payload=HttpPayload, max_attempts=8, timeout=130, backoff_base=10, backoff_cap=3600)
 async def http(payload: HttpPayload) -> dict[str, Any] | None:
     job = current_job()
     body = b"" if payload.body is None else json.dumps(payload.body, separators=(",", ":")).encode()
@@ -288,12 +322,24 @@ async def http(payload: HttpPayload) -> dict[str, Any] | None:
     }
     if payload.body is not None:
         headers["Content-Type"] = "application/json"
+    host = (urlsplit(payload.url).hostname or "").lower()
+    client = _http.internal_client() if host in job.internal_hosts else _http.client()
+    settings = _http.settings
+    read = payload.timeout or settings.read_timeout
     try:
-        async with _http.client().stream(
-            payload.method, payload.url, headers=headers, content=body
-        ) as response:
+        # The read timeout is per read; the total bound stops a target that trickles bytes.
+        async with (
+            asyncio.timeout(read + settings.connect_timeout),
+            client.stream(
+                payload.method,
+                payload.url,
+                headers=headers,
+                content=body,
+                timeout=httpx.Timeout(read, connect=settings.connect_timeout),
+            ) as response,
+        ):
             head = await _read_capped(response, MAX_RESPONSE_BYTES)
-    except httpx.TimeoutException as exc:
+    except (httpx.TimeoutException, TimeoutError) as exc:
         raise RetryableError(f"{type(exc).__name__} calling the target") from exc
     except httpx.TransportError as exc:
         raise RetryableError(f"{type(exc).__name__} calling the target: {exc}") from exc

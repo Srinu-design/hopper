@@ -76,6 +76,8 @@ WHERE tenant_id = :tenant_id AND revoked_at IS NULL
 
 GET_TENANT_ID_BY_NAME = "SELECT id FROM tenants WHERE name = :name"
 
+SET_INTERNAL_HOSTS = "UPDATE tenants SET internal_hosts = :hosts WHERE id = :id RETURNING id"
+
 
 class AlreadyExists(Exception):
     pass
@@ -229,3 +231,10 @@ async def revoke_api_key(
             await conn.execute(text(REVOKE_API_KEY), {"id": key_id, "tenant_id": tenant_id})
         ).scalar_one_or_none()
     return prefix
+
+
+async def set_internal_hosts(engine: AsyncEngine, *, tenant_id: UUID, hosts: list[str]) -> bool:
+    """False if the tenant does not exist."""
+    async with engine.begin() as conn:
+        row = await conn.execute(text(SET_INTERNAL_HOSTS), {"id": tenant_id, "hosts": hosts})
+        return row.first() is not None

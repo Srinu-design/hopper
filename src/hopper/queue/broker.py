@@ -21,6 +21,8 @@ class ClaimedJob:
     lease_token: UUID
     # The tenant's key for signing http task requests; never logged or printed.
     signing_secret: bytes = field(default=b"", repr=False)
+    # Private host names a platform admin allowed this tenant's http jobs to call.
+    internal_hosts: frozenset[str] = frozenset()
     # The enqueue call's X-Request-ID (None for cron jobs), for log correlation.
     request_id: str | None = None
     # How long the job waited between becoming ready (run_at) and this claim.

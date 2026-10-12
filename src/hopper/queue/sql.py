@@ -3,8 +3,8 @@
 # Claim: SKIP LOCKED makes concurrent workers pass over rows another worker is claiming
 # instead of waiting, so each gets a disjoint batch. The row lock lasts only for this
 # statement; after commit the lease protects the job. A fresh lease_token on every claim
-# is the fencing token for all later writes. The tenant's signing secret comes back with the
-# job (a primary-key lookup) so the http task can sign its request without another query.
+# is the fencing token for all later writes. The tenant's signing secret and internal-host
+# allowlist come back with the job (primary-key lookups) so the http task needs no other query.
 # wait_seconds is how long the job sat ready (run_at to claim), for the queue-wait metric;
 # both ends come from the database clock.
 CLAIM = """
@@ -27,7 +27,8 @@ WHERE j.id = next.id
 RETURNING j.id, j.tenant_id, j.queue, j.task, j.payload, j.attempts, j.max_attempts,
           j.timeout_seconds, j.lease_token, j.request_id,
           extract(epoch FROM j.started_at - j.run_at) AS wait_seconds,
-          (SELECT signing_secret FROM tenants t WHERE t.id = j.tenant_id) AS signing_secret
+          (SELECT signing_secret FROM tenants t WHERE t.id = j.tenant_id) AS signing_secret,
+          (SELECT internal_hosts FROM tenants t WHERE t.id = j.tenant_id) AS internal_hosts
 """
 
 # Ack: fenced on the lease token and written together with the attempt row. Zero rows
