@@ -95,7 +95,8 @@ def test_third_party_images_are_pinned_and_match_development() -> None:
     for svc in SERVICES.values():
         image = svc["image"]
         if not image.startswith("${"):
-            assert re.search(r":v?\d+(\.\d+){1,2}$", image), image  # never latest
+            # never latest; a pgvector tag also names its Postgres major and Debian release
+            assert re.search(r":v?\d+(\.\d+){1,2}(-pg\d+-[a-z]+)?$", image), image
 
 
 def test_secrets_are_required_not_defaulted() -> None:

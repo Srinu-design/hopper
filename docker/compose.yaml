@@ -17,7 +17,9 @@ x-app: &app
 
 services:
   postgres:
-    image: postgres:16.15
+    # postgres:16.15 plus pgvector (Sift's database shares this server); the same build as
+    # postgres:16.15 (16.15-1.pgdg13+2, glibc 2.41). Must match docker/compose.prod.yaml.
+    image: pgvector/pgvector:0.8.6-pg16-trixie
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-hopper}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-hopper}
