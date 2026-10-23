@@ -43,7 +43,10 @@ x-api: &api
 
 services:
   postgres:
-    image: postgres:16.15
+    # postgres:16.15 plus the pgvector extension, for Sift's database next to Hopper's. The trixie
+    # variant is the exact same build (16.15-1.pgdg13+2, glibc 2.41), so collations, data files
+    # and indexes are unchanged.
+    image: pgvector/pgvector:0.8.6-pg16-trixie
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-hopper}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}

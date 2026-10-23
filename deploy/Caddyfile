@@ -12,6 +12,12 @@
 	handle /grafana* {
 		reverse_proxy grafana:3000
 	}
+	# Sift (github.com/Srinu-design/sift) runs on this host as its own Compose project on
+	# Hopper's network; its page uses relative URLs, so it works under this prefix.
+	redir /sift /sift/
+	handle_path /sift/* {
+		reverse_proxy sift-api:8000
+	}
 
 	# Everything else is the API, spread over both replicas. Caddy probes /readyz on each every
 	# 2 s and stops sending traffic to one that fails (deploy.sh drains a replica this way
