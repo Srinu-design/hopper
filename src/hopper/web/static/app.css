@@ -113,6 +113,16 @@
   --diagram-filter: invert(0.9) hue-rotate(180deg);
 }
 
+/* ---- Inter, self-hosted (the policy allows no other origin): the latin subset of the variable
+   font, every weight in one 48 KB file. SIL Open Font License, in fonts/inter-OFL.txt. */
+@font-face {
+  font-family: Inter;
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("fonts/inter.woff2") format("woff2");
+}
+
 /* ---- Base, shared by all three pages. */
 *, *::before, *::after { box-sizing: border-box; }
 [hidden] { display: none !important; }
@@ -382,10 +392,10 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { outline-offs
 /* ---- the sticky row of section links */
 .subnav { position: sticky; top: 88px; z-index: 20; margin: 48px auto 0; padding: 0 16px; display: flex; justify-content: center; }
 .subnav-row {
-  display: flex; gap: 4px; max-width: 100%; padding: 6px;
-  border-radius: var(--r-ctl); overflow-x: auto; scrollbar-width: none;
+  /* wraps rather than scrolling sideways behind a hidden scrollbar, where a mouse can't reach */
+  display: flex; flex-wrap: wrap; justify-content: center; gap: 4px; max-width: 100%; padding: 6px;
+  border-radius: var(--r-ctl);
 }
-.subnav-row::-webkit-scrollbar { display: none; }
 .chip {
   flex: none; padding: 8px 14px; border-radius: var(--r-ctl);
   color: var(--muted); font-size: 0.88rem; font-weight: 500; white-space: nowrap;
@@ -407,9 +417,10 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { outline-offs
   display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px;
 }
 .feature-grid > li { border-radius: var(--r-card); padding: 26px 26px 24px; }
-.feature-grid > li::before {
-  content: ""; display: block; width: 36px; height: 36px; margin-bottom: 18px;
+.ficon {
+  display: block; width: 36px; height: 36px; padding: 8px; margin-bottom: 18px;
   border-radius: var(--r-inner); background: var(--aura); box-shadow: 0 8px 18px -8px rgb(47 85 228 / 70%);
+  fill: none; stroke: #ffffff; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
 }
 .feature-grid p { color: var(--muted); font-size: 0.94rem; margin: 0; }
 
@@ -653,7 +664,10 @@ dialog::backdrop { background: rgb(11 11 12 / 55%); -webkit-backdrop-filter: blu
 
 /* ---- narrower screens */
 @media (max-width: 1080px) {
-  .header-link { display: none; }
+  .header-link:not(.home-link) { display: none; }
+}
+@media (max-width: 480px) {
+  .home-link { display: none; } /* the footer has it; in the bar it would push the nav to a third row */
 }
 @media (max-width: 1000px) {
   .feature-grid, .diagram-grid, .link-list, .figures.small { grid-template-columns: repeat(2, minmax(0, 1fr)); }

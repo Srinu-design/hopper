@@ -81,6 +81,7 @@ async def test_the_page_is_served_at_the_root_with_a_strict_policy(anon: httpx.A
     assert response.headers["content-type"].startswith("text/html")
     csp = response.headers["content-security-policy"]
     assert "script-src 'self';" in csp and "connect-src 'self';" in csp
+    assert "font-src 'self';" in csp  # the self-hosted Inter
     assert "unsafe" not in csp
     assert response.headers["x-content-type-options"] == "nosniff"
     assert response.headers["referrer-policy"] == "no-referrer"

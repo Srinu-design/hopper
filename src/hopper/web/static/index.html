@@ -32,7 +32,7 @@
       <span class="status" id="status" data-state="unknown" title="Live status from /readyz">
         <span class="status-dot" aria-hidden="true"></span><span id="status-text">Checking</span>
       </span>
-      <a class="header-link" href="/">All projects</a>
+      <a class="header-link home-link" href="/">All projects</a>
       <a class="header-link" href="/docs">API docs</a>
       <a class="header-link" href="https://github.com/Srinu-design/hopper">GitHub</a>
       <button type="button" class="icon-btn" id="theme-toggle" aria-label="Switch to dark mode" title="Switch to dark mode">
@@ -95,18 +95,18 @@
       <p class="section-lead">Everything a production job queue needs, each feature proven by a test.
         <a href="https://github.com/Srinu-design/hopper#features-and-the-test-that-proves-each">See the tests</a></p>
       <ul class="feature-grid">
-        <li><h3>One worker per job</h3><p>Workers claim rows with <code>SKIP LOCKED</code>, so no two ever get the same job.</p></li>
-        <li><h3>Crash recovery</h3><p>A killed worker's jobs come back when its lease runs out and finish on another.</p></li>
-        <li><h3>Fencing tokens</h3><p>A worker that was paused too long can't overwrite the newer run.</p></li>
-        <li><h3>Retries with backoff</h3><p>Full-jitter exponential backoff, with limits set per task.</p></li>
-        <li><h3>Dead-letter queue</h3><p>Jobs that keep failing are parked with their history, and can be replayed.</p></li>
-        <li><h3>Idempotency keys</h3><p>A retried request returns the same job instead of creating a second one.</p></li>
-        <li><h3>Delayed and cron jobs</h3><p>Run later, at a set time, or on a schedule. Two schedulers, never a double fire.</p></li>
-        <li><h3>Many tenants</h3><p>Each tenant sees only its own jobs and has its own rate limit and queue quota.</p></li>
-        <li><h3>Backpressure</h3><p>Over the limits, the API answers 429 or 503 with <code>Retry-After</code> instead of falling over.</p></li>
-        <li><h3>Webhook jobs</h3><p>The <code>http</code> task calls your URL, signed, with an SSRF guard.</p></li>
-        <li><h3>Metrics and alerts</h3><p>Prometheus metrics from every process, five alerts and a dashboard.</p></li>
-        <li><h3>Safe deploys</h3><p>Every merge deploys itself; a bad release rolls back with no one involved.</p></li>
+        <li><svg class="ficon" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7.5a4 4 0 0 1 8 0V11"/></svg><h3>One worker per job</h3><p>Workers claim rows with <code>SKIP LOCKED</code>, so no two ever get the same job.</p></li>
+        <li><svg class="ficon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.4-5.7L4 8.6"/><path d="M4 4v4.6h4.6"/></svg><h3>Crash recovery</h3><p>A killed worker's jobs come back when its lease runs out and finish on another.</p></li>
+        <li><svg class="ficon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 5 6v5c0 4.5 3 8.3 7 10 4-1.7 7-5.5 7-10V6z"/><path d="m9 12 2 2 4-4"/></svg><h3>Fencing tokens</h3><p>A worker that was paused too long can't overwrite the newer run.</p></li>
+        <li><svg class="ficon" viewBox="0 0 24 24" aria-hidden="true"><path d="m17 2 3 3-3 3"/><path d="M4 11V9a4 4 0 0 1 4-4h12"/><path d="m7 22-3-3 3-3"/><path d="M20 13v2a4 4 0 0 1-4 4H4"/></svg><h3>Retries with backoff</h3><p>Full-jitter exponential backoff, with limits set per task.</p></li>
+        <li><svg class="ficon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 13h5l1.5 3h5l1.5-3h5"/><path d="M5.5 5h13L21 13v6H3v-6z"/></svg><h3>Dead-letter queue</h3><p>Jobs that keep failing are parked with their history, and can be replayed.</p></li>
+        <li><svg class="ficon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="8" cy="15" r="4"/><path d="m11 12 9-9M17 6l3 3M14.5 8.5l2 2"/></svg><h3>Idempotency keys</h3><p>A retried request returns the same job instead of creating a second one.</p></li>
+        <li><svg class="ficon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg><h3>Delayed and cron jobs</h3><p>Run later, at a set time, or on a schedule. Two schedulers, never a double fire.</p></li>
+        <li><svg class="ficon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M3 20a6 6 0 0 1 12 0"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18 14.5a6 6 0 0 1 3 5.5"/></svg><h3>Many tenants</h3><p>Each tenant sees only its own jobs and has its own rate limit and queue quota.</p></li>
+        <li><svg class="ficon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 18a8 8 0 1 1 16 0"/><path d="m12 18 3.5-5.5"/></svg><h3>Backpressure</h3><p>Over the limits, the API answers 429 or 503 with <code>Retry-After</code> instead of falling over.</p></li>
+        <li><svg class="ficon" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg><h3>Webhook jobs</h3><p>The <code>http</code> task calls your URL, signed, with an SSRF guard.</p></li>
+        <li><svg class="ficon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h16"/><path d="m5 15 4-5 4 3 6-7"/></svg><h3>Metrics and alerts</h3><p>Prometheus metrics from every process, five alerts and a dashboard.</p></li>
+        <li><svg class="ficon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V4M7.5 8.5 12 4l4.5 4.5"/><path d="M4 15v4a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-4"/></svg><h3>Safe deploys</h3><p>Every merge deploys itself; a bad release rolls back with no one involved.</p></li>
       </ul>
     </section>
 
