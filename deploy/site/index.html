@@ -7,49 +7,309 @@
   <meta name="description" content="Backend projects running live on one server: Hopper, a job queue on PostgreSQL, and Sift, cited question answering over documents.">
   <meta name="color-scheme" content="light dark">
   <link rel="stylesheet" href="/site/site.css">
+  <script src="/site/site.js" defer></script>
 </head>
 <body>
-<main class="wrap">
-  <header class="intro">
-    <p class="eyebrow">Projects</p>
-    <h1>Veeradimmu Srinivasulu Reddy</h1>
-    <p class="lede">Backend systems, built end to end and running live on this server: code, tests,
-      measured numbers, CI, and a deploy that rolls itself back.</p>
-    <p><a href="https://github.com/Srinu-design">github.com/Srinu-design</a></p>
-  </header>
+<a class="skip" href="#main">Skip to content</a>
 
-  <ul class="projects" aria-label="Projects">
-    <li class="card">
-      <p class="tag">Project 1</p>
-      <h2><a href="/hopper/">Hopper</a></h2>
-      <p>A multi-tenant job queue and scheduler on PostgreSQL. At-least-once delivery, retries
-        with backoff, a dead-letter queue and replay.</p>
-      <ul class="stack" aria-label="Built with">
-        <li>Python</li><li>PostgreSQL</li><li>Redis</li><li>Caddy</li><li>Prometheus</li>
-      </ul>
-      <p class="links">
-        <a class="btn" href="/hopper/">Open Hopper</a>
-        <a href="https://github.com/Srinu-design/hopper">Code</a>
-        <a href="/grafana/">Live dashboard</a>
-      </p>
-    </li>
-    <li class="card">
-      <p class="tag">Project 2</p>
-      <h2><a href="/sift/">Sift</a></h2>
-      <p>Question answering over your documents that cites the section behind every claim,
-        refuses when the evidence is missing, and proves every retrieval change with a measured
-        eval. Ingestion runs as jobs on Hopper.</p>
-      <ul class="stack" aria-label="Built with">
-        <li>Python</li><li>pgvector</li><li>Cross-encoder rerank</li><li>Gemini</li><li>Eval in CI</li>
-      </ul>
-      <p class="links">
-        <a class="btn" href="/sift/">Open Sift</a>
-        <a href="https://github.com/Srinu-design/sift">Code</a>
-      </p>
-    </li>
-  </ul>
+<header class="nav-shell">
+  <nav class="nav" aria-label="Main">
+    <a class="brand" href="/" aria-label="Veeradimmu Srinivasulu Reddy, home"><span class="mark" aria-hidden="true">V</span></a>
+    <div class="nav-links">
+      <a href="#projects">Projects</a>
+      <a href="/hopper/">Hopper</a>
+      <a href="/sift/">Sift</a>
+    </div>
+    <a class="pill-outline" href="https://github.com/Srinu-design">GitHub</a>
+  </nav>
+</header>
 
-  <footer>Both run on one EC2 server behind Caddy, deployed from GitHub Actions.</footer>
+<main id="main">
+
+  <section class="hero wrap" aria-labelledby="hero-title">
+    <p class="eyebrow-pill"><span class="live-dot" aria-hidden="true"></span>Two projects, running live on one server</p>
+    <h1 id="hero-title" class="display">Backend systems, built to be measured</h1>
+    <p class="byline">Veeradimmu Srinivasulu Reddy</p>
+    <div class="hero-art on-dark">
+      <p class="glass-tag">One EC2 server · Caddy · Docker Compose</p>
+      <p class="glass-tag">Every merge deploys itself, and rolls back if its smoke test fails</p>
+    </div>
+  </section>
+
+  <section class="marquee" aria-label="Built with">
+    <div class="marquee-track">
+      <ul class="marquee-list">
+        <li>Python</li><li>PostgreSQL</li><li>pgvector</li><li>Redis</li><li>Caddy</li>
+        <li>Prometheus</li><li>Grafana</li><li>GitHub Actions</li><li>AWS EC2</li>
+      </ul>
+      <ul class="marquee-list" aria-hidden="true">
+        <li>Python</li><li>PostgreSQL</li><li>pgvector</li><li>Redis</li><li>Caddy</li>
+        <li>Prometheus</li><li>Grafana</li><li>GitHub Actions</li><li>AWS EC2</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="section wrap" aria-labelledby="measured-title">
+    <div class="section-head center">
+      <p class="eyebrow">Ground truth</p>
+      <h2 id="measured-title">Measured, not claimed</h2>
+      <p class="section-lead">Every number here comes from a test or a benchmark committed to the repositories.</p>
+    </div>
+    <ul class="stats">
+      <li class="stat">
+        <p class="stat-top"><span>Hopper · drain</span><span class="swatch aura" aria-hidden="true"></span></p>
+        <p class="stat-value">2,773 jobs/s</p>
+        <p class="stat-note">drained by 8 workers: 100,000 jobs in 36 s, on a laptop.</p>
+      </li>
+      <li class="stat">
+        <p class="stat-top"><span>Hopper · chaos test</span><span class="swatch aura" aria-hidden="true"></span></p>
+        <p class="stat-value">38 workers killed, 0 jobs lost</p>
+        <p class="stat-note">10,000 jobs on the EC2 server; 9 ran twice, harmlessly.</p>
+      </li>
+      <li class="stat">
+        <p class="stat-top"><span>Hopper · rollback drill</span><span class="swatch aura" aria-hidden="true"></span></p>
+        <p class="stat-value">Serving again in 79 s</p>
+        <p class="stat-note">A broken release was caught after 42 s and the old one came back by itself.</p>
+        <p class="switch-row"><span class="switch" aria-hidden="true"></span>Auto-deploy on</p>
+      </li>
+      <li class="stat">
+        <p class="stat-top"><span>Sift · retrieval</span><span class="swatch emerald" aria-hidden="true"></span></p>
+        <p class="stat-value">hit@5 0.968</p>
+        <p class="stat-note">on held-out questions never used for any choice.</p>
+      </li>
+      <li class="stat">
+        <p class="stat-top"><span>Sift · refusals</span><span class="swatch emerald" aria-hidden="true"></span></p>
+        <p class="stat-value">6 of 6 refused</p>
+        <p class="stat-note">unanswerable held-out questions; 2 of 31 answerable ones were wrongly refused.</p>
+      </li>
+      <li class="stat">
+        <p class="stat-top"><span>Sift · eval gate</span><span class="swatch emerald" aria-hidden="true"></span></p>
+        <p class="stat-value">CI blocked a bad PR</p>
+        <p class="stat-note">A change that raised hit@5 but lost recall failed the build and was never merged.</p>
+      </li>
+    </ul>
+  </section>
+
+  <section class="manifesto wrap" aria-label="In short">
+    <p>Two projects on one server. <strong class="word-aura">Hopper</strong> runs background jobs on
+      PostgreSQL and never loses one. <strong class="word-emerald">Sift</strong> answers questions from
+      documents, cites the section behind every claim, and refuses when the evidence is missing.
+      Sift's ingestion runs on Hopper.</p>
+  </section>
+
+  <section class="feature wrap" id="projects" aria-labelledby="hopper-title">
+    <div class="mock" aria-hidden="true">
+      <div class="mock-head">
+        <span class="dots"><span></span><span></span><span></span></span>
+        <span class="mock-title">hopper · jobs</span>
+        <span class="badge succeeded">live</span>
+      </div>
+      <table class="mock-table">
+        <thead><tr><th>Task</th><th>Status</th><th>Attempts</th></tr></thead>
+        <tbody>
+          <tr><td>http</td><td><span class="badge running">running</span></td><td>1/8</td></tr>
+          <tr><td>sleep</td><td><span class="badge succeeded">succeeded</span></td><td>1/5</td></tr>
+          <tr><td>flaky</td><td><span class="badge queued">queued</span></td><td>2/5</td></tr>
+          <tr><td>fail_always</td><td><span class="badge dead">dead</span></td><td>5/5</td></tr>
+        </tbody>
+      </table>
+      <p class="mock-foot">Claimed with <code>FOR UPDATE SKIP LOCKED</code> · PostgreSQL 16</p>
+    </div>
+    <div class="feature-copy">
+      <p class="eyebrow">Project 1</p>
+      <h2 id="hopper-title">Hopper: a job queue on PostgreSQL</h2>
+      <ul class="accent-list">
+        <li class="active"><h3>At-least-once delivery</h3>
+          <p>A killed worker's jobs come back when its lease runs out, and finish on another.</p></li>
+        <li><h3>Retries with backoff</h3>
+          <p>Full-jitter exponential backoff, with limits set per task.</p></li>
+        <li><h3>Dead-letter queue and replay</h3>
+          <p>Jobs that keep failing are parked with their history, and can be replayed.</p></li>
+        <li><h3>Multi-tenant with rate limits</h3>
+          <p>Each tenant sees only its own jobs and has its own rate limit and queue quota.</p></li>
+      </ul>
+      <a class="btn dark" href="/hopper/">Open Hopper</a>
+    </div>
+  </section>
+
+  <section class="feature flip wrap" aria-labelledby="sift-title">
+    <div class="feature-copy">
+      <p class="eyebrow">Project 2</p>
+      <h2 id="sift-title">Sift: answers with citations</h2>
+      <ul class="accent-list">
+        <li class="active"><h3>Cites every claim</h3>
+          <p>Every sentence cites a numbered source, and code rejects any citation that does not point to a retrieved chunk.</p></li>
+        <li><h3>Refuses without evidence</h3>
+          <p>A low rerank score refuses before any model call, and the model itself may refuse.</p></li>
+        <li><h3>Every retrieval change measured in CI</h3>
+          <p>The retrieval eval runs on every pull request and fails the build on a regression.</p></li>
+        <li><h3>Each customer sees only their own documents</h3>
+          <p>Tenant filters plus row-level security in Postgres, tested for chunks, answers and cache entries.</p></li>
+      </ul>
+      <a class="btn dark" href="/sift/">Open Sift</a>
+    </div>
+    <div class="mock" aria-hidden="true">
+      <div class="mock-head">
+        <span class="dots"><span></span><span></span><span></span></span>
+        <span class="mock-title">sift · ask</span>
+        <span class="badge succeeded">cited</span>
+      </div>
+      <p class="mock-question">Can CREATE INDEX CONCURRENTLY run inside a transaction block?</p>
+      <p class="mock-answer">No. Unlike a regular <code>CREATE INDEX</code>, the concurrent form cannot be
+        run inside a transaction block. <span class="cite">[S1]</span></p>
+      <div class="mock-source">
+        <span class="cite">S1</span>
+        <span><strong>PostgreSQL 17 · CREATE INDEX</strong><br>Building Indexes Concurrently</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="section wrap" aria-labelledby="explore-title">
+    <div class="section-head center">
+      <p class="eyebrow">Deep dives</p>
+      <h2 id="explore-title">Explore a project</h2>
+    </div>
+    <div class="seg" role="tablist" aria-label="Project" hidden>
+      <button type="button" role="tab" id="tab-hopper" aria-controls="panel-hopper" aria-selected="true">Hopper</button>
+      <button type="button" role="tab" id="tab-sift" aria-controls="panel-sift" aria-selected="false" tabindex="-1">Sift</button>
+    </div>
+    <div id="panel-hopper" class="tab-panel" role="tabpanel" aria-labelledby="tab-hopper">
+      <ul class="tiles">
+        <li><a class="tile aura-glow" href="/hopper/#try">
+          <span class="tile-top"><span class="tile-label">Console</span>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="m7 9 3 3-3 3M12.5 15H17"/></svg></span>
+          <span class="tile-body"><span class="tile-title">Live console</span>
+            <span class="tile-text">Connect with a demo key, enqueue jobs and watch them run.</span></span></a></li>
+        <li><a class="tile aura-glow" href="/hopper/#use-dlq">
+          <span class="tile-top"><span class="tile-label">Reliability</span>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.4-5.7L4 8.6"/><path d="M4 4v4.6h4.6"/></svg></span>
+          <span class="tile-body"><span class="tile-title">Dead-letter replay</span>
+            <span class="tile-text">Jobs that keep failing park with their history; replay one or many.</span></span></a></li>
+        <li><a class="tile aura-glow" href="/grafana/">
+          <span class="tile-top"><span class="tile-label">Metrics</span>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h16"/><path d="m5 15 4-5 4 3 6-7"/></svg></span>
+          <span class="tile-body"><span class="tile-title">Grafana dashboard</span>
+            <span class="tile-text">Queue depth, runs by outcome and latency. Read-only and public.</span></span></a></li>
+        <li><a class="tile aura-glow" href="/hopper/#performance">
+          <span class="tile-top"><span class="tile-label">Chaos drill</span>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13 3 5 14h6l-1 7 8-11h-6z"/></svg></span>
+          <span class="tile-body"><span class="tile-title">Chaos test</span>
+            <span class="tile-text">38 workers killed during 10,000 jobs, and how the test proves nothing was lost.</span></span></a></li>
+      </ul>
+    </div>
+    <div id="panel-sift" class="tab-panel" role="tabpanel" aria-labelledby="tab-sift">
+      <ul class="tiles">
+        <li><a class="tile emerald-glow" href="/sift/#try">
+          <span class="tile-top"><span class="tile-label">Demo</span>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5h14v10H10l-5 4z"/></svg></span>
+          <span class="tile-body"><span class="tile-title">Try it</span>
+            <span class="tile-text">Ask the PostgreSQL 16–18 manuals; every claim comes with its section.</span></span></a></li>
+        <li><a class="tile emerald-glow" href="/sift/#how">
+          <span class="tile-top"><span class="tile-label">Architecture</span>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="6" r="2.5"/><circle cx="12" cy="18" r="2.5"/><path d="M8 7.5 11 16M16 7.5 13 16"/></svg></span>
+          <span class="tile-body"><span class="tile-title">How it works</span>
+            <span class="tile-text">The query path, from the tenant check to the citation check, step by step.</span></span></a></li>
+        <li><a class="tile emerald-glow" href="/sift/#evals">
+          <span class="tile-top"><span class="tile-label">Benchmarks</span>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 7.5V12l3 2"/></svg></span>
+          <span class="tile-body"><span class="tile-title">Eval history</span>
+            <span class="tile-text">Every dated eval run, dev and test, with the commit behind it.</span></span></a></li>
+        <li><a class="tile emerald-glow" href="/sift/#decisions">
+          <span class="tile-top"><span class="tile-label">ADRs</span>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h10l4 4v12H5z"/><path d="M9 12h6M9 16h6"/></svg></span>
+          <span class="tile-body"><span class="tile-title">Decisions</span>
+            <span class="tile-text">Twelve decision records: Postgres for search, the fusion, the reranker, the gates.</span></span></a></li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="quote wrap" aria-label="Principle">
+    <figure>
+      <blockquote><p>“Nothing below is claimed beyond what a test or a measured number shows.”</p></blockquote>
+      <figcaption>From the Sift README</figcaption>
+    </figure>
+  </section>
+
+  <section class="section wrap" aria-labelledby="milestones-title">
+    <div class="section-head">
+      <p class="eyebrow">Engineering log</p>
+      <h2 id="milestones-title">Recent milestones</h2>
+    </div>
+    <ul class="milestones">
+      <li class="milestone">
+        <div class="milestone-art emerald-art" aria-hidden="true"></div>
+        <p class="date">Oct 2026</p>
+        <h3>Sift now deploys itself from CI</h3>
+        <p>Every push to main that passes CI ships to the server. A release that fails its retrieval
+          smoke test is rolled back on its own: 72 s in the drill.</p>
+        <a href="https://github.com/Srinu-design/sift/blob/main/docs/deploy.md">Deploy notes</a>
+      </li>
+      <li class="milestone">
+        <div class="milestone-art sunset-art" aria-hidden="true"></div>
+        <p class="date">Oct 2026</p>
+        <h3>The eval gate blocked a deliberately bad PR</h3>
+        <p>Reranking only the top 10 raised hit@5 but lost hit@8 and recall@10 on the dev split. The
+          gate failed the build, and the PR was closed unmerged.</p>
+        <a href="https://github.com/Srinu-design/sift/blob/main/docs/ci-gate-demo.md">The gate's output</a>
+      </li>
+      <li class="milestone">
+        <div class="milestone-art aura-art" aria-hidden="true"></div>
+        <p class="date">Oct 2026</p>
+        <h3>Chaos test: 10,000 jobs, 38 workers killed, 0 lost</h3>
+        <p>Workers were killed at random on the EC2 server while the jobs ran. Every job finished;
+          9 ran twice, which at-least-once delivery allows.</p>
+        <a href="https://github.com/Srinu-design/hopper/blob/main/docs/benchmarks.md">Raw data</a>
+      </li>
+    </ul>
+  </section>
+
+  <section class="cta wrap" aria-labelledby="cta-title">
+    <div class="cta-panel">
+      <span class="mark big" aria-hidden="true">V</span>
+      <h2 id="cta-title">See them running live</h2>
+      <p>Hopper's console takes a demo API key. Sift answers from the PostgreSQL manuals. The
+        dashboard is public and read-only.</p>
+      <div class="actions">
+        <a class="btn aura" href="/hopper/">Open Hopper</a>
+        <a class="btn emerald" href="/sift/">Open Sift</a>
+      </div>
+    </div>
+  </section>
+
 </main>
+
+<footer class="site-footer">
+  <div class="wrap footer-grid">
+    <div class="footer-about">
+      <p class="footer-name">Veeradimmu Srinivasulu Reddy</p>
+      <p>Backend systems, built end to end and running live.</p>
+    </div>
+    <nav class="footer-col" aria-label="Projects">
+      <p class="footer-title">Projects</p>
+      <ul>
+        <li><a href="/hopper/">Hopper</a></li>
+        <li><a href="/sift/">Sift</a></li>
+        <li><a href="/grafana/">Live dashboard</a></li>
+      </ul>
+    </nav>
+    <nav class="footer-col" aria-label="Read">
+      <p class="footer-title">Read</p>
+      <ul>
+        <li><a href="https://github.com/Srinu-design/hopper/blob/main/docs/design.md">Hopper docs</a></li>
+        <li><a href="https://github.com/Srinu-design/sift/blob/main/docs/design.md">Sift design doc</a></li>
+        <li><a href="https://github.com/Srinu-design/sift/blob/main/docs/eval-report.md">Eval report</a></li>
+      </ul>
+    </nav>
+    <nav class="footer-col" aria-label="Elsewhere">
+      <p class="footer-title">Elsewhere</p>
+      <ul>
+        <li><a href="https://github.com/Srinu-design">GitHub</a></li>
+        <li><a href="https://github.com/Srinu-design/hopper">Hopper source</a></li>
+        <li><a href="https://github.com/Srinu-design/sift">Sift source</a></li>
+      </ul>
+    </nav>
+  </div>
+  <div class="wrap"><p class="footer-base">© 2026 Veeradimmu Srinivasulu Reddy</p></div>
+</footer>
 </body>
 </html>
