@@ -99,7 +99,7 @@ async def test_every_local_file_and_anchor_exists(page: _Page, anon: httpx.Async
     for link in page.links:
         if link.startswith("#"):
             assert link[1:] in page.ids, link
-        elif link == "/grafana/":
+        elif link in ("/grafana/", "/hopper/", "/sift/"):
             continue  # served by Caddy, next to the API
         elif link.startswith("/"):
             response = await anon.get(link)
