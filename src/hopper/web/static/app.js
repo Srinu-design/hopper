@@ -93,24 +93,48 @@ function toggleTheme() {
   labelThemeButton();
 }
 
+// ------------------------------------------------------------------ section nav
+
+// Marks the About section being read in the sticky row of section links.
+function watchSections() {
+  const links = new Map();
+  for (const a of document.querySelectorAll(".subnav a")) links.set(a.hash.slice(1), a);
+  const observer = new IntersectionObserver(
+    (entries) => {
+      for (const entry of entries) {
+        if (!entry.isIntersecting) continue;
+        for (const [id, a] of links) {
+          if (id === entry.target.id) a.setAttribute("aria-current", "true");
+          else a.removeAttribute("aria-current");
+        }
+      }
+    },
+    { rootMargin: "-30% 0px -60% 0px" },
+  );
+  for (const id of links.keys()) {
+    const section = document.getElementById(id);
+    if (section) observer.observe(section);
+  }
+}
+
 // ------------------------------------------------------------------ live status
 
 async function checkStatus() {
   const box = $("#status");
   let state = "down";
-  let text = "Unreachable";
+  let text = "Down";
   let title = "The server did not answer.";
   try {
     const response = await fetch("/readyz", { cache: "no-store" });
     const body = await response.json();
     const checks = body.checks || {};
     title = Object.entries(checks).map(([k, v]) => `${k}: ${v}`).join(", ") || body.status;
-    if (body.status === "ok") [state, text] = ["ok", "Operational"];
+    if (body.status === "ok") [state, text] = ["ok", "Live"];
     else if (body.status === "degraded") [state, text] = ["warn", "Degraded"];
     else if (body.status === "draining") [state, text] = ["warn", "Deploying"];
-    else [state, text] = ["down", "Unavailable"];
+    else [state, text] = ["down", "Down"];
   } catch {
-    // keep "Unreachable"
+    // keep "Down"
   }
   box.dataset.state = state;
   box.title = title;
@@ -299,6 +323,8 @@ function showConsole() {
   $("#signed-out").hidden = true;
   $("#signed-in").hidden = false;
   $("#key-label").textContent = keyLabel(apiKey);
+  $("#jobs-loading").hidden = false;
+  $("#jobs-empty").hidden = true;
   resumePolling();
 }
 
@@ -385,6 +411,7 @@ async function refreshJobs() {
     ),
   );
   $("#jobs-body").replaceChildren(...rows);
+  $("#jobs-loading").hidden = true;
   $("#jobs-empty").hidden = rows.length > 0;
   if (focused) {
     const again = document.querySelector(`#jobs-body [data-job-id="${CSS.escape(focused)}"]`);
@@ -661,6 +688,7 @@ function actionButton(label, kind, path, message) {
 
 document.addEventListener("DOMContentLoaded", () => {
   setUpCodeBlocks();
+  watchSections();
   labelThemeButton();
   $("#theme-toggle").addEventListener("click", toggleTheme);
   window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", labelThemeButton);

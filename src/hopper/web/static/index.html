@@ -15,11 +15,10 @@
 <body>
 <a class="skip" href="#main">Skip to content</a>
 
-<header class="site-header">
-  <div class="wrap header-row">
+<header class="nav-shell">
+  <div class="nav">
     <a class="brand" href="#about" aria-label="Hopper, home">
-      <svg class="logo" viewBox="0 0 32 32" aria-hidden="true">
-        <rect class="logo-bg" width="32" height="32" rx="9"/>
+      <svg class="mark aura logo" viewBox="0 0 32 32" aria-hidden="true">
         <path class="logo-fg" d="M11 9v14M21 9v14M11 16h10"/>
       </svg>
       <span>Hopper</span>
@@ -49,7 +48,8 @@
 <!-- ============================================================ About -->
 <section id="about" data-tab="about" class="tab-panel">
   <div class="hero">
-    <div class="wrap narrow">
+    <div class="wrap hero-head">
+      <p class="eyebrow">Project 1 · Job queue</p>
       <h1 class="display">Hopper</h1>
       <p class="tagline">A job queue on PostgreSQL that doesn't lose jobs.</p>
       <p class="lead">Send a job over HTTP. Hopper runs it at least once, retries it with backoff, parks it in a
@@ -61,17 +61,20 @@
       </div>
     </div>
     <div class="wrap">
+      <div class="hero-art aura-art on-dark">
       <dl class="figures">
         <div><dt data-figure>600 enqueues/s</dt><dd>held with API p95 at <span data-figure>126 ms</span></dd></div>
         <div><dt data-figure>2,773 jobs/s</dt><dd>drained by 8 workers: <span data-figure>100,000 jobs in 36 s</span></dd></div>
         <div><dt data-figure>0 jobs lost</dt><dd>with <span data-figure>38 workers killed</span> during 10,000 jobs</dd></div>
       </dl>
+      </div>
       <p class="footnote">All measured. Load tests ran on a laptop, the chaos test on the EC2 server.
         <a href="https://github.com/Srinu-design/hopper/blob/main/docs/benchmarks.md">Raw data</a></p>
     </div>
   </div>
 
-  <nav class="wrap chip-row" aria-label="About this project">
+  <nav class="subnav" aria-label="About this project">
+   <div class="subnav-row">
     <a class="chip" href="#features">Features</a>
     <a class="chip" href="#architecture">Architecture</a>
     <a class="chip" href="#database">Database</a>
@@ -82,6 +85,7 @@
     <a class="chip" href="#performance">Performance</a>
     <a class="chip" href="#diagrams">Diagrams</a>
     <a class="chip" href="#decisions">Decisions</a>
+   </div>
   </nav>
 
   <div class="wrap">
@@ -121,16 +125,31 @@
       <p class="section-lead">One image runs every role. Caddy is the only public entry point. The API, workers and
         schedulers keep no state of their own: PostgreSQL holds every job, and Redis holds only rate-limit buckets and
         a cached queue depth, so losing Redis loses no job.</p>
-      <figure class="diagram">
-        <a href="/static/images/architecture.svg" target="_blank" rel="noopener" title="Open full size">
-          <img src="/static/images/architecture.svg" width="1180" height="720" loading="lazy"
-               alt="Tenant clients reach Caddy, which spreads requests over two API replicas. The APIs write jobs to PostgreSQL and use Redis for rate limits. Workers and schedulers work on PostgreSQL. Prometheus scrapes everything and Grafana shows it.">
-        </a>
-      </figure>
+      <ol class="tiers" aria-label="The processes on this server, in the order a job meets them">
+        <li><p class="tier-label">01 · Entry</p>
+          <div class="node"><p class="node-name">Caddy</p><p>The only public port. Checks both API replicas every 2 s.</p></div></li>
+        <li><p class="tier-label">02 · API</p>
+          <div class="node"><p class="node-name">API <span class="count">× 2</span></p><p>Checks the key, the rate limit and the queue depth, then writes the job row.</p></div></li>
+        <li><p class="tier-label">03 · State</p>
+          <div class="node strong"><p class="node-name">PostgreSQL 16</p><p>Every job. The queue and the source of truth.</p></div>
+          <div class="node"><p class="node-name">Redis 7</p><p>Rate-limit buckets and a cached queue depth, nothing else.</p></div></li>
+        <li><p class="tier-label">04 · Work</p>
+          <div class="node"><p class="node-name">Workers <span class="count">× 3</span></p><p>Claim with <code>SKIP LOCKED</code>, renew leases, ack or nack.</p></div>
+          <div class="node"><p class="node-name">Schedulers <span class="count">× 2</span></p><p>Cron, the lease reaper, queue depth and cleanup.</p></div></li>
+      </ol>
+      <details class="diagram-toggle">
+        <summary>Show the full architecture diagram</summary>
+        <figure class="diagram">
+          <a href="/static/images/architecture.svg" target="_blank" rel="noopener" title="Open full size">
+            <img src="/static/images/architecture.svg" width="1180" height="720" loading="lazy"
+                 alt="Tenant clients reach Caddy, which spreads requests over two API replicas. The APIs write jobs to PostgreSQL and use Redis for rate limits. Workers and schedulers work on PostgreSQL. Prometheus scrapes everything and Grafana shows it.">
+          </a>
+        </figure>
+      </details>
       <dl class="spec-list">
         <div><dt>Caddy</dt><dd>Reverse proxy. Spreads requests over both API replicas, checks their health every 2 s, and turns on HTTPS once a domain is set.</dd></div>
         <div><dt>API <span class="muted">× 2</span></dt><dd>FastAPI on uvicorn. Checks the API key, the tenant's rate limit and the queue depth, then writes the job row.</dd></div>
-        <div><dt>Workers <span class="muted">× N</span></dt><dd>Claim up to 20 jobs each, run them, renew their leases every 10 s, then ack or nack.</dd></div>
+        <div><dt>Workers <span class="muted">× 3</span></dt><dd>Claim up to 20 jobs each, run them, renew their leases every 10 s, then ack or nack.</dd></div>
         <div><dt>Schedulers <span class="muted">× 2</span></dt><dd>Fire cron schedules, reclaim expired leases, count queue depth and delete old jobs. Both run at once.</dd></div>
         <div><dt>PostgreSQL 16</dt><dd>The queue and the source of truth. See <a href="#database">Database</a>.</dd></div>
         <div><dt>Redis 7</dt><dd>Token buckets for rate limits and the cached queue depth. If it goes down, limits fall back to each API process.</dd></div>
@@ -214,11 +233,11 @@ RETURNING ...</code></pre></div>
     <section class="section" id="lifecycle" aria-labelledby="life-title">
       <h2 id="life-title">The life of a job</h2>
       <ol class="steps">
-        <li><span class="step-name">Enqueued</span><p>The API checks the key, the rate limit and the queue depth, then inserts a <code>queued</code> row, to run now or later.</p></li>
-        <li><span class="step-name">Claimed</span><p>A worker takes it with <code>SKIP LOCKED</code> and gets a 30 s lease and a fresh lease token.</p></li>
-        <li><span class="step-name">Running</span><p>The worker renews the lease every 10 s. If the worker dies, the lease runs out and the reaper puts the job back.</p></li>
-        <li><span class="step-name">Done or retried</span><p>Success: <code>succeeded</code>. Failure: back to the queue after a backoff, or <code>dead</code> after the last attempt.</p></li>
-        <li><span class="step-name">Replayed</span><p>A dead job keeps its id and history. Replay puts it back with a fresh set of attempts.</p></li>
+        <li><span class="step-name">Enqueued</span><span class="chips"><span class="badge queued">queued</span></span><p>The API checks the key, the rate limit and the queue depth, then inserts a <code>queued</code> row, to run now or later.</p></li>
+        <li><span class="step-name">Claimed</span><span class="chips"><span class="badge running">running</span></span><p>A worker takes it with <code>SKIP LOCKED</code> and gets a 30 s lease and a fresh lease token.</p></li>
+        <li><span class="step-name">Running</span><span class="chips"><span class="badge running">running</span></span><p>The worker renews the lease every 10 s. If the worker dies, the lease runs out and the reaper puts the job back.</p></li>
+        <li><span class="step-name">Done or retried</span><span class="chips"><span class="badge succeeded">succeeded</span><span class="badge queued">queued</span><span class="badge dead">dead</span></span><p>Success: <code>succeeded</code>. Failure: back to the queue after a backoff, or <code>dead</code> after the last attempt.</p></li>
+        <li><span class="step-name">Replayed</span><span class="chips"><span class="badge dead">dead</span><span class="badge queued">queued</span></span><p>A dead job keeps its id and history. Replay puts it back with a fresh set of attempts.</p></li>
       </ol>
       <figure class="diagram">
         <a href="/static/images/diagrams/job-states.svg" target="_blank" rel="noopener" title="Open full size">
@@ -352,18 +371,18 @@ RETURNING ...</code></pre></div>
       <p class="section-lead">Twelve UML diagrams, from who uses Hopper down to single requests. GitHub draws each
         one from text kept next to the code.</p>
       <ul class="diagram-grid">
-        <li><a href="https://github.com/Srinu-design/hopper/blob/main/docs/diagrams.md#1-use-cases"><span class="kind">Use case</span>Who uses Hopper, and for what</a></li>
-        <li><a href="https://github.com/Srinu-design/hopper/blob/main/docs/diagrams.md#2-components"><span class="kind">Component</span>The processes and their parts</a></li>
-        <li><a href="https://github.com/Srinu-design/hopper/blob/main/docs/diagrams.md#3-deployment"><span class="kind">Deployment</span>From GitHub to the EC2 host</a></li>
-        <li><a href="https://github.com/Srinu-design/hopper/blob/main/docs/diagrams.md#4-classes"><span class="kind">Class</span>Broker, worker, tasks, limits</a></li>
-        <li><a href="https://github.com/Srinu-design/hopper/blob/main/docs/diagrams.md#5-database"><span class="kind">Entity–relationship</span>Every table and column</a></li>
-        <li><a href="https://github.com/Srinu-design/hopper/blob/main/docs/diagrams.md#6-job-states"><span class="kind">State machine</span>Every status of a job</a></li>
-        <li><a href="https://github.com/Srinu-design/hopper/blob/main/docs/diagrams.md#7-enqueue-a-job"><span class="kind">Sequence</span>Enqueue a job</a></li>
-        <li><a href="https://github.com/Srinu-design/hopper/blob/main/docs/diagrams.md#8-run-a-job"><span class="kind">Sequence</span>Claim, heartbeat, ack</a></li>
-        <li><a href="https://github.com/Srinu-design/hopper/blob/main/docs/diagrams.md#9-a-worker-dies"><span class="kind">Sequence</span>A worker dies</a></li>
-        <li><a href="https://github.com/Srinu-design/hopper/blob/main/docs/diagrams.md#10-cron-with-two-schedulers"><span class="kind">Sequence</span>Cron with two schedulers</a></li>
-        <li><a href="https://github.com/Srinu-design/hopper/blob/main/docs/diagrams.md#11-when-a-run-fails"><span class="kind">Activity</span>Retry or dead-letter</a></li>
-        <li><a href="https://github.com/Srinu-design/hopper/blob/main/docs/diagrams.md#12-deploy-and-roll-back"><span class="kind">Sequence</span>Deploy and roll back</a></li>
+        <li><a href="https://github.com/Srinu-design/hopper/blob/main/docs/diagrams.md#1-use-cases"><span class="thumb"><img src="/static/images/diagrams/use-cases.svg" alt="" loading="lazy"></span><span class="kind">Use case</span>Who uses Hopper, and for what</a></li>
+        <li><a href="https://github.com/Srinu-design/hopper/blob/main/docs/diagrams.md#2-components"><span class="thumb"><img src="/static/images/diagrams/components.svg" alt="" loading="lazy"></span><span class="kind">Component</span>The processes and their parts</a></li>
+        <li><a href="https://github.com/Srinu-design/hopper/blob/main/docs/diagrams.md#3-deployment"><span class="thumb"><img src="/static/images/diagrams/deployment.svg" alt="" loading="lazy"></span><span class="kind">Deployment</span>From GitHub to the EC2 host</a></li>
+        <li><a href="https://github.com/Srinu-design/hopper/blob/main/docs/diagrams.md#4-classes"><span class="thumb"><img src="/static/images/diagrams/classes.svg" alt="" loading="lazy"></span><span class="kind">Class</span>Broker, worker, tasks, limits</a></li>
+        <li><a href="https://github.com/Srinu-design/hopper/blob/main/docs/diagrams.md#5-database"><span class="thumb"><img src="/static/images/diagrams/database.svg" alt="" loading="lazy"></span><span class="kind">Entity–relationship</span>Every table and column</a></li>
+        <li><a href="https://github.com/Srinu-design/hopper/blob/main/docs/diagrams.md#6-job-states"><span class="thumb"><img src="/static/images/diagrams/job-states.svg" alt="" loading="lazy"></span><span class="kind">State machine</span>Every status of a job</a></li>
+        <li><a href="https://github.com/Srinu-design/hopper/blob/main/docs/diagrams.md#7-enqueue-a-job"><span class="thumb"><img src="/static/images/diagrams/seq-enqueue.svg" alt="" loading="lazy"></span><span class="kind">Sequence</span>Enqueue a job</a></li>
+        <li><a href="https://github.com/Srinu-design/hopper/blob/main/docs/diagrams.md#8-run-a-job"><span class="thumb"><img src="/static/images/diagrams/seq-run.svg" alt="" loading="lazy"></span><span class="kind">Sequence</span>Claim, heartbeat, ack</a></li>
+        <li><a href="https://github.com/Srinu-design/hopper/blob/main/docs/diagrams.md#9-a-worker-dies"><span class="thumb"><img src="/static/images/diagrams/seq-crash.svg" alt="" loading="lazy"></span><span class="kind">Sequence</span>A worker dies</a></li>
+        <li><a href="https://github.com/Srinu-design/hopper/blob/main/docs/diagrams.md#10-cron-with-two-schedulers"><span class="thumb"><img src="/static/images/diagrams/seq-cron.svg" alt="" loading="lazy"></span><span class="kind">Sequence</span>Cron with two schedulers</a></li>
+        <li><a href="https://github.com/Srinu-design/hopper/blob/main/docs/diagrams.md#11-when-a-run-fails"><span class="thumb"><img src="/static/images/diagrams/failure-activity.svg" alt="" loading="lazy"></span><span class="kind">Activity</span>Retry or dead-letter</a></li>
+        <li><a href="https://github.com/Srinu-design/hopper/blob/main/docs/diagrams.md#12-deploy-and-roll-back"><span class="thumb"><img src="/static/images/diagrams/seq-deploy.svg" alt="" loading="lazy"></span><span class="kind">Sequence</span>Deploy and roll back</a></li>
       </ul>
     </section>
 
@@ -722,6 +741,7 @@ print(job["status"], job["result"] or job["last_error"])</code></pre></div>
               <tbody id="jobs-body"></tbody>
             </table>
           </div>
+          <p id="jobs-loading" class="empty">Loading jobs…</p>
           <p id="jobs-empty" class="empty" hidden>No jobs here yet. Enqueue one, and it shows up within a few seconds.</p>
           <p class="hint">The 20 newest. Click a job for its payload, result and attempts.</p>
         </section>
@@ -759,16 +779,37 @@ print(job["status"], job["result"] or job["last_error"])</code></pre></div>
 </dialog>
 
 <footer class="site-footer">
-  <div class="wrap footer-row">
-    <span>Hopper: a multi-tenant job queue on PostgreSQL</span>
-    <span class="footer-links">
-      <a href="https://github.com/Srinu-design/hopper">Source</a>
-      <a href="https://github.com/Srinu-design/hopper/blob/main/docs/design.md">Design</a>
-      <a href="https://github.com/Srinu-design/hopper/blob/main/docs/benchmarks.md">Benchmarks</a>
-      <a href="/docs">API reference</a>
-      <a href="/grafana/">Dashboard</a>
-    </span>
+  <div class="wrap footer-grid">
+    <div class="footer-about">
+      <p class="footer-name">Hopper</p>
+      <p>A multi-tenant job queue and scheduler on PostgreSQL, built and run by Veeradimmu Srinivasulu Reddy.</p>
+    </div>
+    <nav class="footer-col" aria-label="This project">
+      <p class="footer-title">Hopper</p>
+      <ul>
+        <li><a href="#about">About</a></li>
+        <li><a href="#use">How to use it</a></li>
+        <li><a href="#try">Try it</a></li>
+      </ul>
+    </nav>
+    <nav class="footer-col" aria-label="Read more">
+      <p class="footer-title">Read</p>
+      <ul>
+        <li><a href="https://github.com/Srinu-design/hopper/blob/main/docs/design.md">Design</a></li>
+        <li><a href="https://github.com/Srinu-design/hopper/blob/main/docs/benchmarks.md">Benchmarks</a></li>
+        <li><a href="/docs">API reference</a></li>
+      </ul>
+    </nav>
+    <nav class="footer-col" aria-label="Elsewhere">
+      <p class="footer-title">Elsewhere</p>
+      <ul>
+        <li><a href="https://github.com/Srinu-design/hopper">Source</a></li>
+        <li><a href="/grafana/">Dashboard</a></li>
+        <li><a href="/">All projects</a></li>
+      </ul>
+    </nav>
   </div>
+  <div class="wrap"><p class="footer-base">© 2026 Veeradimmu Srinivasulu Reddy</p></div>
 </footer>
 </body>
 </html>
