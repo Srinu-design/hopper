@@ -1,5 +1,5 @@
-/* ---- Design tokens. The same block opens all three stylesheets: the portfolio home
-   (hopper deploy/site/site.css), Hopper's page and Sift's page. Change all three together.
+/* ---- Design tokens. The same block opens both project stylesheets, Hopper's page and Sift's
+   page (the portfolio home is compiled Tailwind, see hopper deploy/site-src). Change both together.
    Every text colour meets WCAG AA (4.5:1) on the surfaces it is used on, in both themes. */
 :root {
   color-scheme: light;
@@ -141,7 +141,8 @@ code {
 :focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; border-radius: 8px; }
 .nav :focus-visible, .site-footer :focus-visible, .on-dark :focus-visible { outline-color: #ffffff; }
 
-.wrap { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
+/* the design's column: up to 1728 px, 40 px from the edges */
+.wrap { max-width: 1728px; margin: 0 auto; padding: 0 40px; }
 .muted { color: var(--muted); }
 .mono { font-family: var(--mono); font-size: 0.84rem; }
 .sr-only {
@@ -342,8 +343,6 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { outline-offs
 
 .hero-art {
   position: relative; isolation: isolate; overflow: hidden;
-  /* wider than the text column, as in the design: up to 1492 px, 40 px clear of the edges */
-  width: max(100%, min(1492px, 100vw - 80px)); left: 50%; translate: -50% 0;
   display: flex; align-items: flex-end;
   min-height: clamp(340px, 46vw, 680px); margin-top: 64px; padding: 20px;
   border-radius: var(--r-panel); box-shadow: var(--shadow-lg);
@@ -413,7 +412,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { outline-offs
 }
 .feature-grid p { color: var(--muted); font-size: 0.94rem; margin: 0; }
 
-.media { margin: 28px 0 0; padding: 12px; border-radius: var(--r-card); }
+.media { max-width: 1200px; margin: 28px auto 0; padding: 12px; border-radius: var(--r-card); } /* the 960 px GIF blurs any wider */
 .media img { border-radius: var(--r-card); width: 100%; }
 .media figcaption, .diagram figcaption { color: var(--muted); font-size: 0.9rem; margin: 14px 8px 4px; text-align: center; }
 .diagram { margin: 24px 0 0; }

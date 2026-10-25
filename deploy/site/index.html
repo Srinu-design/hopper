@@ -1,319 +1,385 @@
 <!doctype html>
+<!-- The Stitch "Lumio" design (Helvetica edition), with this portfolio's content. Styles are
+     Tailwind classes compiled into site.css: see deploy/site-src/tailwind.config.js. -->
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Projects · Veeradimmu Srinivasulu Reddy</title>
-  <meta name="description" content="Backend projects running live on one server: Hopper, a job queue on PostgreSQL, and Sift, cited question answering over documents.">
-  <meta name="color-scheme" content="light dark">
-  <link rel="icon" href="/site/favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="/site/site.css">
-  <script src="/site/site.js" defer></script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Projects · Veeradimmu Srinivasulu Reddy</title>
+<meta name="description" content="Backend projects running live on one server: Hopper, a job queue on PostgreSQL, and Sift, cited question answering over documents.">
+<meta name="color-scheme" content="light">
+<link rel="icon" href="/site/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/site/site.css">
+<script src="/site/site.js" defer></script>
 </head>
-<body>
-<a class="skip" href="#main">Skip to content</a>
+<body class="text-text font-body-lg min-h-screen antialiased selection:bg-black selection:text-white bg-page-bg">
+<a class="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[60] focus:bg-white focus:px-4 focus:py-2 focus:rounded-xl" href="#main">Skip to content</a>
 
-<header class="nav-shell">
-  <nav class="nav" aria-label="Main">
-    <a class="brand" href="/" aria-label="Veeradimmu Srinivasulu Reddy, home"><span class="mark" aria-hidden="true">V</span></a>
-    <div class="nav-links">
-      <a href="#projects">Projects</a>
-      <a href="/hopper/">Hopper</a>
-      <a href="/sift/">Sift</a>
-    </div>
-    <a class="pill-outline" href="https://github.com/Srinu-design">GitHub</a>
-  </nav>
+<!-- 1. Floating Nav -->
+<header class="fixed top-[24px] left-0 right-0 z-50 flex items-center justify-center px-sm w-full pointer-events-none">
+<nav aria-label="Main" class="on-dark pointer-events-auto w-full max-w-[700px] flex items-center justify-between bg-[#000000] backdrop-blur-xl rounded-full px-xs py-xs shadow-xl border border-white/10 h-[56px]">
+<div class="flex items-center gap-md pl-xs">
+<a href="/" aria-label="Veeradimmu Srinivasulu Reddy, home" class="w-[34px] h-[34px] rounded-full border border-page-bg/80 flex items-center justify-center shrink-0"><span class="text-page-bg font-bold text-sm leading-none" aria-hidden="true">V</span></a>
+<div class="flex items-center gap-4 md:gap-6">
+<a class="hidden md:inline font-label text-label text-page-bg/80 hover:text-page-bg transition-colors duration-300" href="#projects">Projects</a>
+<a class="font-label text-label text-page-bg/80 hover:text-page-bg transition-colors duration-300" href="/hopper/">Hopper</a>
+<a class="font-label text-label text-page-bg/80 hover:text-page-bg transition-colors duration-300" href="/sift/">Sift</a>
+<a class="hidden md:inline font-label text-label text-page-bg/80 hover:text-page-bg transition-colors duration-300" href="/grafana/">Dashboard</a>
+</div>
+</div>
+<a href="https://github.com/Srinu-design" class="border border-page-bg/30 text-page-bg font-label rounded-full hover:bg-page-bg hover:text-black transition-all duration-300 shrink-0 flex items-center px-4 text-[10px] h-[32px] font-semibold uppercase tracking-wider">GitHub</a>
+</nav>
 </header>
 
 <main id="main">
+<!-- 2. Hero -->
+<section class="pt-[140px] md:pt-[240px] px-sm md:px-margin max-w-[1728px] mx-auto flex flex-col items-center text-center relative overflow-visible bg-page-bg pb-[120px] md:pb-[200px]">
+<h1 class="font-display text-[44px] leading-[1.05] tracking-[-0.04em] font-bold md:text-display text-balance max-w-4xl mb-md text-text">Backend systems, built to be measured</h1>
+<p class="font-body-lg text-body-lg text-muted max-w-2xl mb-lg">Veeradimmu Srinivasulu Reddy. Two projects, running live on one server.</p>
+<div class="w-full max-w-[1492px] overflow-hidden shadow-2xl relative z-10 rounded-[24px] md:rounded-[40px] h-[420px] md:h-[800px] art-hero flex flex-wrap items-end content-end justify-between gap-3 p-4 md:p-8 text-left">
+<p class="m-0 bg-black/60 backdrop-blur-xl border border-white/20 rounded-2xl px-4 py-2 text-white font-label text-[13px] font-semibold">One EC2 server · Caddy · Docker Compose</p>
+<p class="m-0 bg-black/60 backdrop-blur-xl border border-white/20 rounded-2xl px-4 py-2 text-white font-label text-[13px] font-semibold">Every merge deploys itself, and rolls back if its smoke test fails</p>
+</div>
+</section>
 
-  <section class="hero wrap" aria-labelledby="hero-title">
-    <p class="eyebrow-pill"><span class="live-dot" aria-hidden="true"></span>Two projects, running live on one server</p>
-    <h1 id="hero-title" class="display">Backend systems, built to be measured</h1>
-    <p class="byline">Veeradimmu Srinivasulu Reddy</p>
-    <div class="hero-art on-dark">
-      <p class="glass-tag">One EC2 server · Caddy · Docker Compose</p>
-      <p class="glass-tag">Every merge deploys itself, and rolls back if its smoke test fails</p>
-    </div>
-  </section>
+<!-- 3. Trust Strip: what the projects are built with -->
+<section aria-label="Built with" class="py-xl px-margin border-t border-line/30 max-w-[1728px] mx-auto flex flex-col items-center bg-page-bg relative z-0 pt-[40px]">
+<div class="flex justify-center items-center opacity-100 text-muted w-full">
+<div class="marquee-container">
+<div class="animate-marquee flex gap-[100px] items-center text-muted">
+<span class="font-h3 text-h3 font-semibold tracking-tight">Python</span>
+<span class="font-h3 text-h3 font-semibold tracking-tight">PostgreSQL</span>
+<span class="font-h3 text-h3 font-semibold tracking-tight">pgvector</span>
+<span class="font-h3 text-h3 font-semibold tracking-tight">Redis</span>
+<span class="font-h3 text-h3 font-semibold tracking-tight">Caddy</span>
+<span class="font-h3 text-h3 font-semibold tracking-tight">Prometheus</span>
+<span class="font-h3 text-h3 font-semibold tracking-tight">Grafana</span>
+<span class="font-h3 text-h3 font-semibold tracking-tight">GitHub Actions</span>
+<span class="font-h3 text-h3 font-semibold tracking-tight">AWS EC2</span>
+<!-- Duplicate for a seamless loop -->
+<span aria-hidden="true" class="font-h3 text-h3 font-semibold tracking-tight">Python</span>
+<span aria-hidden="true" class="font-h3 text-h3 font-semibold tracking-tight">PostgreSQL</span>
+<span aria-hidden="true" class="font-h3 text-h3 font-semibold tracking-tight">pgvector</span>
+<span aria-hidden="true" class="font-h3 text-h3 font-semibold tracking-tight">Redis</span>
+<span aria-hidden="true" class="font-h3 text-h3 font-semibold tracking-tight">Caddy</span>
+<span aria-hidden="true" class="font-h3 text-h3 font-semibold tracking-tight">Prometheus</span>
+<span aria-hidden="true" class="font-h3 text-h3 font-semibold tracking-tight">Grafana</span>
+<span aria-hidden="true" class="font-h3 text-h3 font-semibold tracking-tight">GitHub Actions</span>
+<span aria-hidden="true" class="font-h3 text-h3 font-semibold tracking-tight">AWS EC2</span>
+</div>
+</div>
+</div>
+</section>
 
-  <section class="marquee" aria-label="Built with">
-    <div class="marquee-track">
-      <ul class="marquee-list">
-        <li>Python</li><li>PostgreSQL</li><li>pgvector</li><li>Redis</li><li>Caddy</li>
-        <li>Prometheus</li><li>Grafana</li><li>GitHub Actions</li><li>AWS EC2</li>
-      </ul>
-      <ul class="marquee-list" aria-hidden="true">
-        <li>Python</li><li>PostgreSQL</li><li>pgvector</li><li>Redis</li><li>Caddy</li>
-        <li>Prometheus</li><li>Grafana</li><li>GitHub Actions</li><li>AWS EC2</li>
-      </ul>
-    </div>
-  </section>
+<!-- 4. Floating Visual Collage. From 1280 px the cards float around the headline, as in the
+     design; below that they stack. Every number is one the READMEs report. -->
+<section aria-labelledby="measured-title" class="w-full max-w-[1728px] mx-auto relative overflow-hidden bg-page-bg py-xl px-sm md:px-margin xl:px-0 xl:min-h-[1450px] grid md:grid-cols-2 gap-6 xl:block">
+<!-- Central Anchor -->
+<div class="md:col-span-2 text-center mb-md xl:mb-0 xl:absolute xl:inset-0 xl:flex xl:flex-col xl:justify-center xl:items-center xl:mt-20">
+<h2 id="measured-title" class="font-display text-[56px] xl:text-[104px] 2xl:text-[120px] font-bold text-text tracking-tighter leading-[0.9] text-center">Measured,<br>not claimed</h2>
+<p class="font-body-md text-muted max-w-[480px] mx-auto mt-md">Every number here comes from a test or a benchmark committed to the repositories.</p>
+</div>
+<!-- 1. Top-left: image with a glass overlay -->
+<div class="relative xl:absolute xl:left-[10%] xl:top-[10%] w-full xl:w-[340px] h-[260px] rounded-[32px] overflow-hidden bg-white/10 backdrop-blur-2xl backdrop-saturate-150 border border-white/40 shadow-2xl z-[5]">
+<img class="w-full h-full object-cover" src="/site/img/grafana-queue.webp" alt="Grafana: the queue draining while two workers are killed">
+<div class="absolute bottom-4 left-4 right-4 bg-white/80 backdrop-blur-xl border border-white/40 rounded-2xl p-4 shadow-lg">
+<div class="flex justify-between items-center mb-2">
+<span class="font-label text-[10px] text-text font-bold uppercase tracking-wider">Jobs finished</span>
+<span class="font-label text-[10px] text-text font-bold">5,000 / 5,000</span>
+</div>
+<div class="w-full bg-black/10 rounded-full h-1.5"><div class="bg-black w-full h-1.5 rounded-full"></div></div>
+</div>
+</div>
+<!-- 2. Top-right: tall card -->
+<div class="relative xl:absolute xl:right-[12%] xl:top-[13%] w-full xl:w-[280px] h-[320px] rounded-[32px] overflow-hidden art-aura border border-white/40 shadow-2xl z-[5] flex flex-col justify-end p-6">
+<div class="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/40 backdrop-blur-md border border-white/50 flex items-center justify-center shadow-sm text-white">
+<svg class="ico w-4 h-4" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.8 4.7 4.7 1.8-4.7 1.8L12 16l-1.8-4.7-4.7-1.8 4.7-1.8z"/><path d="M19 15l.7 1.8 1.8.7-1.8.7L19 20l-.7-1.8-1.8-.7 1.8-.7z"/></svg>
+</div>
+<p class="m-0 text-white font-display text-[34px] font-bold tracking-tight leading-none">2,773</p>
+<p class="m-0 mt-2 text-white/80 font-body-md text-[13px]">jobs a second, drained by 8 Hopper workers</p>
+</div>
+<!-- 3. Mid-left: floating glass UI -->
+<div class="relative xl:absolute xl:left-[4%] xl:top-[44%] w-full xl:w-[260px] rounded-[28px] overflow-hidden bg-white/20 backdrop-blur-3xl backdrop-saturate-[1.8] border border-white/50 shadow-[0_12px_40px_rgba(0,0,0,0.08)] flex flex-col p-5 z-[15]">
+<div class="flex items-center justify-between mb-4">
+<span class="font-label text-xs font-semibold text-text">Auto-rollback</span>
+<div class="w-10 h-6 bg-black rounded-full relative shadow-inner" aria-hidden="true"><div class="absolute right-1 top-1 w-4 h-4 bg-white rounded-full shadow-sm"></div></div>
+</div>
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-gradient-to-tr from-[#FF416C] to-[#FF4B2B] flex items-center justify-center shadow-md text-white">
+<svg class="ico w-4 h-4" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 0 1-14.3 4.9M4 12a8 8 0 0 1 14.3-4.9"/><path d="M18.5 3v4.2h-4.2M5.5 21v-4.2h4.2"/></svg>
+</div>
+<div class="flex flex-col">
+<span class="font-label text-[11px] font-bold text-text">Rollback drill</span>
+<span class="font-body-md text-[12px] text-muted leading-tight">Serving again in 79 s</span>
+</div>
+</div>
+</div>
+<!-- 4. Mid-right: image with a label -->
+<div class="relative xl:absolute xl:right-[4%] xl:top-[50%] w-full xl:w-[320px] h-[220px] rounded-[32px] overflow-hidden border border-white/40 shadow-2xl z-[5]">
+<img class="w-full h-full object-cover" src="/site/img/grafana-inflight.webp" alt="Grafana: jobs in flight on each worker">
+<div class="absolute top-4 left-4 bg-white/85 backdrop-blur-xl px-4 py-2 rounded-full border border-white/50 shadow-sm flex items-center gap-2">
+<div class="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.8)]"></div>
+<span class="font-label text-[10px] font-bold text-text uppercase tracking-wider">2 workers killed · 0 jobs lost</span>
+</div>
+</div>
+<!-- 5. Bottom-left: large card with a label -->
+<div class="relative xl:absolute xl:left-[13%] xl:top-[71%] w-full xl:w-[380px] h-[260px] rounded-[32px] overflow-hidden art-emerald border border-white/40 shadow-2xl z-[5]">
+<div class="absolute bottom-5 left-5 bg-white/85 backdrop-blur-xl px-4 py-2 rounded-full border border-white/50 shadow-sm flex items-center gap-2 text-text">
+<svg class="ico w-4 h-4" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="m8.5 12 2.5 2.5 4.5-5"/></svg>
+<span class="font-label text-[10px] font-bold text-text uppercase tracking-wider">Sift · hit@5 0.968 · 6 of 6 refused</span>
+</div>
+</div>
+<!-- 6. Bottom-right: wide image -->
+<div class="relative xl:absolute xl:right-[13%] xl:top-[77%] w-full xl:w-[360px] h-[240px] rounded-[32px] overflow-hidden border border-white/40 shadow-2xl z-[5]">
+<img class="w-full h-full object-cover opacity-90" src="/site/img/grafana-throughput.webp" alt="Grafana: jobs enqueued and succeeded per second">
+</div>
+<!-- 7. Floating comment -->
+<div class="relative xl:absolute xl:left-[36%] xl:top-[93%] md:col-span-2 justify-self-center w-max max-w-full bg-white/30 backdrop-blur-3xl backdrop-saturate-[2] rounded-[24px] flex items-center gap-4 p-3 shadow-[0_12px_40px_rgba(0,0,0,0.1)] border border-white/50 z-20">
+<div class="w-10 h-10 rounded-full bg-black text-page-bg flex items-center justify-center shadow-sm shrink-0">
+<svg class="ico w-5 h-5" viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="5" r="2"/><circle cx="6" cy="19" r="2"/><circle cx="18" cy="7" r="2"/><path d="M6 7v10M18 9c0 5-6 4-12 8"/></svg>
+</div>
+<div class="flex flex-col pr-4">
+<span class="font-label text-[11px] text-text font-bold">Sift eval gate · CI</span>
+<span class="font-body-md text-[13px] text-text/80 leading-tight">Blocked a pull request that lost recall@10.</span>
+</div>
+</div>
+</section>
 
-  <section class="section collage wrap" aria-labelledby="measured-title">
-    <div class="section-head center">
-      <p class="eyebrow">Ground truth</p>
-      <h2 id="measured-title">Measured, not claimed</h2>
-      <p class="section-lead">Every number here comes from a test or a benchmark committed to the repositories.</p>
-    </div>
-    <ul class="stats">
-      <li class="stat">
-        <p class="stat-top"><span>Hopper · drain</span><span class="swatch aura" aria-hidden="true"></span></p>
-        <p class="stat-value">2,773 jobs/s</p>
-        <p class="stat-note">drained by 8 workers: 100,000 jobs in 36 s, on a laptop.</p>
-      </li>
-      <li class="stat">
-        <p class="stat-top"><span>Hopper · chaos test</span><span class="swatch aura" aria-hidden="true"></span></p>
-        <p class="stat-value">38 workers killed, 0 jobs lost</p>
-        <p class="stat-note">10,000 jobs on the EC2 server; 9 ran twice, harmlessly.</p>
-      </li>
-      <li class="stat">
-        <p class="stat-top"><span>Hopper · rollback drill</span><span class="swatch aura" aria-hidden="true"></span></p>
-        <p class="stat-value">Serving again in 79 s</p>
-        <p class="stat-note">A broken release was caught after 42 s and the old one came back by itself.</p>
-      </li>
-      <li class="stat">
-        <p class="stat-top"><span>Sift · retrieval</span><span class="swatch emerald" aria-hidden="true"></span></p>
-        <p class="stat-value">hit@5 0.968</p>
-        <p class="stat-note">on held-out questions never used for any choice.</p>
-      </li>
-      <li class="stat">
-        <p class="stat-top"><span>Sift · refusals</span><span class="swatch emerald" aria-hidden="true"></span></p>
-        <p class="stat-value">6 of 6 refused</p>
-        <p class="stat-note">unanswerable held-out questions; 2 of 31 answerable ones were wrongly refused.</p>
-      </li>
-      <li class="stat">
-        <p class="stat-top"><span>Sift · eval gate</span><span class="swatch emerald" aria-hidden="true"></span></p>
-        <p class="stat-value">CI blocked a bad PR</p>
-        <p class="stat-note">A change that raised hit@5 but lost recall failed the build and was never merged.</p>
-      </li>
-    </ul>
-  </section>
+<!-- 5. Manifesto -->
+<section class="py-[120px] md:py-[200px] px-sm md:px-margin max-w-[1728px] mx-auto relative flex flex-col items-center text-center bg-page-bg">
+<div class="absolute top-0 right-[10%] w-[400px] h-[400px] opacity-10 pointer-events-none" aria-hidden="true">
+<svg class="w-full h-full" fill="none" stroke="url(#manifesto-grad)" stroke-width="0.5" viewBox="0 0 100 100">
+<defs><linearGradient id="manifesto-grad" x1="0%" x2="100%" y1="0%" y2="100%"><stop offset="0%" stop-color="#FF416C"></stop><stop offset="100%" stop-color="#FF4B2B"></stop></linearGradient></defs>
+<circle cx="50" cy="50" r="48"></circle><ellipse cx="50" cy="50" rx="24" ry="48"></ellipse><ellipse cx="50" cy="50" rx="48" ry="24"></ellipse>
+<line x1="2" x2="98" y1="50" y2="50"></line><line x1="50" x2="50" y1="2" y2="98"></line>
+</svg>
+</div>
+<p class="font-display text-[28px] md:text-[49px] leading-[1.1] text-balance tracking-tight text-text relative z-10 max-w-[1000px] font-light">Two projects on one server. Hopper runs background jobs on PostgreSQL and never loses one. Sift answers questions from documents, cites the section behind every claim, and refuses when the evidence is missing.</p>
+</section>
 
-  <section class="manifesto wrap" aria-label="In short">
-    <p>Two projects on one server. <strong class="word-aura">Hopper</strong> runs background jobs on
-      PostgreSQL and never loses one. <strong class="word-emerald">Sift</strong> answers questions from
-      documents, cites the section behind every claim, and refuses when the evidence is missing.
-      Sift's ingestion runs on Hopper.</p>
-  </section>
+<!-- 6. Hopper -->
+<section id="projects" aria-labelledby="hopper-title" class="py-[80px] md:py-[120px] px-sm md:px-margin max-w-[1728px] mx-auto bg-page-bg">
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-[64px] lg:gap-[100px] items-center">
+<div class="bg-gradient-to-br from-soft-card-2 to-soft-card rounded-[32px] md:rounded-[40px] p-6 md:p-8 h-auto md:h-[700px] flex items-center justify-center relative overflow-hidden border border-line/30 shadow-sm">
+<div class="w-full max-w-md bg-white-card rounded-2xl shadow-xl border border-line/20 p-6" aria-hidden="true">
+<div class="flex items-center justify-between mb-8">
+<span class="font-label font-bold text-sm text-text">hopper · jobs</span>
+<svg class="ico w-5 h-5 text-muted" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></svg>
+</div>
+<div class="space-y-4">
+<div class="flex items-center gap-4 p-3 hover:bg-soft-card rounded-xl transition-colors"><span class="w-3 h-3 rounded-full bg-[#F27121]"></span><span class="font-body-md font-medium text-text">http</span><span class="ml-auto font-label text-xs text-muted">running · 1/8</span></div>
+<div class="flex items-center gap-4 p-3 hover:bg-soft-card rounded-xl transition-colors"><span class="w-3 h-3 rounded-full bg-[#047857]"></span><span class="font-body-md font-medium text-text">sleep</span><span class="ml-auto font-label text-xs text-muted">succeeded · 1/5</span></div>
+<div class="flex items-center gap-4 p-3 bg-soft-card rounded-xl transition-colors"><span class="w-3 h-3 rounded-full bg-[#2f55e4]"></span><span class="font-body-md font-medium text-text">flaky</span><span class="ml-auto font-label text-xs text-muted">queued · 2/5</span></div>
+<div class="flex items-center gap-4 p-3 hover:bg-soft-card rounded-xl transition-colors"><span class="w-3 h-3 rounded-full bg-[#E94057]"></span><span class="font-body-md font-medium text-text">fail_always</span><span class="ml-auto font-label text-xs text-muted">dead · 5/5</span></div>
+</div>
+</div>
+</div>
+<div class="flex flex-col justify-center h-full max-w-lg">
+<p class="font-label text-label text-muted uppercase tracking-widest mb-6">Project 1</p>
+<h2 id="hopper-title" class="font-display text-h2 mb-12 font-bold tracking-tight text-text">Hopper: a job queue<br>on PostgreSQL.</h2>
+<div class="relative pl-8 border-l-[3px] border-line space-y-12">
+<div class="absolute left-[-3px] top-0 w-[3px] h-1/4 bg-gradient-to-b from-[#FF416C] to-[#FF4B2B]"></div>
+<div><h3 class="font-h3 text-xl font-bold mb-3 text-text">At-least-once delivery</h3><p class="font-body-md text-muted leading-relaxed">A killed worker's jobs come back when its lease runs out, and finish on another.</p></div>
+<div><h3 class="font-h3 text-xl font-bold mb-3 text-muted">Retries with backoff</h3><p class="font-body-md text-muted leading-relaxed">Full-jitter exponential backoff, with limits set per task.</p></div>
+<div><h3 class="font-h3 text-xl font-bold mb-3 text-muted">Dead-letter queue and replay</h3><p class="font-body-md text-muted leading-relaxed">Jobs that keep failing are parked with their history, and can be replayed.</p></div>
+<div><h3 class="font-h3 text-xl font-bold mb-3 text-muted">Multi-tenant with rate limits</h3><p class="font-body-md text-muted leading-relaxed">Each tenant sees only its own jobs and has its own rate limit and queue quota.</p></div>
+</div>
+<a class="self-start mt-12 font-label text-sm font-bold border-b border-black text-text pb-1 hover:text-[#FF416C] hover:border-[#FF416C] transition-colors" href="/hopper/">Open Hopper</a>
+</div>
+</div>
+</section>
 
-  <section class="feature wrap" id="projects" aria-labelledby="hopper-title">
-    <div class="stage">
-      <div class="mock" aria-hidden="true">
-        <div class="mock-head">
-          <span class="dots"><span></span><span></span><span></span></span>
-          <span class="mock-title">hopper · jobs</span>
-          <span class="badge succeeded">live</span>
-        </div>
-        <table class="mock-table">
-          <thead><tr><th>Task</th><th>Status</th><th>Attempts</th></tr></thead>
-          <tbody>
-            <tr><td>http</td><td><span class="badge running">running</span></td><td>1/8</td></tr>
-            <tr><td>sleep</td><td><span class="badge succeeded">succeeded</span></td><td>1/5</td></tr>
-            <tr><td>flaky</td><td><span class="badge queued">queued</span></td><td>2/5</td></tr>
-            <tr><td>fail_always</td><td><span class="badge dead">dead</span></td><td>5/5</td></tr>
-          </tbody>
-        </table>
-        <p class="mock-foot">Claimed with <code>FOR UPDATE SKIP LOCKED</code> · PostgreSQL 16</p>
-      </div>
-    </div>
-    <div class="feature-copy">
-      <p class="eyebrow">Project 1</p>
-      <h2 id="hopper-title">Hopper: a job queue on PostgreSQL</h2>
-      <ul class="accent-list">
-        <li class="active"><h3>At-least-once delivery</h3>
-          <p>A killed worker's jobs come back when its lease runs out, and finish on another.</p></li>
-        <li><h3>Retries with backoff</h3>
-          <p>Full-jitter exponential backoff, with limits set per task.</p></li>
-        <li><h3>Dead-letter queue and replay</h3>
-          <p>Jobs that keep failing are parked with their history, and can be replayed.</p></li>
-        <li><h3>Multi-tenant with rate limits</h3>
-          <p>Each tenant sees only its own jobs and has its own rate limit and queue quota.</p></li>
-      </ul>
-      <a class="btn dark" href="/hopper/">Open Hopper</a>
-    </div>
-  </section>
+<!-- 7. Sift -->
+<section aria-labelledby="sift-title" class="py-[80px] md:py-[120px] px-sm md:px-margin max-w-[1728px] mx-auto bg-page-bg">
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-[64px] lg:gap-[100px] items-center">
+<div class="flex flex-col justify-center h-full max-w-lg order-1">
+<p class="font-label text-label text-muted uppercase tracking-widest mb-6">Project 2</p>
+<h2 id="sift-title" class="font-display text-h2 mb-12 font-bold tracking-tight text-text">Sift: answers that<br>cite their sources.</h2>
+<div class="relative pl-8 border-l-[3px] border-line space-y-10">
+<div class="absolute left-[-3px] top-0 w-[3px] h-1/4 bg-gradient-to-b from-[#FF416C] to-[#FF4B2B]"></div>
+<div><h3 class="font-h3 text-xl font-bold mb-2 text-text">Cites every claim</h3><p class="font-body-md text-muted leading-relaxed">Every sentence cites a numbered source, and code rejects any citation that does not point to a retrieved chunk.</p></div>
+<div><h3 class="font-h3 text-xl font-bold mb-2 text-muted">Refuses without evidence</h3><p class="font-body-md text-muted leading-relaxed">A low rerank score refuses before any model call, and the model itself may refuse.</p></div>
+<div><h3 class="font-h3 text-xl font-bold mb-2 text-muted">Every retrieval change measured</h3><p class="font-body-md text-muted leading-relaxed">The retrieval eval runs on every pull request and fails the build on a regression.</p></div>
+<div><h3 class="font-h3 text-xl font-bold mb-2 text-muted">Each customer sees only its own documents</h3><p class="font-body-md text-muted leading-relaxed">Tenant filters plus row-level security in Postgres, tested for chunks, answers and cache entries.</p></div>
+</div>
+<a class="self-start mt-12 font-label text-sm font-bold border-b border-black text-text pb-1 hover:text-[#FF416C] hover:border-[#FF416C] transition-colors" href="/sift/">Open Sift</a>
+</div>
+<div class="bg-gradient-to-tr from-[#E0EAFC] to-[#CFDEF3] rounded-[32px] md:rounded-[40px] p-6 md:p-8 h-auto md:h-[700px] flex items-center justify-center relative overflow-hidden border border-line/30 shadow-inner order-2">
+<div class="w-full max-w-lg bg-white/80 backdrop-blur-xl rounded-3xl shadow-2xl p-6 md:p-8 border border-white/50" aria-hidden="true">
+<div class="flex items-center gap-3 mb-6">
+<div class="w-[24px] h-[24px] rounded-full border border-black flex items-center justify-center shrink-0"><span class="text-black font-bold text-[10px] leading-none">S</span></div>
+<span class="font-label text-xs font-bold text-muted">SIFT · ASK</span>
+</div>
+<div class="bg-white/60 backdrop-blur-md rounded-xl p-4 mb-6 border border-white/50 shadow-sm">
+<p class="font-body-md text-text m-0">Can CREATE INDEX CONCURRENTLY run inside a transaction block?</p>
+</div>
+<p class="font-body-md text-text mb-4">No. Unlike a regular CREATE INDEX, the concurrent form cannot be run inside a transaction block. <span class="font-label text-[11px] font-bold text-[#04704f] bg-[#dcf4e8] rounded-lg px-1.5 py-0.5">S1</span></p>
+<div class="flex items-center justify-between gap-4">
+<span class="font-label text-[11px] text-muted">S1 · PostgreSQL 17 · CREATE INDEX</span>
+<div class="w-8 h-8 rounded-full bg-gradient-to-r from-[#FF416C] to-[#FF4B2B] flex items-center justify-center shadow-md animate-pulse text-white shrink-0">
+<svg class="ico w-4 h-4" viewBox="0 0 24 24"><path d="M12 3l1.8 4.7 4.7 1.8-4.7 1.8L12 16l-1.8-4.7-4.7-1.8 4.7-1.8z"/></svg>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
 
-  <section class="feature flip wrap" aria-labelledby="sift-title">
-    <div class="feature-copy">
-      <p class="eyebrow">Project 2</p>
-      <h2 id="sift-title">Sift: answers with citations</h2>
-      <ul class="accent-list">
-        <li class="active"><h3>Cites every claim</h3>
-          <p>Every sentence cites a numbered source, and code rejects any citation that does not point to a retrieved chunk.</p></li>
-        <li><h3>Refuses without evidence</h3>
-          <p>A low rerank score refuses before any model call, and the model itself may refuse.</p></li>
-        <li><h3>Every retrieval change measured in CI</h3>
-          <p>The retrieval eval runs on every pull request and fails the build on a regression.</p></li>
-        <li><h3>Each customer sees only their own documents</h3>
-          <p>Tenant filters plus row-level security in Postgres, tested for chunks, answers and cache entries.</p></li>
-      </ul>
-      <a class="btn dark" href="/sift/">Open Sift</a>
-    </div>
-    <div class="stage">
-      <div class="mock" aria-hidden="true">
-        <div class="mock-head">
-          <span class="dots"><span></span><span></span><span></span></span>
-          <span class="mock-title">sift · ask</span>
-          <span class="badge succeeded">cited</span>
-        </div>
-        <p class="mock-question">Can CREATE INDEX CONCURRENTLY run inside a transaction block?</p>
-        <p class="mock-answer">No. Unlike a regular <code>CREATE INDEX</code>, the concurrent form cannot be
-          run inside a transaction block. <span class="cite">[S1]</span></p>
-        <div class="mock-source">
-          <span class="cite">S1</span>
-          <span><strong>PostgreSQL 17 · CREATE INDEX</strong><br>Building Indexes Concurrently</span>
-        </div>
-      </div>
-    </div>
-  </section>
+<!-- 8. Explore a project -->
+<section aria-labelledby="explore-title" class="py-[120px] md:py-[160px] px-sm md:px-margin max-w-[1728px] mx-auto flex flex-col items-center bg-page-bg">
+<h2 id="explore-title" class="font-display text-h2 mb-12 font-bold tracking-tight text-center text-text">Explore a project.</h2>
+<div role="tablist" aria-label="Project" class="flex flex-wrap justify-center gap-3 mb-16" hidden>
+<button type="button" role="tab" id="tab-hopper" aria-controls="panel-hopper" aria-selected="true" class="px-6 py-2 rounded-full bg-white text-text font-label text-sm shadow-sm hover:bg-gray-50 transition-colors aria-selected:bg-black aria-selected:text-page-bg aria-selected:shadow-md">Hopper</button>
+<button type="button" role="tab" id="tab-sift" aria-controls="panel-sift" aria-selected="false" tabindex="-1" class="px-6 py-2 rounded-full bg-white text-text font-label text-sm shadow-sm hover:bg-gray-50 transition-colors aria-selected:bg-black aria-selected:text-page-bg aria-selected:shadow-md">Sift</button>
+</div>
+<div class="grid gap-8 w-full">
+<div id="panel-hopper" role="tabpanel" aria-labelledby="tab-hopper" class="grid grid-cols-1 md:grid-cols-2 gap-8 w-full">
+<a href="/hopper/#try" class="relative h-[320px] md:h-[400px] rounded-[32px] p-8 flex flex-col justify-end group overflow-hidden shadow-sm border border-line/20">
+<div class="absolute inset-0 art-aura transition-transform duration-500 group-hover:scale-110"></div>
+<div class="absolute inset-0 bg-black/40"></div>
+<div class="relative z-10"><h3 class="font-h3 text-xl font-bold mb-2 text-white">Live console</h3><p class="font-body-md text-white/80 m-0">Connect with a demo key, enqueue jobs and watch them run.</p></div>
+</a>
+<a href="/hopper/#use-dlq" class="relative h-[320px] md:h-[400px] rounded-[32px] p-8 flex flex-col justify-end group overflow-hidden shadow-sm border border-line/20">
+<div class="absolute inset-0 art-sunset transition-transform duration-500 group-hover:scale-110"></div>
+<div class="absolute inset-0 bg-black/40"></div>
+<div class="relative z-10"><h3 class="font-h3 text-xl font-bold mb-2 text-white">Dead-letter replay</h3><p class="font-body-md text-white/80 m-0">Jobs that keep failing park with their history; replay one or many.</p></div>
+</a>
+<a href="/grafana/" class="relative h-[320px] md:h-[400px] rounded-[32px] p-8 flex flex-col justify-end group overflow-hidden shadow-sm border border-line/20">
+<img alt="" class="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" src="/site/img/grafana-dashboard.webp">
+<div class="absolute inset-0 bg-black/40"></div>
+<div class="relative z-10"><h3 class="font-h3 text-xl font-bold mb-2 text-white">Grafana dashboard</h3><p class="font-body-md text-white/80 m-0">Queue depth, runs by outcome and latency. Read-only and public.</p></div>
+</a>
+<a href="/hopper/#performance" class="relative h-[320px] md:h-[400px] rounded-[32px] p-8 flex flex-col justify-end group overflow-hidden shadow-sm border border-line/20">
+<div class="absolute inset-0 art-hero transition-transform duration-500 group-hover:scale-110"></div>
+<div class="absolute inset-0 bg-black/40"></div>
+<div class="relative z-10"><h3 class="font-h3 text-xl font-bold mb-2 text-white">Chaos test</h3><p class="font-body-md text-white/80 m-0">38 workers killed during 10,000 jobs, and how the test proves nothing was lost.</p></div>
+</a>
+</div>
+<div id="panel-sift" role="tabpanel" aria-labelledby="tab-sift" class="grid grid-cols-1 md:grid-cols-2 gap-8 w-full">
+<a href="/sift/#try" class="relative h-[320px] md:h-[400px] rounded-[32px] p-8 flex flex-col justify-end group overflow-hidden shadow-sm border border-line/20">
+<div class="absolute inset-0 art-emerald transition-transform duration-500 group-hover:scale-110"></div>
+<div class="absolute inset-0 bg-black/40"></div>
+<div class="relative z-10"><h3 class="font-h3 text-xl font-bold mb-2 text-white">Try it</h3><p class="font-body-md text-white/80 m-0">Ask the PostgreSQL 16–18 manuals; every claim comes with its section.</p></div>
+</a>
+<a href="/sift/#how" class="relative h-[320px] md:h-[400px] rounded-[32px] p-8 flex flex-col justify-end group overflow-hidden shadow-sm border border-line/20">
+<div class="absolute inset-0 art-hero transition-transform duration-500 group-hover:scale-110"></div>
+<div class="absolute inset-0 bg-black/40"></div>
+<div class="relative z-10"><h3 class="font-h3 text-xl font-bold mb-2 text-white">How it works</h3><p class="font-body-md text-white/80 m-0">The query path, from the tenant check to the citation check, step by step.</p></div>
+</a>
+<a href="/sift/#evals" class="relative h-[320px] md:h-[400px] rounded-[32px] p-8 flex flex-col justify-end group overflow-hidden shadow-sm border border-line/20">
+<div class="absolute inset-0 art-emerald transition-transform duration-500 group-hover:scale-110"></div>
+<div class="absolute inset-0 bg-black/40"></div>
+<div class="relative z-10"><h3 class="font-h3 text-xl font-bold mb-2 text-white">Eval history</h3><p class="font-body-md text-white/80 m-0">Every dated eval run, dev and test, with the commit behind it.</p></div>
+</a>
+<a href="/sift/#decisions" class="relative h-[320px] md:h-[400px] rounded-[32px] p-8 flex flex-col justify-end group overflow-hidden shadow-sm border border-line/20">
+<div class="absolute inset-0 art-sunset transition-transform duration-500 group-hover:scale-110"></div>
+<div class="absolute inset-0 bg-black/40"></div>
+<div class="relative z-10"><h3 class="font-h3 text-xl font-bold mb-2 text-white">Decisions</h3><p class="font-body-md text-white/80 m-0">Twelve decision records: Postgres for search, the fusion, the reranker, the gates.</p></div>
+</a>
+</div>
+</div>
+</section>
 
-  <section class="section wrap" aria-labelledby="explore-title">
-    <div class="section-head center">
-      <p class="eyebrow">Deep dives</p>
-      <h2 id="explore-title">Explore a project</h2>
-    </div>
-    <div class="seg" role="tablist" aria-label="Project" hidden>
-      <button type="button" role="tab" id="tab-hopper" aria-controls="panel-hopper" aria-selected="true">Hopper</button>
-      <button type="button" role="tab" id="tab-sift" aria-controls="panel-sift" aria-selected="false" tabindex="-1">Sift</button>
-    </div>
-    <div id="panel-hopper" class="tab-panel" role="tabpanel" aria-labelledby="tab-hopper">
-      <ul class="tiles">
-        <li><a class="tile aura-glow" href="/hopper/#try">
-          <span class="tile-top"><span class="tile-label">Console</span>
-            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="m7 9 3 3-3 3M12.5 15H17"/></svg></span>
-          <span class="tile-body"><span class="tile-title">Live console</span>
-            <span class="tile-text">Connect with a demo key, enqueue jobs and watch them run.</span></span></a></li>
-        <li><a class="tile aura-glow" href="/hopper/#use-dlq">
-          <span class="tile-top"><span class="tile-label">Reliability</span>
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.4-5.7L4 8.6"/><path d="M4 4v4.6h4.6"/></svg></span>
-          <span class="tile-body"><span class="tile-title">Dead-letter replay</span>
-            <span class="tile-text">Jobs that keep failing park with their history; replay one or many.</span></span></a></li>
-        <li><a class="tile aura-glow" href="/grafana/">
-          <span class="tile-top"><span class="tile-label">Metrics</span>
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h16"/><path d="m5 15 4-5 4 3 6-7"/></svg></span>
-          <span class="tile-body"><span class="tile-title">Grafana dashboard</span>
-            <span class="tile-text">Queue depth, runs by outcome and latency. Read-only and public.</span></span></a></li>
-        <li><a class="tile aura-glow" href="/hopper/#performance">
-          <span class="tile-top"><span class="tile-label">Chaos drill</span>
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13 3 5 14h6l-1 7 8-11h-6z"/></svg></span>
-          <span class="tile-body"><span class="tile-title">Chaos test</span>
-            <span class="tile-text">38 workers killed during 10,000 jobs, and how the test proves nothing was lost.</span></span></a></li>
-      </ul>
-    </div>
-    <div id="panel-sift" class="tab-panel" role="tabpanel" aria-labelledby="tab-sift">
-      <ul class="tiles">
-        <li><a class="tile emerald-glow" href="/sift/#try">
-          <span class="tile-top"><span class="tile-label">Demo</span>
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5h14v10H10l-5 4z"/></svg></span>
-          <span class="tile-body"><span class="tile-title">Try it</span>
-            <span class="tile-text">Ask the PostgreSQL 16–18 manuals; every claim comes with its section.</span></span></a></li>
-        <li><a class="tile emerald-glow" href="/sift/#how">
-          <span class="tile-top"><span class="tile-label">Architecture</span>
-            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="6" r="2.5"/><circle cx="12" cy="18" r="2.5"/><path d="M8 7.5 11 16M16 7.5 13 16"/></svg></span>
-          <span class="tile-body"><span class="tile-title">How it works</span>
-            <span class="tile-text">The query path, from the tenant check to the citation check, step by step.</span></span></a></li>
-        <li><a class="tile emerald-glow" href="/sift/#evals">
-          <span class="tile-top"><span class="tile-label">Benchmarks</span>
-            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 7.5V12l3 2"/></svg></span>
-          <span class="tile-body"><span class="tile-title">Eval history</span>
-            <span class="tile-text">Every dated eval run, dev and test, with the commit behind it.</span></span></a></li>
-        <li><a class="tile emerald-glow" href="/sift/#decisions">
-          <span class="tile-top"><span class="tile-label">ADRs</span>
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h10l4 4v12H5z"/><path d="M9 12h6M9 16h6"/></svg></span>
-          <span class="tile-body"><span class="tile-title">Decisions</span>
-            <span class="tile-text">Twelve decision records: Postgres for search, the fusion, the reranker, the gates.</span></span></a></li>
-      </ul>
-    </div>
-  </section>
+<!-- 9. Quote -->
+<section aria-label="Principle" class="py-[120px] md:py-[160px] px-sm md:px-margin max-w-[1200px] mx-auto flex flex-col items-center text-center bg-page-bg">
+<figure class="m-0 flex flex-col items-center">
+<blockquote class="m-0"><p class="font-display text-[40px] md:text-[56px] leading-[1.1] tracking-tight text-text mb-16 text-balance max-w-[1000px] font-normal">“Nothing below is claimed beyond what a test or a measured number shows.”</p></blockquote>
+<figcaption class="flex items-center gap-4">
+<div class="w-14 h-14 rounded-full border border-text flex items-center justify-center shadow-md" aria-hidden="true"><span class="text-text font-bold text-lg leading-none">V</span></div>
+<div class="text-left">
+<p class="font-label text-sm font-bold text-text m-0 mb-1">Veeradimmu Srinivasulu Reddy</p>
+<p class="font-label text-xs text-muted m-0">From the Sift README</p>
+</div>
+</figcaption>
+</figure>
+</section>
 
-  <section class="quote wrap" aria-label="Principle">
-    <figure>
-      <blockquote><p>“Nothing below is claimed beyond what a test or a measured number shows.”</p></blockquote>
-      <figcaption>From the Sift README</figcaption>
-    </figure>
-  </section>
+<!-- 10. Milestones -->
+<section aria-labelledby="milestones-title" class="py-[80px] md:py-[120px] px-sm md:px-margin max-w-[1728px] mx-auto bg-page-bg">
+<div class="flex justify-between items-end gap-4 mb-12">
+<h2 id="milestones-title" class="font-display text-h2 font-bold tracking-tight text-text">Recent milestones</h2>
+<a class="font-label text-sm font-bold border-b border-black text-text pb-1 hover:text-[#FF416C] hover:border-[#FF416C] transition-colors" href="https://github.com/Srinu-design">All repositories</a>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+<a class="group block" href="https://github.com/Srinu-design/sift/blob/main/docs/deploy.md">
+<div class="w-full h-[300px] md:h-[450px] rounded-[40px] mb-6 overflow-hidden shadow-xl border border-white/20 art-emerald"></div>
+<p class="font-label text-xs text-muted mb-3">Sift · Oct 2026</p>
+<h3 class="font-h3 text-xl font-bold text-text">Sift now deploys itself from CI</h3>
+<p class="font-body-md text-muted mt-2">A release that fails its retrieval smoke test rolls back on its own: 72 s in the drill.</p>
+</a>
+<a class="group block" href="https://github.com/Srinu-design/sift/blob/main/docs/ci-gate-demo.md">
+<div class="w-full h-[300px] md:h-[450px] rounded-[40px] mb-6 overflow-hidden shadow-xl border border-white/20 art-sunset"></div>
+<p class="font-label text-xs text-muted mb-3">Sift · Oct 2026</p>
+<h3 class="font-h3 text-xl font-bold text-text">The eval gate blocked a deliberately bad PR</h3>
+<p class="font-body-md text-muted mt-2">It raised hit@5 but lost hit@8 and recall@10 on the dev split; the build failed.</p>
+</a>
+<a class="group block" href="https://github.com/Srinu-design/hopper/blob/main/docs/benchmarks.md">
+<div class="w-full h-[300px] md:h-[450px] rounded-[40px] mb-6 overflow-hidden shadow-xl border border-white/20 art-aura"></div>
+<p class="font-label text-xs text-muted mb-3">Hopper · Oct 2026</p>
+<h3 class="font-h3 text-xl font-bold text-text">Chaos test: 10,000 jobs, 38 workers killed, 0 lost</h3>
+<p class="font-body-md text-muted mt-2">Every job finished; 9 ran twice, which at-least-once delivery allows.</p>
+</a>
+</div>
+</section>
 
-  <section class="section wrap" aria-labelledby="milestones-title">
-    <div class="section-head">
-      <p class="eyebrow">Engineering log</p>
-      <h2 id="milestones-title">Recent milestones</h2>
-    </div>
-    <ul class="milestones">
-      <li class="milestone">
-        <div class="milestone-art emerald-art" aria-hidden="true"></div>
-        <p class="date">Oct 2026</p>
-        <h3>Sift now deploys itself from CI</h3>
-        <p>Every push to main that passes CI ships to the server. A release that fails its retrieval
-          smoke test is rolled back on its own: 72 s in the drill.</p>
-        <a href="https://github.com/Srinu-design/sift/blob/main/docs/deploy.md">Deploy notes</a>
-      </li>
-      <li class="milestone">
-        <div class="milestone-art sunset-art" aria-hidden="true"></div>
-        <p class="date">Oct 2026</p>
-        <h3>The eval gate blocked a deliberately bad PR</h3>
-        <p>Reranking only the top 10 raised hit@5 but lost hit@8 and recall@10 on the dev split. The
-          gate failed the build, and the PR was closed unmerged.</p>
-        <a href="https://github.com/Srinu-design/sift/blob/main/docs/ci-gate-demo.md">The gate's output</a>
-      </li>
-      <li class="milestone">
-        <div class="milestone-art aura-art" aria-hidden="true"></div>
-        <p class="date">Oct 2026</p>
-        <h3>Chaos test: 10,000 jobs, 38 workers killed, 0 lost</h3>
-        <p>Workers were killed at random on the EC2 server while the jobs ran. Every job finished;
-          9 ran twice, which at-least-once delivery allows.</p>
-        <a href="https://github.com/Srinu-design/hopper/blob/main/docs/benchmarks.md">Raw data</a>
-      </li>
-    </ul>
-  </section>
-
-  <section class="cta wrap" aria-labelledby="cta-title">
-    <div class="cta-panel">
-      <span class="mark big" aria-hidden="true">V</span>
-      <h2 id="cta-title">See them running live</h2>
-      <p>Hopper's console takes a demo API key. Sift answers from the PostgreSQL manuals. The
-        dashboard is public and read-only.</p>
-      <div class="actions">
-        <a class="btn dark" href="/hopper/">Open Hopper</a>
-        <a class="btn outline" href="/sift/">Open Sift</a>
-      </div>
-    </div>
-  </section>
-
+<!-- 11. Call to action -->
+<section aria-labelledby="cta-title" class="py-section px-sm md:px-margin">
+<div class="max-w-screen-xl mx-auto flex flex-col items-center text-center">
+<div class="w-12 h-12 rounded-full border border-text flex items-center justify-center mb-12" aria-hidden="true"><span class="text-text font-bold text-xl leading-none">V</span></div>
+<h2 id="cta-title" class="font-display text-[56px] md:text-[80px] font-bold text-text tracking-tighter leading-[1.05] mb-12 max-w-4xl text-balance">See them running live</h2>
+<div class="flex flex-col sm:flex-row gap-6">
+<a href="/hopper/" class="bg-black text-white font-label rounded-full hover:bg-text/80 transition-all duration-300 shrink-0 flex items-center justify-center px-6 text-[10px] h-[40px] font-bold uppercase tracking-wider">Open Hopper</a>
+<a href="/sift/" class="bg-transparent border border-text/30 text-text font-label rounded-full hover:bg-text hover:text-white transition-all duration-300 shrink-0 flex items-center justify-center px-6 text-[10px] h-[40px] font-bold uppercase tracking-wider">Open Sift</a>
+</div>
+</div>
+</section>
 </main>
 
-<footer class="site-footer">
-  <div class="wrap footer-grid">
-    <div class="footer-about">
-      <p class="footer-name">Veeradimmu Srinivasulu Reddy</p>
-      <p>Backend systems, built end to end and running live.</p>
-    </div>
-    <nav class="footer-col" aria-label="Projects">
-      <p class="footer-title">Projects</p>
-      <ul>
-        <li><a href="/hopper/">Hopper</a></li>
-        <li><a href="/sift/">Sift</a></li>
-        <li><a href="/grafana/">Live dashboard</a></li>
-      </ul>
-    </nav>
-    <nav class="footer-col" aria-label="Read">
-      <p class="footer-title">Read</p>
-      <ul>
-        <li><a href="https://github.com/Srinu-design/hopper/blob/main/docs/design.md">Hopper docs</a></li>
-        <li><a href="https://github.com/Srinu-design/sift/blob/main/docs/design.md">Sift design doc</a></li>
-        <li><a href="https://github.com/Srinu-design/sift/blob/main/docs/eval-report.md">Eval report</a></li>
-      </ul>
-    </nav>
-    <nav class="footer-col" aria-label="Elsewhere">
-      <p class="footer-title">Elsewhere</p>
-      <ul>
-        <li><a href="https://github.com/Srinu-design">GitHub</a></li>
-        <li><a href="https://github.com/Srinu-design/hopper">Hopper source</a></li>
-        <li><a href="https://github.com/Srinu-design/sift">Sift source</a></li>
-      </ul>
-    </nav>
-  </div>
-  <div class="wrap"><p class="footer-base">© 2026 Veeradimmu Srinivasulu Reddy</p></div>
+<footer class="on-dark bg-black text-white pt-xl pb-lg px-sm md:px-margin rounded-t-[40px] md:rounded-t-[64px] relative z-20">
+<div class="max-w-[1728px] mx-auto">
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-lg lg:gap-xl mb-xl">
+<div class="flex flex-col gap-8">
+<div class="w-10 h-10 rounded-full border border-white/20 flex items-center justify-center shrink-0" aria-hidden="true"><span class="text-white font-bold text-lg leading-none">V</span></div>
+<p class="font-body-md text-white/70 max-w-xs m-0">Veeradimmu Srinivasulu Reddy. Backend systems, built end to end and running live.</p>
+<div class="flex gap-4">
+<a class="w-10 h-10 rounded-full border border-white/10 flex items-center justify-center hover:bg-white/10 transition-colors" href="https://github.com/Srinu-design" aria-label="GitHub">
+<svg class="ico w-5 h-5" viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="5" r="2"/><circle cx="6" cy="19" r="2"/><circle cx="18" cy="7" r="2"/><path d="M6 7v10M18 9c0 5-6 4-12 8"/></svg>
+</a>
+<a class="w-10 h-10 rounded-full border border-white/10 flex items-center justify-center hover:bg-white/10 transition-colors" href="/grafana/" aria-label="Live dashboard">
+<svg class="ico w-5 h-5" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h16"/><path d="m5 15 4-5 4 3 6-7"/></svg>
+</a>
+</div>
+</div>
+<nav aria-label="Projects">
+<h2 class="font-label text-white mb-6 uppercase tracking-widest text-[10px]">Projects</h2>
+<ul class="flex flex-col gap-4 m-0 p-0 list-none">
+<li><a class="font-body-md text-white/70 hover:text-white transition-colors" href="/hopper/">Hopper</a></li>
+<li><a class="font-body-md text-white/70 hover:text-white transition-colors" href="/sift/">Sift</a></li>
+<li><a class="font-body-md text-white/70 hover:text-white transition-colors" href="/grafana/">Live dashboard</a></li>
+</ul>
+</nav>
+<nav aria-label="Read">
+<h2 class="font-label text-white mb-6 uppercase tracking-widest text-[10px]">Read</h2>
+<ul class="flex flex-col gap-4 m-0 p-0 list-none">
+<li><a class="font-body-md text-white/70 hover:text-white transition-colors" href="https://github.com/Srinu-design/hopper/blob/main/docs/design.md">Hopper docs</a></li>
+<li><a class="font-body-md text-white/70 hover:text-white transition-colors" href="https://github.com/Srinu-design/sift/blob/main/docs/design.md">Sift design doc</a></li>
+<li><a class="font-body-md text-white/70 hover:text-white transition-colors" href="https://github.com/Srinu-design/sift/blob/main/docs/eval-report.md">Eval report</a></li>
+</ul>
+</nav>
+<nav aria-label="Source">
+<h2 class="font-label text-white mb-6 uppercase tracking-widest text-[10px]">Source</h2>
+<ul class="flex flex-col gap-4 m-0 p-0 list-none">
+<li><a class="font-body-md text-white/70 hover:text-white transition-colors" href="https://github.com/Srinu-design">GitHub</a></li>
+<li><a class="font-body-md text-white/70 hover:text-white transition-colors" href="https://github.com/Srinu-design/hopper">Hopper source</a></li>
+<li><a class="font-body-md text-white/70 hover:text-white transition-colors" href="https://github.com/Srinu-design/sift">Sift source</a></li>
+</ul>
+</nav>
+</div>
+<div class="pt-md border-t border-white/10 flex flex-col md:flex-row justify-between items-center gap-4">
+<p class="font-label text-[11px] text-white/60 m-0">© 2026 Veeradimmu Srinivasulu Reddy</p>
+<a class="font-label text-[11px] text-white/60 hover:text-white transition-colors" href="#main">Back to top</a>
+</div>
+</div>
 </footer>
 </body>
 </html>

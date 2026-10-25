@@ -4,3 +4,7 @@
 Caddyfile text eol=lf
 deploy/** text eol=lf
 docker/** text eol=lf
+# Images ship in deploy/site too: binary, so the rule above never converts their bytes.
+*.webp binary
+*.png binary
+*.gif binary

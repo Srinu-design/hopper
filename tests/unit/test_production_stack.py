@@ -159,7 +159,9 @@ def test_what_ships_to_the_server_keeps_lf_line_endings() -> None:
         p
         for d in ("deploy", "docker")
         for p in (ROOT / d).rglob("*")
-        if p.is_file() and "__pycache__" not in p.parts
+        if p.is_file()
+        and "__pycache__" not in p.parts
+        and p.suffix not in {".webp", ".png", ".gif"}
     ]
     assert DEPLOY_SH in files
     crlf = [str(p.relative_to(ROOT)) for p in files if b"\r\n" in p.read_bytes()]
