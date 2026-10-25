@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Projects · Veeradimmu Srinivasulu Reddy</title>
+  <meta name="description" content="Backend projects running live on one server: Hopper, a job queue on PostgreSQL, and Sift, cited question answering over documents.">
+  <meta name="color-scheme" content="light dark">
+  <link rel="stylesheet" href="/site/site.css">
+</head>
+<body>
+<main class="wrap">
+  <header class="intro">
+    <p class="eyebrow">Projects</p>
+    <h1>Veeradimmu Srinivasulu Reddy</h1>
+    <p class="lede">Backend systems, built end to end and running live on this server: code, tests,
+      measured numbers, CI, and a deploy that rolls itself back.</p>
+    <p><a href="https://github.com/Srinu-design">github.com/Srinu-design</a></p>
+  </header>
+
+  <ul class="projects" aria-label="Projects">
+    <li class="card">
+      <p class="tag">Project 1</p>
+      <h2><a href="/hopper/">Hopper</a></h2>
+      <p>A multi-tenant job queue and scheduler on PostgreSQL. At-least-once delivery, retries
+        with backoff, a dead-letter queue and replay.</p>
+      <ul class="stack" aria-label="Built with">
+        <li>Python</li><li>PostgreSQL</li><li>Redis</li><li>Caddy</li><li>Prometheus</li>
+      </ul>
+      <p class="links">
+        <a class="btn" href="/hopper/">Open Hopper</a>
+        <a href="https://github.com/Srinu-design/hopper">Code</a>
+        <a href="/grafana/">Live dashboard</a>
+      </p>
+    </li>
+    <li class="card">
+      <p class="tag">Project 2</p>
+      <h2><a href="/sift/">Sift</a></h2>
+      <p>Question answering over your documents that cites the section behind every claim,
+        refuses when the evidence is missing, and proves every retrieval change with a measured
+        eval. Ingestion runs as jobs on Hopper.</p>
+      <ul class="stack" aria-label="Built with">
+        <li>Python</li><li>pgvector</li><li>Cross-encoder rerank</li><li>Gemini</li><li>Eval in CI</li>
+      </ul>
+      <p class="links">
+        <a class="btn" href="/sift/">Open Sift</a>
+        <a href="https://github.com/Srinu-design/sift">Code</a>
+      </p>
+    </li>
+  </ul>
+
+  <footer>Both run on one EC2 server behind Caddy, deployed from GitHub Actions.</footer>
+</main>
+</body>
+</html>

@@ -71,6 +71,16 @@ def test_grafana_is_served_under_its_sub_path() -> None:
     assert "handle /grafana*" in CADDYFILE
 
 
+def test_home_page_hopper_page_and_api_paths_all_route() -> None:
+    """/ is the portfolio page, /hopper/ is Hopper's page, and every other path still reaches
+    the API, so existing clients, the smoke test and CI's /readyz check are unaffected."""
+    assert "handle / {" in CADDYFILE and "root * /etc/caddy/site" in CADDYFILE
+    assert "handle_path /hopper/* {\n\t\timport api" in CADDYFILE
+    assert "handle {\n\t\timport api" in CADDYFILE
+    assert (ROOT / "deploy/site/index.html").is_file()
+    assert 'rsync -a --delete "$bundle/site/" "$ROOT/config/caddy/site/"' in DEPLOY_SH.read_text()
+
+
 def test_config_comes_from_the_installed_copy_not_the_release_directory() -> None:
     """deploy.sh installs config into $HOPPER_ROOT/config and reloads in place; mounting from a
     release directory would recreate Caddy on every deploy."""
