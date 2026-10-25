@@ -228,7 +228,7 @@
 </div>
 </section>
 
-<!-- 8. Explore a project -->
+<!-- 8. Explore a project: each project's real content, copied from its own page. -->
 <section aria-labelledby="explore-title" class="py-[120px] md:py-[160px] px-sm md:px-margin max-w-[1728px] mx-auto flex flex-col items-center bg-page-bg">
 <p class="font-label text-label text-muted uppercase tracking-widest mb-6">Deep dives</p>
 <h2 id="explore-title" class="font-display text-h2 mb-12 font-bold tracking-tight text-center text-text">Explore a project.</h2>
@@ -236,118 +236,141 @@
 <button type="button" role="tab" id="tab-hopper" aria-controls="panel-hopper" aria-selected="true" class="px-6 py-2 rounded-full bg-white text-text font-label text-sm shadow-sm hover:bg-gray-50 transition-colors aria-selected:bg-black aria-selected:text-page-bg aria-selected:shadow-md">Hopper</button>
 <button type="button" role="tab" id="tab-sift" aria-controls="panel-sift" aria-selected="false" tabindex="-1" class="px-6 py-2 rounded-full bg-white text-text font-label text-sm shadow-sm hover:bg-gray-50 transition-colors aria-selected:bg-black aria-selected:text-page-bg aria-selected:shadow-md">Sift</button>
 </div>
-<div class="grid gap-8 w-full">
-<div id="panel-hopper" role="tabpanel" aria-labelledby="tab-hopper" class="grid grid-cols-1 md:grid-cols-2 gap-8 w-full">
-<a href="/hopper/#try" class="relative h-[320px] md:h-[400px] rounded-[32px] p-8 flex flex-col justify-between group overflow-hidden shadow-sm border border-line/20">
-<div class="absolute inset-0 art-aura transition-transform duration-500 group-hover:scale-110"></div>
-<div class="absolute inset-0 bg-black/40"></div>
-<div class="relative z-10 flex items-center justify-between"><span class="font-label text-[11px] font-bold uppercase tracking-widest text-white/80">Console</span><svg class="ico w-6 h-6 text-white" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="m7 9 3 3-3 3M12.5 15H17"/></svg></div>
-<div class="relative z-10"><h3 class="font-h3 text-xl font-bold mb-2 text-white">Live console</h3><p class="font-body-md text-white/80 m-0">Connect with a demo key, enqueue jobs and watch them run.</p></div>
-</a>
-<a href="/hopper/#use-dlq" class="relative h-[320px] md:h-[400px] rounded-[32px] p-8 flex flex-col justify-between group overflow-hidden shadow-sm border border-line/20">
-<div class="absolute inset-0 art-sunset transition-transform duration-500 group-hover:scale-110"></div>
-<div class="absolute inset-0 bg-black/40"></div>
-<div class="relative z-10 flex items-center justify-between"><span class="font-label text-[11px] font-bold uppercase tracking-widest text-white/80">Reliability</span><svg class="ico w-6 h-6 text-white" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.4-5.7L4 8.6"/><path d="M4 4v4.6h4.6"/></svg></div>
-<div class="relative z-10"><h3 class="font-h3 text-xl font-bold mb-2 text-white">Dead-letter replay</h3><p class="font-body-md text-white/80 m-0">Jobs that keep failing park with their history; replay one or many.</p></div>
-</a>
-<a href="/grafana/" class="relative h-[320px] md:h-[400px] rounded-[32px] p-8 flex flex-col justify-between group overflow-hidden shadow-sm border border-line/20">
-<img alt="" class="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" src="/site/img/grafana-dashboard.webp">
-<div class="absolute inset-0 bg-black/40"></div>
-<div class="relative z-10 flex items-center justify-between"><span class="font-label text-[11px] font-bold uppercase tracking-widest text-white/80">Metrics</span><svg class="ico w-6 h-6 text-white" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h16"/><path d="m5 15 4-5 4 3 6-7"/></svg></div>
-<div class="relative z-10"><h3 class="font-h3 text-xl font-bold mb-2 text-white">Grafana dashboard</h3><p class="font-body-md text-white/80 m-0">Queue depth, runs by outcome and latency. Read-only and public.</p></div>
-</a>
-<a href="/hopper/#performance" class="relative h-[320px] md:h-[400px] rounded-[32px] p-8 flex flex-col justify-between group overflow-hidden shadow-sm border border-line/20">
-<div class="absolute inset-0 art-hero transition-transform duration-500 group-hover:scale-110"></div>
-<div class="absolute inset-0 bg-black/40"></div>
-<div class="relative z-10 flex items-center justify-between"><span class="font-label text-[11px] font-bold uppercase tracking-widest text-white/80">Chaos drill</span><svg class="ico w-6 h-6 text-white" viewBox="0 0 24 24" aria-hidden="true"><path d="M13 3 5 14h6l-1 7 8-11h-6z"/></svg></div>
-<div class="relative z-10"><h3 class="font-h3 text-xl font-bold mb-2 text-white">Chaos test</h3><p class="font-body-md text-white/80 m-0">38 workers killed during 10,000 jobs, and how the test proves nothing was lost.</p></div>
-</a>
-</div>
-<div id="panel-sift" role="tabpanel" aria-labelledby="tab-sift" class="grid grid-cols-1 md:grid-cols-2 gap-8 w-full">
-<a href="/sift/#try" class="relative h-[320px] md:h-[400px] rounded-[32px] p-8 flex flex-col justify-between group overflow-hidden shadow-sm border border-line/20">
-<div class="absolute inset-0 art-emerald transition-transform duration-500 group-hover:scale-110"></div>
-<div class="absolute inset-0 bg-black/40"></div>
-<div class="relative z-10 flex items-center justify-between"><span class="font-label text-[11px] font-bold uppercase tracking-widest text-white/80">Demo</span><svg class="ico w-6 h-6 text-white" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5h14v10H10l-5 4z"/></svg></div>
-<div class="relative z-10"><h3 class="font-h3 text-xl font-bold mb-2 text-white">Try it</h3><p class="font-body-md text-white/80 m-0">Ask the PostgreSQL 16–18 manuals; every claim comes with its section.</p></div>
-</a>
-<a href="/sift/#how" class="relative h-[320px] md:h-[400px] rounded-[32px] p-8 flex flex-col justify-between group overflow-hidden shadow-sm border border-line/20">
-<div class="absolute inset-0 art-hero transition-transform duration-500 group-hover:scale-110"></div>
-<div class="absolute inset-0 bg-black/40"></div>
-<div class="relative z-10 flex items-center justify-between"><span class="font-label text-[11px] font-bold uppercase tracking-widest text-white/80">Architecture</span><svg class="ico w-6 h-6 text-white" viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="6" r="2.5"/><circle cx="12" cy="18" r="2.5"/><path d="M8 7.5 11 16M16 7.5 13 16"/></svg></div>
-<div class="relative z-10"><h3 class="font-h3 text-xl font-bold mb-2 text-white">How it works</h3><p class="font-body-md text-white/80 m-0">The query path, from the tenant check to the citation check, step by step.</p></div>
-</a>
-<a href="/sift/#evals" class="relative h-[320px] md:h-[400px] rounded-[32px] p-8 flex flex-col justify-between group overflow-hidden shadow-sm border border-line/20">
-<div class="absolute inset-0 art-emerald transition-transform duration-500 group-hover:scale-110"></div>
-<div class="absolute inset-0 bg-black/40"></div>
-<div class="relative z-10 flex items-center justify-between"><span class="font-label text-[11px] font-bold uppercase tracking-widest text-white/80">Benchmarks</span><svg class="ico w-6 h-6 text-white" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 7.5V12l3 2"/></svg></div>
-<div class="relative z-10"><h3 class="font-h3 text-xl font-bold mb-2 text-white">Eval history</h3><p class="font-body-md text-white/80 m-0">Every dated eval run, dev and test, with the commit behind it.</p></div>
-</a>
-<a href="/sift/#decisions" class="relative h-[320px] md:h-[400px] rounded-[32px] p-8 flex flex-col justify-between group overflow-hidden shadow-sm border border-line/20">
-<div class="absolute inset-0 art-sunset transition-transform duration-500 group-hover:scale-110"></div>
-<div class="absolute inset-0 bg-black/40"></div>
-<div class="relative z-10 flex items-center justify-between"><span class="font-label text-[11px] font-bold uppercase tracking-widest text-white/80">ADRs</span><svg class="ico w-6 h-6 text-white" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h10l4 4v12H5z"/><path d="M9 12h6M9 16h6"/></svg></div>
-<div class="relative z-10"><h3 class="font-h3 text-xl font-bold mb-2 text-white">Decisions</h3><p class="font-body-md text-white/80 m-0">Twelve decision records: Postgres for search, the fusion, the reranker, the gates.</p></div>
-</a>
-</div>
-</div>
-</section>
+<div class="grid gap-[96px] w-full">
 
-<!-- 9. Quote -->
-<section aria-label="Principle" class="py-[120px] md:py-[160px] px-sm md:px-margin max-w-[1200px] mx-auto flex flex-col items-center text-center bg-page-bg">
-<figure class="m-0 flex flex-col items-center">
-<blockquote class="m-0"><p class="font-display text-[40px] md:text-[56px] leading-[1.1] tracking-tight text-text mb-16 text-balance max-w-[1000px] font-normal">“Nothing below is claimed beyond what a test or a measured number shows.”</p></blockquote>
-<figcaption class="flex items-center gap-4">
-<div class="w-14 h-14 rounded-full border border-text flex items-center justify-center shadow-md" aria-hidden="true"><span class="text-text font-bold text-lg leading-none">V</span></div>
-<div class="text-left">
-<p class="font-label text-sm font-bold text-text m-0 mb-1">Veeradimmu Srinivasulu Reddy</p>
-<p class="font-label text-xs text-muted m-0">From the Sift README</p>
+<!-- Hopper -->
+<div id="panel-hopper" role="tabpanel" aria-labelledby="tab-hopper" class="grid gap-[64px] w-full">
+<div>
+<div class="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
+<div><p class="font-label text-label text-muted uppercase tracking-widest mb-4">Hopper · What it does</p>
+<h3 class="font-display text-h2 font-bold tracking-tight text-text max-w-2xl">Everything a production job queue needs, each feature proven by a test.</h3></div>
+<a class="self-start md:self-auto font-label text-sm font-bold border-b border-black text-text pb-1 hover:text-[#FF416C] hover:border-[#FF416C] transition-colors" href="https://github.com/Srinu-design/hopper#features-and-the-test-that-proves-each">See the tests</a>
 </div>
-</figcaption>
-</figure>
-</section>
+<ul class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 list-none m-0 p-0">
+<li class="bg-white-card rounded-[28px] border border-line/40 p-8 shadow-[0_12px_40px_rgba(0,0,0,0.04)]"><span class="w-10 h-10 rounded-full bg-gradient-to-tr from-[#2f55e4] to-[#7a3be0] flex items-center justify-center text-white mb-6"><svg class="ico w-5 h-5" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7.5a4 4 0 0 1 8 0V11"/></svg></span><h4 class="font-h3 text-lg font-bold mb-2 text-text">One worker per job</h4><p class="font-body-md text-muted m-0">Workers claim rows with <code class="font-mono text-[0.85em] bg-panel-bg rounded px-1.5 py-0.5">SKIP LOCKED</code>, so no two ever get the same job.</p></li>
+<li class="bg-white-card rounded-[28px] border border-line/40 p-8 shadow-[0_12px_40px_rgba(0,0,0,0.04)]"><span class="w-10 h-10 rounded-full bg-gradient-to-tr from-[#2f55e4] to-[#7a3be0] flex items-center justify-center text-white mb-6"><svg class="ico w-5 h-5" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.4-5.7L4 8.6"/><path d="M4 4v4.6h4.6"/></svg></span><h4 class="font-h3 text-lg font-bold mb-2 text-text">Crash recovery</h4><p class="font-body-md text-muted m-0">A killed worker's jobs come back when its lease runs out and finish on another.</p></li>
+<li class="bg-white-card rounded-[28px] border border-line/40 p-8 shadow-[0_12px_40px_rgba(0,0,0,0.04)]"><span class="w-10 h-10 rounded-full bg-gradient-to-tr from-[#2f55e4] to-[#7a3be0] flex items-center justify-center text-white mb-6"><svg class="ico w-5 h-5" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 5 6v5c0 4.5 3 8.3 7 10 4-1.7 7-5.5 7-10V6z"/><path d="m9 12 2 2 4-4"/></svg></span><h4 class="font-h3 text-lg font-bold mb-2 text-text">Fencing tokens</h4><p class="font-body-md text-muted m-0">A worker that was paused too long can't overwrite the newer run.</p></li>
+<li class="bg-white-card rounded-[28px] border border-line/40 p-8 shadow-[0_12px_40px_rgba(0,0,0,0.04)]"><span class="w-10 h-10 rounded-full bg-gradient-to-tr from-[#2f55e4] to-[#7a3be0] flex items-center justify-center text-white mb-6"><svg class="ico w-5 h-5" viewBox="0 0 24 24" aria-hidden="true"><path d="m17 2 3 3-3 3"/><path d="M4 11V9a4 4 0 0 1 4-4h12"/><path d="m7 22-3-3 3-3"/><path d="M20 13v2a4 4 0 0 1-4 4H4"/></svg></span><h4 class="font-h3 text-lg font-bold mb-2 text-text">Retries with backoff</h4><p class="font-body-md text-muted m-0">Full-jitter exponential backoff, with limits set per task.</p></li>
+<li class="bg-white-card rounded-[28px] border border-line/40 p-8 shadow-[0_12px_40px_rgba(0,0,0,0.04)]"><span class="w-10 h-10 rounded-full bg-gradient-to-tr from-[#2f55e4] to-[#7a3be0] flex items-center justify-center text-white mb-6"><svg class="ico w-5 h-5" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 13h5l1.5 3h5l1.5-3h5"/><path d="M5.5 5h13L21 13v6H3v-6z"/></svg></span><h4 class="font-h3 text-lg font-bold mb-2 text-text">Dead-letter queue</h4><p class="font-body-md text-muted m-0">Jobs that keep failing are parked with their history, and can be replayed.</p></li>
+<li class="bg-white-card rounded-[28px] border border-line/40 p-8 shadow-[0_12px_40px_rgba(0,0,0,0.04)]"><span class="w-10 h-10 rounded-full bg-gradient-to-tr from-[#2f55e4] to-[#7a3be0] flex items-center justify-center text-white mb-6"><svg class="ico w-5 h-5" viewBox="0 0 24 24" aria-hidden="true"><circle cx="8" cy="15" r="4"/><path d="m11 12 9-9M17 6l3 3M14.5 8.5l2 2"/></svg></span><h4 class="font-h3 text-lg font-bold mb-2 text-text">Idempotency keys</h4><p class="font-body-md text-muted m-0">A retried request returns the same job instead of creating a second one.</p></li>
+<li class="bg-white-card rounded-[28px] border border-line/40 p-8 shadow-[0_12px_40px_rgba(0,0,0,0.04)]"><span class="w-10 h-10 rounded-full bg-gradient-to-tr from-[#2f55e4] to-[#7a3be0] flex items-center justify-center text-white mb-6"><svg class="ico w-5 h-5" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg></span><h4 class="font-h3 text-lg font-bold mb-2 text-text">Delayed and cron jobs</h4><p class="font-body-md text-muted m-0">Run later, at a set time, or on a schedule. Two schedulers, never a double fire.</p></li>
+<li class="bg-white-card rounded-[28px] border border-line/40 p-8 shadow-[0_12px_40px_rgba(0,0,0,0.04)]"><span class="w-10 h-10 rounded-full bg-gradient-to-tr from-[#2f55e4] to-[#7a3be0] flex items-center justify-center text-white mb-6"><svg class="ico w-5 h-5" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M3 20a6 6 0 0 1 12 0"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18 14.5a6 6 0 0 1 3 5.5"/></svg></span><h4 class="font-h3 text-lg font-bold mb-2 text-text">Many tenants</h4><p class="font-body-md text-muted m-0">Each tenant sees only its own jobs and has its own rate limit and queue quota.</p></li>
+<li class="bg-white-card rounded-[28px] border border-line/40 p-8 shadow-[0_12px_40px_rgba(0,0,0,0.04)]"><span class="w-10 h-10 rounded-full bg-gradient-to-tr from-[#2f55e4] to-[#7a3be0] flex items-center justify-center text-white mb-6"><svg class="ico w-5 h-5" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 18a8 8 0 1 1 16 0"/><path d="m12 18 3.5-5.5"/></svg></span><h4 class="font-h3 text-lg font-bold mb-2 text-text">Backpressure</h4><p class="font-body-md text-muted m-0">Over the limits, the API answers 429 or 503 with <code class="font-mono text-[0.85em] bg-panel-bg rounded px-1.5 py-0.5">Retry-After</code> instead of falling over.</p></li>
+<li class="bg-white-card rounded-[28px] border border-line/40 p-8 shadow-[0_12px_40px_rgba(0,0,0,0.04)]"><span class="w-10 h-10 rounded-full bg-gradient-to-tr from-[#2f55e4] to-[#7a3be0] flex items-center justify-center text-white mb-6"><svg class="ico w-5 h-5" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg></span><h4 class="font-h3 text-lg font-bold mb-2 text-text">Webhook jobs</h4><p class="font-body-md text-muted m-0">The <code class="font-mono text-[0.85em] bg-panel-bg rounded px-1.5 py-0.5">http</code> task calls your URL, signed, with an SSRF guard.</p></li>
+<li class="bg-white-card rounded-[28px] border border-line/40 p-8 shadow-[0_12px_40px_rgba(0,0,0,0.04)]"><span class="w-10 h-10 rounded-full bg-gradient-to-tr from-[#2f55e4] to-[#7a3be0] flex items-center justify-center text-white mb-6"><svg class="ico w-5 h-5" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h16"/><path d="m5 15 4-5 4 3 6-7"/></svg></span><h4 class="font-h3 text-lg font-bold mb-2 text-text">Metrics and alerts</h4><p class="font-body-md text-muted m-0">Prometheus metrics from every process, five alerts and a dashboard.</p></li>
+<li class="bg-white-card rounded-[28px] border border-line/40 p-8 shadow-[0_12px_40px_rgba(0,0,0,0.04)]"><span class="w-10 h-10 rounded-full bg-gradient-to-tr from-[#2f55e4] to-[#7a3be0] flex items-center justify-center text-white mb-6"><svg class="ico w-5 h-5" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V4M7.5 8.5 12 4l4.5 4.5"/><path d="M4 15v4a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-4"/></svg></span><h4 class="font-h3 text-lg font-bold mb-2 text-text">Safe deploys</h4><p class="font-body-md text-muted m-0">Every merge deploys itself; a bad release rolls back with no one involved.</p></li>
+</ul>
+</div>
 
-<!-- 10. Milestones -->
-<section aria-labelledby="milestones-title" class="py-[80px] md:py-[120px] px-sm md:px-margin max-w-[1728px] mx-auto bg-page-bg">
-<div class="flex justify-between items-end gap-4 mb-12">
-<div><p class="font-label text-label text-muted uppercase tracking-widest mb-6">Engineering log</p>
-<h2 id="milestones-title" class="font-display text-h2 font-bold tracking-tight text-text">Recent milestones</h2></div>
-<a class="font-label text-sm font-bold border-b border-black text-text pb-1 hover:text-[#FF416C] hover:border-[#FF416C] transition-colors" href="https://github.com/Srinu-design">All repositories</a>
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+<div class="bg-gradient-to-br from-soft-card-2 to-soft-card rounded-[32px] md:rounded-[40px] p-8 md:p-12 border border-line/30">
+<p class="font-label text-label text-muted uppercase tracking-widest mb-4">Architecture</p>
+<h3 class="font-display text-h2 font-bold tracking-tight text-text mb-4">One image runs every role.</h3>
+<p class="font-body-md text-muted mb-8">Caddy is the only public entry point. The API, workers and schedulers keep no state of their own: PostgreSQL holds every job, and Redis holds only rate-limit buckets and a cached queue depth, so losing Redis loses no job.</p>
+<ol class="list-none m-0 p-0 divide-y divide-line">
+<li class="py-5 grid grid-cols-[88px_1fr] gap-6"><span class="font-label text-[11px] font-bold uppercase tracking-wider text-muted pt-1">01 · Entry</span><div><p class="font-body-md font-bold text-text m-0">Caddy</p><p class="font-body-md text-muted m-0">The only public port. Checks both API replicas every 2 s.</p></div></li>
+<li class="py-5 grid grid-cols-[88px_1fr] gap-6"><span class="font-label text-[11px] font-bold uppercase tracking-wider text-muted pt-1">02 · API</span><div><p class="font-body-md font-bold text-text m-0">API × 2</p><p class="font-body-md text-muted m-0">Checks the key, the rate limit and the queue depth, then writes the job row.</p></div></li>
+<li class="py-5 grid grid-cols-[88px_1fr] gap-6"><span class="font-label text-[11px] font-bold uppercase tracking-wider text-muted pt-1">03 · State</span><div class="grid gap-3"><div><p class="font-body-md font-bold text-text m-0">PostgreSQL 16</p><p class="font-body-md text-muted m-0">Every job. The queue and the source of truth.</p></div><div><p class="font-body-md font-bold text-text m-0">Redis 7</p><p class="font-body-md text-muted m-0">Rate-limit buckets and a cached queue depth, nothing else.</p></div></div></li>
+<li class="py-5 grid grid-cols-[88px_1fr] gap-6"><span class="font-label text-[11px] font-bold uppercase tracking-wider text-muted pt-1">04 · Work</span><div class="grid gap-3"><div><p class="font-body-md font-bold text-text m-0">Workers × 3</p><p class="font-body-md text-muted m-0">Claim with <code class="font-mono text-[0.85em] bg-white rounded px-1.5 py-0.5">SKIP LOCKED</code>, renew leases, ack or nack.</p></div><div><p class="font-body-md font-bold text-text m-0">Schedulers × 2</p><p class="font-body-md text-muted m-0">Cron, the lease reaper, queue depth and cleanup.</p></div></div></li>
+</ol>
 </div>
-<div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-<a class="group block" href="https://github.com/Srinu-design/sift/blob/main/docs/deploy.md">
-<div class="w-full h-[300px] md:h-[450px] rounded-[40px] mb-6 overflow-hidden shadow-xl border border-white/20 art-emerald"></div>
-<p class="font-label text-xs text-muted mb-3">Sift · Oct 2026</p>
-<h3 class="font-h3 text-xl font-bold text-text">Sift now deploys itself from CI</h3>
-<p class="font-body-md text-muted mt-2">Every push to main that passes CI ships to the server. A release that fails its retrieval smoke test is rolled back on its own: 72 s in the drill.</p>
-<span class="inline-block mt-4 font-label text-sm font-bold border-b border-black text-text pb-1 group-hover:text-[#FF416C] group-hover:border-[#FF416C] transition-colors">Deploy notes</span>
-</a>
-<a class="group block" href="https://github.com/Srinu-design/sift/blob/main/docs/ci-gate-demo.md">
-<div class="w-full h-[300px] md:h-[450px] rounded-[40px] mb-6 overflow-hidden shadow-xl border border-white/20 art-sunset"></div>
-<p class="font-label text-xs text-muted mb-3">Sift · Oct 2026</p>
-<h3 class="font-h3 text-xl font-bold text-text">The eval gate blocked a deliberately bad PR</h3>
-<p class="font-body-md text-muted mt-2">Reranking only the top 10 raised hit@5 but lost hit@8 and recall@10 on the dev split. The gate failed the build, and the PR was closed unmerged.</p>
-<span class="inline-block mt-4 font-label text-sm font-bold border-b border-black text-text pb-1 group-hover:text-[#FF416C] group-hover:border-[#FF416C] transition-colors">The gate's output</span>
-</a>
-<a class="group block" href="https://github.com/Srinu-design/hopper/blob/main/docs/benchmarks.md">
-<div class="w-full h-[300px] md:h-[450px] rounded-[40px] mb-6 overflow-hidden shadow-xl border border-white/20 art-aura"></div>
-<p class="font-label text-xs text-muted mb-3">Hopper · Oct 2026</p>
-<h3 class="font-h3 text-xl font-bold text-text">Chaos test: 10,000 jobs, 38 workers killed, 0 lost</h3>
-<p class="font-body-md text-muted mt-2">Workers were killed at random on the EC2 server while the jobs ran. Every job finished; 9 ran twice, which at-least-once delivery allows.</p>
-<span class="inline-block mt-4 font-label text-sm font-bold border-b border-black text-text pb-1 group-hover:text-[#FF416C] group-hover:border-[#FF416C] transition-colors">Raw data</span>
-</a>
+<div class="bg-white-card rounded-[32px] md:rounded-[40px] p-8 md:p-12 border border-line/30 shadow-xl">
+<p class="font-label text-label text-muted uppercase tracking-widest mb-4">Benchmarks and drills</p>
+<h3 class="font-display text-h2 font-bold tracking-tight text-text mb-8">Measured, not claimed.</h3>
+<dl class="m-0 divide-y divide-line">
+<div class="py-5 grid sm:grid-cols-[180px_1fr_auto] gap-2 sm:gap-6"><dt class="font-body-md font-bold text-text">Enqueue throughput</dt><dd class="font-body-md text-muted m-0">600 req/s held in all 3 runs (p95 126 ms); asked for 1,000, the API took about 700 req/s</dd><dd class="font-label text-[11px] font-bold uppercase tracking-wider text-muted m-0">Laptop</dd></div>
+<div class="py-5 grid sm:grid-cols-[180px_1fr_auto] gap-2 sm:gap-6"><dt class="font-body-md font-bold text-text">Drain throughput</dt><dd class="font-body-md text-muted m-0">2,773 jobs/s with 8 workers (100,000 jobs in 36 s)</dd><dd class="font-label text-[11px] font-bold uppercase tracking-wider text-muted m-0">Laptop</dd></div>
+<div class="py-5 grid sm:grid-cols-[180px_1fr_auto] gap-2 sm:gap-6"><dt class="font-body-md font-bold text-text">Steady load</dt><dd class="font-body-md text-muted m-0">300 jobs/s for 10 minutes: API p95 20 ms, enqueue to done p95 254 ms, 0 errors</dd><dd class="font-label text-[11px] font-bold uppercase tracking-wider text-muted m-0">Laptop</dd></div>
+<div class="py-5 grid sm:grid-cols-[180px_1fr_auto] gap-2 sm:gap-6"><dt class="font-body-md font-bold text-text">Chaos test</dt><dd class="font-body-md text-muted m-0">10,000 jobs, 38 workers killed, 0 lost, 9 duplicate runs, all harmless</dd><dd class="font-label text-[11px] font-bold uppercase tracking-wider text-muted m-0">EC2</dd></div>
+<div class="py-5 grid sm:grid-cols-[180px_1fr_auto] gap-2 sm:gap-6"><dt class="font-body-md font-bold text-text">Negative control</dt><dd class="font-body-md text-muted m-0">Workers that ack before running lost 69 jobs, and the checks caught every one: the test can see a loss</dd><dd class="font-label text-[11px] font-bold uppercase tracking-wider text-muted m-0">EC2</dd></div>
+<div class="py-5 grid sm:grid-cols-[180px_1fr_auto] gap-2 sm:gap-6"><dt class="font-body-md font-bold text-text">Rollback drill</dt><dd class="font-body-md text-muted m-0">A broken release caught after 42 s; the old one serving again after 79 s</dd><dd class="font-label text-[11px] font-bold uppercase tracking-wider text-muted m-0">EC2</dd></div>
+</dl>
+<a class="inline-block mt-8 font-label text-sm font-bold border-b border-black text-text pb-1 hover:text-[#FF416C] hover:border-[#FF416C] transition-colors" href="https://github.com/Srinu-design/hopper/blob/main/docs/benchmarks.md">All numbers and raw data</a>
 </div>
-</section>
+</div>
 
-<!-- 11. Call to action -->
-<section aria-labelledby="cta-title" class="py-section px-sm md:px-margin">
-<div class="max-w-screen-xl mx-auto flex flex-col items-center text-center">
-<div class="w-12 h-12 rounded-full border border-text flex items-center justify-center mb-12" aria-hidden="true"><span class="text-text font-bold text-xl leading-none">V</span></div>
-<h2 id="cta-title" class="font-display text-[56px] md:text-[80px] font-bold text-text tracking-tighter leading-[1.05] mb-8 max-w-4xl text-balance">See them running live</h2>
-<p class="font-body-lg text-body-lg text-muted max-w-xl mb-12">Hopper's console takes a demo API key. Sift answers from the PostgreSQL manuals. The dashboard is public and read-only.</p>
-<div class="flex flex-col sm:flex-row gap-6">
-<a href="/hopper/" class="bg-black text-white font-label rounded-full hover:bg-text/80 transition-all duration-300 shrink-0 flex items-center justify-center px-6 text-[10px] h-[40px] font-bold uppercase tracking-wider">Open Hopper</a>
-<a href="/sift/" class="bg-transparent border border-text/30 text-text font-label rounded-full hover:bg-text hover:text-white transition-all duration-300 shrink-0 flex items-center justify-center px-6 text-[10px] h-[40px] font-bold uppercase tracking-wider">Open Sift</a>
+<div class="bg-white-card rounded-[32px] md:rounded-[40px] p-8 md:p-12 border border-line/30">
+<div class="grid lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] gap-8 lg:gap-16">
+<div><p class="font-label text-label text-muted uppercase tracking-widest mb-4">Reliability</p>
+<h3 class="font-display text-h2 font-bold tracking-tight text-text mb-4">When things break.</h3>
+<p class="font-body-md text-muted m-0">Delivery is at least once: if a worker dies at the wrong moment, a job can run twice, but an accepted job is never lost. Exactly-once is impossible when workers can crash, so handlers are written to be safe to repeat.</p></div>
+<dl class="m-0 divide-y divide-line">
+<div class="py-5 grid sm:grid-cols-[150px_1fr_auto] gap-2 sm:gap-6 sm:items-center"><dt class="font-body-md font-bold text-text">A worker</dt><dd class="font-body-md text-muted m-0">Its jobs come back when the lease runs out (about 35 s) and run on another worker.</dd><dd class="m-0"><span class="font-label text-[11px] font-bold text-[#05603a] bg-[#dcf4e8] rounded-full px-2.5 py-1 whitespace-nowrap">No</span></dd></div>
+<div class="py-5 grid sm:grid-cols-[150px_1fr_auto] gap-2 sm:gap-6 sm:items-center"><dt class="font-body-md font-bold text-text">All workers</dt><dd class="font-body-md text-muted m-0">Jobs wait in the queue; an alert fires after a minute.</dd><dd class="m-0"><span class="font-label text-[11px] font-bold text-[#05603a] bg-[#dcf4e8] rounded-full px-2.5 py-1 whitespace-nowrap">No</span></dd></div>
+<div class="py-5 grid sm:grid-cols-[150px_1fr_auto] gap-2 sm:gap-6 sm:items-center"><dt class="font-body-md font-bold text-text">Redis</dt><dd class="font-body-md text-muted m-0">Rate limits fall back to each API process. <code class="font-mono text-[0.85em] bg-panel-bg rounded px-1.5 py-0.5">/readyz</code> says <code class="font-mono text-[0.85em] bg-panel-bg rounded px-1.5 py-0.5">degraded</code>.</dd><dd class="m-0"><span class="font-label text-[11px] font-bold text-[#05603a] bg-[#dcf4e8] rounded-full px-2.5 py-1 whitespace-nowrap">No</span></dd></div>
+<div class="py-5 grid sm:grid-cols-[150px_1fr_auto] gap-2 sm:gap-6 sm:items-center"><dt class="font-body-md font-bold text-text">PostgreSQL</dt><dd class="font-body-md text-muted m-0">The API answers <code class="font-mono text-[0.85em] bg-panel-bg rounded px-1.5 py-0.5">503</code> with <code class="font-mono text-[0.85em] bg-panel-bg rounded px-1.5 py-0.5">Retry-After: 5</code>; workers keep retrying their claim.</dd><dd class="m-0"><span class="font-label text-[11px] font-bold text-[#05603a] bg-[#dcf4e8] rounded-full px-2.5 py-1 whitespace-nowrap">No committed job</span></dd></div>
+<div class="py-5 grid sm:grid-cols-[150px_1fr_auto] gap-2 sm:gap-6 sm:items-center"><dt class="font-body-md font-bold text-text">A client retries</dt><dd class="font-body-md text-muted m-0">The same <code class="font-mono text-[0.85em] bg-panel-bg rounded px-1.5 py-0.5">Idempotency-Key</code> returns the same job instead of making a second one.</dd><dd class="m-0"><span class="font-label text-[11px] font-bold text-[#05603a] bg-[#dcf4e8] rounded-full px-2.5 py-1 whitespace-nowrap">No duplicates</span></dd></div>
+<div class="py-5 grid sm:grid-cols-[150px_1fr_auto] gap-2 sm:gap-6 sm:items-center"><dt class="font-body-md font-bold text-text">A bad release</dt><dd class="font-body-md text-muted m-0">The smoke test fails and the old release comes back by itself, serving again after 79 s.</dd><dd class="m-0"><span class="font-label text-[11px] font-bold text-[#05603a] bg-[#dcf4e8] rounded-full px-2.5 py-1 whitespace-nowrap">No</span></dd></div>
+<div class="py-5 grid sm:grid-cols-[150px_1fr_auto] gap-2 sm:gap-6 sm:items-center"><dt class="font-body-md font-bold text-text">The EC2 host</dt><dd class="font-body-md text-muted m-0">Everything is down until it is back. Data is on its disk, so a restart keeps it.</dd><dd class="m-0"><span class="font-label text-[11px] font-bold text-[#7a4300] bg-[#fff0d4] rounded-full px-2.5 py-1 whitespace-nowrap">Only if the disk is lost</span></dd></div>
+</dl>
 </div>
+</div>
+
+<div class="flex flex-col sm:flex-row justify-center gap-6">
+<a href="/hopper/" class="bg-black text-white font-label rounded-full hover:bg-text/80 transition-all duration-300 flex items-center justify-center px-6 text-[10px] h-[40px] font-bold uppercase tracking-wider">Open Hopper</a>
+<a href="https://github.com/Srinu-design/hopper/blob/main/docs/design.md" class="bg-transparent border border-text/30 text-text font-label rounded-full hover:bg-text hover:text-white transition-all duration-300 flex items-center justify-center px-6 text-[10px] h-[40px] font-bold uppercase tracking-wider">Read the design doc</a>
+</div>
+</div>
+
+<!-- Sift -->
+<div id="panel-sift" role="tabpanel" aria-labelledby="tab-sift" class="grid gap-[64px] w-full">
+<div>
+<div class="mb-12"><p class="font-label text-label text-muted uppercase tracking-widest mb-4">Sift · What it does</p>
+<h3 class="font-display text-h2 font-bold tracking-tight text-text max-w-3xl">Question answering over your documents that cites the section behind every claim, refuses when the evidence is missing, and proves every retrieval change with a measured eval.</h3></div>
+<ul class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 list-none m-0 p-0">
+<li class="bg-white-card rounded-[28px] border border-line/40 p-8 shadow-[0_12px_40px_rgba(0,0,0,0.04)]"><span class="w-10 h-10 rounded-full bg-gradient-to-tr from-[#047857] to-[#0e7490] flex items-center justify-center text-white mb-6"><svg class="ico w-5 h-5" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4M9 12h6M9 16h4"/></svg></span><h4 class="font-h3 text-lg font-bold mb-2 text-text">Cites every claim</h4><p class="font-body-md text-muted m-0">Every sentence of an answer cites a numbered source with its section or page, and code rejects any citation that does not point to a retrieved chunk.</p></li>
+<li class="bg-white-card rounded-[28px] border border-line/40 p-8 shadow-[0_12px_40px_rgba(0,0,0,0.04)]"><span class="w-10 h-10 rounded-full bg-gradient-to-tr from-[#047857] to-[#0e7490] flex items-center justify-center text-white mb-6"><svg class="ico w-5 h-5" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="m6 6 12 12"/></svg></span><h4 class="font-h3 text-lg font-bold mb-2 text-text">Refuses without evidence</h4><p class="font-body-md text-muted m-0">Two gates: a low rerank score refuses before any model call, and the model itself may refuse. Refusal precision and recall are measured.</p></li>
+<li class="bg-white-card rounded-[28px] border border-line/40 p-8 shadow-[0_12px_40px_rgba(0,0,0,0.04)]"><span class="w-10 h-10 rounded-full bg-gradient-to-tr from-[#047857] to-[#0e7490] flex items-center justify-center text-white mb-6"><svg class="ico w-5 h-5" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h16"/><path d="M7 16v-4M12 16V8M17 16V5"/></svg></span><h4 class="font-h3 text-lg font-bold mb-2 text-text">Measured</h4><p class="font-body-md text-muted m-0">A versioned golden set of 141 questions. CI runs the retrieval eval on every pull request and fails the build on a regression.</p></li>
+<li class="bg-white-card rounded-[28px] border border-line/40 p-8 shadow-[0_12px_40px_rgba(0,0,0,0.04)]"><span class="w-10 h-10 rounded-full bg-gradient-to-tr from-[#047857] to-[#0e7490] flex items-center justify-center text-white mb-6"><svg class="ico w-5 h-5" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M3 20a6 6 0 0 1 12 0"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18 14.5a6 6 0 0 1 3 5.5"/></svg></span><h4 class="font-h3 text-lg font-bold mb-2 text-text">Multi-tenant</h4><p class="font-body-md text-muted m-0">Each customer sees only its own documents: tenant filters plus row-level security in Postgres, with tests for chunks, answers and cache entries.</p></li>
+<li class="bg-white-card rounded-[28px] border border-line/40 p-8 shadow-[0_12px_40px_rgba(0,0,0,0.04)]"><span class="w-10 h-10 rounded-full bg-gradient-to-tr from-[#047857] to-[#0e7490] flex items-center justify-center text-white mb-6"><svg class="ico w-5 h-5" viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 9 5-9 5-9-5z"/><path d="m3 13 9 5 9-5"/></svg></span><h4 class="font-h3 text-lg font-bold mb-2 text-text">Ingestion on Hopper</h4><p class="font-body-md text-muted m-0">Parse, embed and activate run as Hopper jobs, with retries, a dead-letter queue and replay.</p></li>
+</ul>
+</div>
+
+<div class="bg-white-card rounded-[32px] md:rounded-[40px] p-8 md:p-12 border border-line/30 shadow-xl">
+<p class="font-label text-label text-muted uppercase tracking-widest mb-4">Empirical validation</p>
+<h3 class="font-display text-h2 font-bold tracking-tight text-text mb-4">Results on the held-out test split.</h3>
+<p class="font-body-md text-muted mb-10 max-w-3xl">Run once, at the end: 37 PostgreSQL questions never used for any choice (31 answerable, 6 unanswerable), plus 6 SEBI questions.</p>
+<dl class="grid grid-cols-2 lg:grid-cols-4 gap-4 m-0 mb-10">
+<div class="bg-soft-card-2 rounded-[24px] p-6"><dt class="font-label text-[11px] font-bold uppercase tracking-wider text-muted mb-3">Retrieval hit@5</dt><dd class="font-display text-[44px] font-bold tracking-tight text-text leading-none m-0">0.968</dd><dd class="font-label text-xs text-muted m-0 mt-3">hybrid_rerank</dd></div>
+<div class="bg-soft-card-2 rounded-[24px] p-6"><dt class="font-label text-[11px] font-bold uppercase tracking-wider text-muted mb-3">Faithfulness</dt><dd class="font-display text-[44px] font-bold tracking-tight text-text leading-none m-0">1.000</dd><dd class="font-label text-xs text-muted m-0 mt-3">LLM judge</dd></div>
+<div class="bg-soft-card-2 rounded-[24px] p-6"><dt class="font-label text-[11px] font-bold uppercase tracking-wider text-muted mb-3">Gold citations</dt><dd class="font-display text-[44px] font-bold tracking-tight text-text leading-none m-0">83%</dd><dd class="font-label text-xs text-muted m-0 mt-3">of answers cite a gold section</dd></div>
+<div class="bg-soft-card-2 rounded-[24px] p-6"><dt class="font-label text-[11px] font-bold uppercase tracking-wider text-muted mb-3 flex flex-wrap items-center gap-2">Correctness <span class="normal-case tracking-normal text-[#7a4300] bg-[#fff0d4] rounded-full px-2 py-0.5">Not yet trusted</span></dt><dd class="font-display text-[44px] font-bold tracking-tight text-text leading-none m-0">0.897</dd><dd class="font-label text-xs text-muted m-0 mt-3">LLM judge, kappa 0.489</dd></div>
+</dl>
+<dl class="m-0 divide-y divide-line">
+<div class="py-4 grid sm:grid-cols-[240px_1fr] gap-2 sm:gap-6"><dt class="font-body-md font-bold text-text">Retrieval, <code class="font-mono text-[0.85em] bg-panel-bg rounded px-1.5 py-0.5">hybrid_rerank</code></dt><dd class="font-body-md text-muted m-0"><strong class="text-text">hit@5 0.968</strong> [0.90, 1.00], MRR@10 0.744 (dense-only: hit@5 0.839, MRR 0.681)</dd></div>
+<div class="py-4 grid sm:grid-cols-[240px_1fr] gap-2 sm:gap-6"><dt class="font-body-md font-bold text-text">Refusals</dt><dd class="font-body-md text-muted m-0"><strong class="text-text">6 of 6 unanswerable refused</strong>; 2 of 31 answerable wrongly refused (6.5%)</dd></div>
+<div class="py-4 grid sm:grid-cols-[240px_1fr] gap-2 sm:gap-6"><dt class="font-body-md font-bold text-text">Citations</dt><dd class="font-body-md text-muted m-0">83% of answers cite a gold section; every citation checked in code</dd></div>
+<div class="py-4 grid sm:grid-cols-[240px_1fr] gap-2 sm:gap-6"><dt class="font-body-md font-bold text-text">Faithfulness (LLM judge)</dt><dd class="font-body-md text-muted m-0">1.000; the judge caught 5 of 5 planted false claims</dd></div>
+<div class="py-4 grid sm:grid-cols-[240px_1fr] gap-2 sm:gap-6"><dt class="font-body-md font-bold text-text">Correctness (LLM judge)</dt><dd class="font-body-md text-muted m-0">0.897, <span class="font-label text-[11px] font-bold text-[#7a4300] bg-[#fff0d4] rounded-full px-2 py-0.5">not yet trusted</span> (kappa 0.489 against 40 hand labels, ADR-0010)</dd></div>
+<div class="py-4 grid sm:grid-cols-[240px_1fr] gap-2 sm:gap-6"><dt class="font-body-md font-bold text-text">Tenant B (SEBI PDFs)</dt><dd class="font-body-md text-muted m-0">5 of 5 answered with a page citation, 1 of 1 refused, prompt injection resisted</dd></div>
+<div class="py-4 grid sm:grid-cols-[240px_1fr] gap-2 sm:gap-6"><dt class="font-body-md font-bold text-text">Load (stub LLM, laptop CPU)</dt><dd class="font-body-md text-muted m-0">0.5 req/s under 3 s p95 uncached, 1 req/s with the answer cache; the reranker saturates first</dd></div>
+<div class="py-4 grid sm:grid-cols-[240px_1fr] gap-2 sm:gap-6"><dt class="font-body-md font-bold text-text">CI</dt><dd class="font-body-md text-muted m-0">The retrieval gate blocked a deliberately bad PR</dd></div>
+<div class="py-4 grid sm:grid-cols-[240px_1fr] gap-2 sm:gap-6"><dt class="font-body-md font-bold text-text">Deploy</dt><dd class="font-body-md text-muted m-0">On EC2 next to Hopper; a broken release caught by the retrieval smoke test and rolled back in 72 s</dd></div>
+</dl>
+<p class="font-label text-xs text-muted mt-6 mb-0">The golden set is drafted, not yet human-verified.</p>
+</div>
+
+<div class="bg-gradient-to-tr from-[#E0EAFC] to-[#CFDEF3] rounded-[32px] md:rounded-[40px] p-8 md:p-12 border border-line/30">
+<p class="font-label text-label text-muted uppercase tracking-widest mb-4">How it works</p>
+<h3 class="font-display text-h2 font-bold tracking-tight text-text mb-10">The query path.</h3>
+<ol class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 list-none m-0 p-0">
+<li class="bg-white/80 backdrop-blur-xl rounded-[24px] border border-white/50 p-6 shadow-sm"><span class="inline-flex w-9 h-9 rounded-full bg-black text-page-bg items-center justify-center font-label text-xs font-bold mb-4">01</span><h4 class="font-h3 text-lg font-bold mb-2 text-text">Auth and tenancy</h4><p class="font-body-md text-muted m-0">The tenant comes from the API key, never the request; every transaction is scoped to it, and row-level security is the second layer.</p></li>
+<li class="bg-white/80 backdrop-blur-xl rounded-[24px] border border-white/50 p-6 shadow-sm"><span class="inline-flex w-9 h-9 rounded-full bg-black text-page-bg items-center justify-center font-label text-xs font-bold mb-4">02</span><h4 class="font-h3 text-lg font-bold mb-2 text-text">Answer cache</h4><p class="font-body-md text-muted m-0">Keyed by tenant, collection, index version, strategy, filters, prompt version, model and the normalised question.</p></li>
+<li class="bg-white/80 backdrop-blur-xl rounded-[24px] border border-white/50 p-6 shadow-sm"><span class="inline-flex w-9 h-9 rounded-full bg-black text-page-bg items-center justify-center font-label text-xs font-bold mb-4">03</span><h4 class="font-h3 text-lg font-bold mb-2 text-text">Dense and lexical search</h4><p class="font-body-md text-muted m-0"><strong class="text-text">Dense</strong> top 50, pgvector HNSW; <strong class="text-text">lexical</strong> top 50, Postgres full-text. Both run concurrently, with metadata filters inside both.</p></li>
+<li class="bg-white/80 backdrop-blur-xl rounded-[24px] border border-white/50 p-6 shadow-sm"><span class="inline-flex w-9 h-9 rounded-full bg-black text-page-bg items-center justify-center font-label text-xs font-bold mb-4">04</span><h4 class="font-h3 text-lg font-bold mb-2 text-text">Fusion</h4><p class="font-body-md text-muted m-0">Reciprocal-rank fusion with k = 60 merges the two lists.</p></li>
+<li class="bg-white/80 backdrop-blur-xl rounded-[24px] border border-white/50 p-6 shadow-sm"><span class="inline-flex w-9 h-9 rounded-full bg-black text-page-bg items-center justify-center font-label text-xs font-bold mb-4">05</span><h4 class="font-h3 text-lg font-bold mb-2 text-text">Rerank</h4><p class="font-body-md text-muted m-0">A cross-encoder rescores the fused top 30; the top 8 go to the model.</p></li>
+<li class="bg-white/80 backdrop-blur-xl rounded-[24px] border border-white/50 p-6 shadow-sm"><span class="inline-flex w-9 h-9 rounded-full bg-black text-page-bg items-center justify-center font-label text-xs font-bold mb-4">06</span><h4 class="font-h3 text-lg font-bold mb-2 text-text">Gate 1</h4><p class="font-body-md text-muted m-0">If the best rerank score is below τ = 0.19, Sift refuses without calling the model.</p></li>
+<li class="bg-white/80 backdrop-blur-xl rounded-[24px] border border-white/50 p-6 shadow-sm"><span class="inline-flex w-9 h-9 rounded-full bg-black text-page-bg items-center justify-center font-label text-xs font-bold mb-4">07</span><h4 class="font-h3 text-lg font-bold mb-2 text-text">Answer and check</h4><p class="font-body-md text-muted m-0">The model returns JSON with <code class="font-mono text-[0.85em] bg-panel-bg rounded px-1.5 py-0.5">[S#]</code> markers and short quotes; code checks every id, every quote, and that every sentence cites. One retry, then refusal.</p></li>
+<li class="bg-white/80 backdrop-blur-xl rounded-[24px] border border-white/50 p-6 shadow-sm"><span class="inline-flex w-9 h-9 rounded-full bg-black text-page-bg items-center justify-center font-label text-xs font-bold mb-4">08</span><h4 class="font-h3 text-lg font-bold mb-2 text-text">Gate 2</h4><p class="font-body-md text-muted m-0">The model may refuse itself. The query is logged with timings per stage, tokens, cost and the gate.</p></li>
+</ol>
+</div>
+
+<div class="flex flex-col sm:flex-row justify-center gap-6">
+<a href="/sift/" class="bg-black text-white font-label rounded-full hover:bg-text/80 transition-all duration-300 flex items-center justify-center px-6 text-[10px] h-[40px] font-bold uppercase tracking-wider">Open Sift</a>
+<a href="https://github.com/Srinu-design/sift/blob/main/docs/eval-report.md" class="bg-transparent border border-text/30 text-text font-label rounded-full hover:bg-text hover:text-white transition-all duration-300 flex items-center justify-center px-6 text-[10px] h-[40px] font-bold uppercase tracking-wider">Read the eval report</a>
+</div>
+</div>
+
 </div>
 </section>
 </main>
