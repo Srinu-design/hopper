@@ -154,7 +154,7 @@
 <line x1="2" x2="98" y1="50" y2="50"></line><line x1="50" x2="50" y1="2" y2="98"></line>
 </svg>
 </div>
-<p class="font-display text-[28px] md:text-[49px] leading-[1.1] text-balance tracking-tight text-text relative z-10 max-w-[1000px] font-light">Two projects on one server. Hopper runs background jobs on PostgreSQL and never loses one. Sift answers questions from documents, cites the section behind every claim, and refuses when the evidence is missing.</p>
+<p class="font-display text-[28px] md:text-[49px] leading-[1.1] text-balance tracking-tight text-text relative z-10 max-w-[1000px] font-light">Two projects on one server. Hopper runs background jobs on PostgreSQL and never loses one. Sift answers questions from documents, cites the section behind every claim, and refuses when the evidence is missing. Sift's ingestion runs on Hopper.</p>
 </section>
 
 <!-- 6. Hopper -->
@@ -164,14 +164,16 @@
 <div class="w-full max-w-md bg-white-card rounded-2xl shadow-xl border border-line/20 p-6" aria-hidden="true">
 <div class="flex items-center justify-between mb-8">
 <span class="font-label font-bold text-sm text-text">hopper · jobs</span>
-<svg class="ico w-5 h-5 text-muted" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></svg>
+<span class="flex items-center gap-1.5 font-label text-[11px] font-bold text-[#05603a] bg-[#dcf4e8] rounded-full px-2.5 py-1"><span class="w-1.5 h-1.5 rounded-full bg-[#10b981]"></span>live</span>
 </div>
+<div class="flex items-center gap-4 px-3 pb-3 mb-1 border-b border-line/60 font-label text-[10px] font-bold uppercase tracking-wider text-muted"><span class="w-3"></span><span>Task</span><span class="ml-auto">Status · attempts</span></div>
 <div class="space-y-4">
 <div class="flex items-center gap-4 p-3 hover:bg-soft-card rounded-xl transition-colors"><span class="w-3 h-3 rounded-full bg-[#F27121]"></span><span class="font-body-md font-medium text-text">http</span><span class="ml-auto font-label text-xs text-muted">running · 1/8</span></div>
 <div class="flex items-center gap-4 p-3 hover:bg-soft-card rounded-xl transition-colors"><span class="w-3 h-3 rounded-full bg-[#047857]"></span><span class="font-body-md font-medium text-text">sleep</span><span class="ml-auto font-label text-xs text-muted">succeeded · 1/5</span></div>
 <div class="flex items-center gap-4 p-3 bg-soft-card rounded-xl transition-colors"><span class="w-3 h-3 rounded-full bg-[#2f55e4]"></span><span class="font-body-md font-medium text-text">flaky</span><span class="ml-auto font-label text-xs text-muted">queued · 2/5</span></div>
 <div class="flex items-center gap-4 p-3 hover:bg-soft-card rounded-xl transition-colors"><span class="w-3 h-3 rounded-full bg-[#E94057]"></span><span class="font-body-md font-medium text-text">fail_always</span><span class="ml-auto font-label text-xs text-muted">dead · 5/5</span></div>
 </div>
+<p class="font-label text-[11px] text-muted mt-6 mb-0 px-3">Claimed with <code class="font-mono text-text">FOR UPDATE SKIP LOCKED</code> · PostgreSQL 16</p>
 </div>
 </div>
 <div class="flex flex-col justify-center h-full max-w-lg">
@@ -209,13 +211,14 @@
 <div class="flex items-center gap-3 mb-6">
 <div class="w-[24px] h-[24px] rounded-full border border-black flex items-center justify-center shrink-0"><span class="text-black font-bold text-[10px] leading-none">S</span></div>
 <span class="font-label text-xs font-bold text-muted">SIFT · ASK</span>
+<span class="ml-auto flex items-center gap-1.5 font-label text-[11px] font-bold text-[#05603a] bg-[#dcf4e8] rounded-full px-2.5 py-1"><span class="w-1.5 h-1.5 rounded-full bg-[#10b981]"></span>cited</span>
 </div>
 <div class="bg-white/60 backdrop-blur-md rounded-xl p-4 mb-6 border border-white/50 shadow-sm">
 <p class="font-body-md text-text m-0">Can CREATE INDEX CONCURRENTLY run inside a transaction block?</p>
 </div>
 <p class="font-body-md text-text mb-4">No. Unlike a regular CREATE INDEX, the concurrent form cannot be run inside a transaction block. <span class="font-label text-[11px] font-bold text-[#04704f] bg-[#dcf4e8] rounded-lg px-1.5 py-0.5">S1</span></p>
 <div class="flex items-center justify-between gap-4">
-<span class="font-label text-[11px] text-muted">S1 · PostgreSQL 17 · CREATE INDEX</span>
+<div class="flex items-start gap-3 bg-white rounded-xl border border-line/50 px-4 py-3"><span class="font-label text-[11px] font-bold text-[#04704f] bg-[#dcf4e8] rounded-lg px-1.5 py-0.5">S1</span><span class="font-label text-[12px] text-muted leading-snug"><strong class="text-text">PostgreSQL 17 · CREATE INDEX</strong><br>Building Indexes Concurrently</span></div>
 <div class="w-8 h-8 rounded-full bg-gradient-to-r from-[#FF416C] to-[#FF4B2B] flex items-center justify-center shadow-md animate-pulse text-white shrink-0">
 <svg class="ico w-4 h-4" viewBox="0 0 24 24"><path d="M12 3l1.8 4.7 4.7 1.8-4.7 1.8L12 16l-1.8-4.7-4.7-1.8 4.7-1.8z"/></svg>
 </div>
@@ -227,6 +230,7 @@
 
 <!-- 8. Explore a project -->
 <section aria-labelledby="explore-title" class="py-[120px] md:py-[160px] px-sm md:px-margin max-w-[1728px] mx-auto flex flex-col items-center bg-page-bg">
+<p class="font-label text-label text-muted uppercase tracking-widest mb-6">Deep dives</p>
 <h2 id="explore-title" class="font-display text-h2 mb-12 font-bold tracking-tight text-center text-text">Explore a project.</h2>
 <div role="tablist" aria-label="Project" class="flex flex-wrap justify-center gap-3 mb-16" hidden>
 <button type="button" role="tab" id="tab-hopper" aria-controls="panel-hopper" aria-selected="true" class="px-6 py-2 rounded-full bg-white text-text font-label text-sm shadow-sm hover:bg-gray-50 transition-colors aria-selected:bg-black aria-selected:text-page-bg aria-selected:shadow-md">Hopper</button>
@@ -234,46 +238,54 @@
 </div>
 <div class="grid gap-8 w-full">
 <div id="panel-hopper" role="tabpanel" aria-labelledby="tab-hopper" class="grid grid-cols-1 md:grid-cols-2 gap-8 w-full">
-<a href="/hopper/#try" class="relative h-[320px] md:h-[400px] rounded-[32px] p-8 flex flex-col justify-end group overflow-hidden shadow-sm border border-line/20">
+<a href="/hopper/#try" class="relative h-[320px] md:h-[400px] rounded-[32px] p-8 flex flex-col justify-between group overflow-hidden shadow-sm border border-line/20">
 <div class="absolute inset-0 art-aura transition-transform duration-500 group-hover:scale-110"></div>
 <div class="absolute inset-0 bg-black/40"></div>
+<div class="relative z-10 flex items-center justify-between"><span class="font-label text-[11px] font-bold uppercase tracking-widest text-white/80">Console</span><svg class="ico w-6 h-6 text-white" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="m7 9 3 3-3 3M12.5 15H17"/></svg></div>
 <div class="relative z-10"><h3 class="font-h3 text-xl font-bold mb-2 text-white">Live console</h3><p class="font-body-md text-white/80 m-0">Connect with a demo key, enqueue jobs and watch them run.</p></div>
 </a>
-<a href="/hopper/#use-dlq" class="relative h-[320px] md:h-[400px] rounded-[32px] p-8 flex flex-col justify-end group overflow-hidden shadow-sm border border-line/20">
+<a href="/hopper/#use-dlq" class="relative h-[320px] md:h-[400px] rounded-[32px] p-8 flex flex-col justify-between group overflow-hidden shadow-sm border border-line/20">
 <div class="absolute inset-0 art-sunset transition-transform duration-500 group-hover:scale-110"></div>
 <div class="absolute inset-0 bg-black/40"></div>
+<div class="relative z-10 flex items-center justify-between"><span class="font-label text-[11px] font-bold uppercase tracking-widest text-white/80">Reliability</span><svg class="ico w-6 h-6 text-white" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.4-5.7L4 8.6"/><path d="M4 4v4.6h4.6"/></svg></div>
 <div class="relative z-10"><h3 class="font-h3 text-xl font-bold mb-2 text-white">Dead-letter replay</h3><p class="font-body-md text-white/80 m-0">Jobs that keep failing park with their history; replay one or many.</p></div>
 </a>
-<a href="/grafana/" class="relative h-[320px] md:h-[400px] rounded-[32px] p-8 flex flex-col justify-end group overflow-hidden shadow-sm border border-line/20">
+<a href="/grafana/" class="relative h-[320px] md:h-[400px] rounded-[32px] p-8 flex flex-col justify-between group overflow-hidden shadow-sm border border-line/20">
 <img alt="" class="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" src="/site/img/grafana-dashboard.webp">
 <div class="absolute inset-0 bg-black/40"></div>
+<div class="relative z-10 flex items-center justify-between"><span class="font-label text-[11px] font-bold uppercase tracking-widest text-white/80">Metrics</span><svg class="ico w-6 h-6 text-white" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h16"/><path d="m5 15 4-5 4 3 6-7"/></svg></div>
 <div class="relative z-10"><h3 class="font-h3 text-xl font-bold mb-2 text-white">Grafana dashboard</h3><p class="font-body-md text-white/80 m-0">Queue depth, runs by outcome and latency. Read-only and public.</p></div>
 </a>
-<a href="/hopper/#performance" class="relative h-[320px] md:h-[400px] rounded-[32px] p-8 flex flex-col justify-end group overflow-hidden shadow-sm border border-line/20">
+<a href="/hopper/#performance" class="relative h-[320px] md:h-[400px] rounded-[32px] p-8 flex flex-col justify-between group overflow-hidden shadow-sm border border-line/20">
 <div class="absolute inset-0 art-hero transition-transform duration-500 group-hover:scale-110"></div>
 <div class="absolute inset-0 bg-black/40"></div>
+<div class="relative z-10 flex items-center justify-between"><span class="font-label text-[11px] font-bold uppercase tracking-widest text-white/80">Chaos drill</span><svg class="ico w-6 h-6 text-white" viewBox="0 0 24 24" aria-hidden="true"><path d="M13 3 5 14h6l-1 7 8-11h-6z"/></svg></div>
 <div class="relative z-10"><h3 class="font-h3 text-xl font-bold mb-2 text-white">Chaos test</h3><p class="font-body-md text-white/80 m-0">38 workers killed during 10,000 jobs, and how the test proves nothing was lost.</p></div>
 </a>
 </div>
 <div id="panel-sift" role="tabpanel" aria-labelledby="tab-sift" class="grid grid-cols-1 md:grid-cols-2 gap-8 w-full">
-<a href="/sift/#try" class="relative h-[320px] md:h-[400px] rounded-[32px] p-8 flex flex-col justify-end group overflow-hidden shadow-sm border border-line/20">
+<a href="/sift/#try" class="relative h-[320px] md:h-[400px] rounded-[32px] p-8 flex flex-col justify-between group overflow-hidden shadow-sm border border-line/20">
 <div class="absolute inset-0 art-emerald transition-transform duration-500 group-hover:scale-110"></div>
 <div class="absolute inset-0 bg-black/40"></div>
+<div class="relative z-10 flex items-center justify-between"><span class="font-label text-[11px] font-bold uppercase tracking-widest text-white/80">Demo</span><svg class="ico w-6 h-6 text-white" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5h14v10H10l-5 4z"/></svg></div>
 <div class="relative z-10"><h3 class="font-h3 text-xl font-bold mb-2 text-white">Try it</h3><p class="font-body-md text-white/80 m-0">Ask the PostgreSQL 16–18 manuals; every claim comes with its section.</p></div>
 </a>
-<a href="/sift/#how" class="relative h-[320px] md:h-[400px] rounded-[32px] p-8 flex flex-col justify-end group overflow-hidden shadow-sm border border-line/20">
+<a href="/sift/#how" class="relative h-[320px] md:h-[400px] rounded-[32px] p-8 flex flex-col justify-between group overflow-hidden shadow-sm border border-line/20">
 <div class="absolute inset-0 art-hero transition-transform duration-500 group-hover:scale-110"></div>
 <div class="absolute inset-0 bg-black/40"></div>
+<div class="relative z-10 flex items-center justify-between"><span class="font-label text-[11px] font-bold uppercase tracking-widest text-white/80">Architecture</span><svg class="ico w-6 h-6 text-white" viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="6" r="2.5"/><circle cx="12" cy="18" r="2.5"/><path d="M8 7.5 11 16M16 7.5 13 16"/></svg></div>
 <div class="relative z-10"><h3 class="font-h3 text-xl font-bold mb-2 text-white">How it works</h3><p class="font-body-md text-white/80 m-0">The query path, from the tenant check to the citation check, step by step.</p></div>
 </a>
-<a href="/sift/#evals" class="relative h-[320px] md:h-[400px] rounded-[32px] p-8 flex flex-col justify-end group overflow-hidden shadow-sm border border-line/20">
+<a href="/sift/#evals" class="relative h-[320px] md:h-[400px] rounded-[32px] p-8 flex flex-col justify-between group overflow-hidden shadow-sm border border-line/20">
 <div class="absolute inset-0 art-emerald transition-transform duration-500 group-hover:scale-110"></div>
 <div class="absolute inset-0 bg-black/40"></div>
+<div class="relative z-10 flex items-center justify-between"><span class="font-label text-[11px] font-bold uppercase tracking-widest text-white/80">Benchmarks</span><svg class="ico w-6 h-6 text-white" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 7.5V12l3 2"/></svg></div>
 <div class="relative z-10"><h3 class="font-h3 text-xl font-bold mb-2 text-white">Eval history</h3><p class="font-body-md text-white/80 m-0">Every dated eval run, dev and test, with the commit behind it.</p></div>
 </a>
-<a href="/sift/#decisions" class="relative h-[320px] md:h-[400px] rounded-[32px] p-8 flex flex-col justify-end group overflow-hidden shadow-sm border border-line/20">
+<a href="/sift/#decisions" class="relative h-[320px] md:h-[400px] rounded-[32px] p-8 flex flex-col justify-between group overflow-hidden shadow-sm border border-line/20">
 <div class="absolute inset-0 art-sunset transition-transform duration-500 group-hover:scale-110"></div>
 <div class="absolute inset-0 bg-black/40"></div>
+<div class="relative z-10 flex items-center justify-between"><span class="font-label text-[11px] font-bold uppercase tracking-widest text-white/80">ADRs</span><svg class="ico w-6 h-6 text-white" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h10l4 4v12H5z"/><path d="M9 12h6M9 16h6"/></svg></div>
 <div class="relative z-10"><h3 class="font-h3 text-xl font-bold mb-2 text-white">Decisions</h3><p class="font-body-md text-white/80 m-0">Twelve decision records: Postgres for search, the fusion, the reranker, the gates.</p></div>
 </a>
 </div>
@@ -297,7 +309,8 @@
 <!-- 10. Milestones -->
 <section aria-labelledby="milestones-title" class="py-[80px] md:py-[120px] px-sm md:px-margin max-w-[1728px] mx-auto bg-page-bg">
 <div class="flex justify-between items-end gap-4 mb-12">
-<h2 id="milestones-title" class="font-display text-h2 font-bold tracking-tight text-text">Recent milestones</h2>
+<div><p class="font-label text-label text-muted uppercase tracking-widest mb-6">Engineering log</p>
+<h2 id="milestones-title" class="font-display text-h2 font-bold tracking-tight text-text">Recent milestones</h2></div>
 <a class="font-label text-sm font-bold border-b border-black text-text pb-1 hover:text-[#FF416C] hover:border-[#FF416C] transition-colors" href="https://github.com/Srinu-design">All repositories</a>
 </div>
 <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -305,19 +318,22 @@
 <div class="w-full h-[300px] md:h-[450px] rounded-[40px] mb-6 overflow-hidden shadow-xl border border-white/20 art-emerald"></div>
 <p class="font-label text-xs text-muted mb-3">Sift · Oct 2026</p>
 <h3 class="font-h3 text-xl font-bold text-text">Sift now deploys itself from CI</h3>
-<p class="font-body-md text-muted mt-2">A release that fails its retrieval smoke test rolls back on its own: 72 s in the drill.</p>
+<p class="font-body-md text-muted mt-2">Every push to main that passes CI ships to the server. A release that fails its retrieval smoke test is rolled back on its own: 72 s in the drill.</p>
+<span class="inline-block mt-4 font-label text-sm font-bold border-b border-black text-text pb-1 group-hover:text-[#FF416C] group-hover:border-[#FF416C] transition-colors">Deploy notes</span>
 </a>
 <a class="group block" href="https://github.com/Srinu-design/sift/blob/main/docs/ci-gate-demo.md">
 <div class="w-full h-[300px] md:h-[450px] rounded-[40px] mb-6 overflow-hidden shadow-xl border border-white/20 art-sunset"></div>
 <p class="font-label text-xs text-muted mb-3">Sift · Oct 2026</p>
 <h3 class="font-h3 text-xl font-bold text-text">The eval gate blocked a deliberately bad PR</h3>
-<p class="font-body-md text-muted mt-2">It raised hit@5 but lost hit@8 and recall@10 on the dev split; the build failed.</p>
+<p class="font-body-md text-muted mt-2">Reranking only the top 10 raised hit@5 but lost hit@8 and recall@10 on the dev split. The gate failed the build, and the PR was closed unmerged.</p>
+<span class="inline-block mt-4 font-label text-sm font-bold border-b border-black text-text pb-1 group-hover:text-[#FF416C] group-hover:border-[#FF416C] transition-colors">The gate's output</span>
 </a>
 <a class="group block" href="https://github.com/Srinu-design/hopper/blob/main/docs/benchmarks.md">
 <div class="w-full h-[300px] md:h-[450px] rounded-[40px] mb-6 overflow-hidden shadow-xl border border-white/20 art-aura"></div>
 <p class="font-label text-xs text-muted mb-3">Hopper · Oct 2026</p>
 <h3 class="font-h3 text-xl font-bold text-text">Chaos test: 10,000 jobs, 38 workers killed, 0 lost</h3>
-<p class="font-body-md text-muted mt-2">Every job finished; 9 ran twice, which at-least-once delivery allows.</p>
+<p class="font-body-md text-muted mt-2">Workers were killed at random on the EC2 server while the jobs ran. Every job finished; 9 ran twice, which at-least-once delivery allows.</p>
+<span class="inline-block mt-4 font-label text-sm font-bold border-b border-black text-text pb-1 group-hover:text-[#FF416C] group-hover:border-[#FF416C] transition-colors">Raw data</span>
 </a>
 </div>
 </section>
@@ -326,7 +342,8 @@
 <section aria-labelledby="cta-title" class="py-section px-sm md:px-margin">
 <div class="max-w-screen-xl mx-auto flex flex-col items-center text-center">
 <div class="w-12 h-12 rounded-full border border-text flex items-center justify-center mb-12" aria-hidden="true"><span class="text-text font-bold text-xl leading-none">V</span></div>
-<h2 id="cta-title" class="font-display text-[56px] md:text-[80px] font-bold text-text tracking-tighter leading-[1.05] mb-12 max-w-4xl text-balance">See them running live</h2>
+<h2 id="cta-title" class="font-display text-[56px] md:text-[80px] font-bold text-text tracking-tighter leading-[1.05] mb-8 max-w-4xl text-balance">See them running live</h2>
+<p class="font-body-lg text-body-lg text-muted max-w-xl mb-12">Hopper's console takes a demo API key. Sift answers from the PostgreSQL manuals. The dashboard is public and read-only.</p>
 <div class="flex flex-col sm:flex-row gap-6">
 <a href="/hopper/" class="bg-black text-white font-label rounded-full hover:bg-text/80 transition-all duration-300 shrink-0 flex items-center justify-center px-6 text-[10px] h-[40px] font-bold uppercase tracking-wider">Open Hopper</a>
 <a href="/sift/" class="bg-transparent border border-text/30 text-text font-label rounded-full hover:bg-text hover:text-white transition-all duration-300 shrink-0 flex items-center justify-center px-6 text-[10px] h-[40px] font-bold uppercase tracking-wider">Open Sift</a>
@@ -340,7 +357,8 @@
 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-lg lg:gap-xl mb-xl">
 <div class="flex flex-col gap-8">
 <div class="w-10 h-10 rounded-full border border-white/20 flex items-center justify-center shrink-0" aria-hidden="true"><span class="text-white font-bold text-lg leading-none">V</span></div>
-<p class="font-body-md text-white/70 max-w-xs m-0">Veeradimmu Srinivasulu Reddy. Backend systems, built end to end and running live.</p>
+<div><p class="font-h3 text-xl font-bold text-white m-0 mb-2">Veeradimmu Srinivasulu Reddy</p>
+<p class="font-body-md text-white/70 max-w-xs m-0">Backend systems, built end to end and running live.</p></div>
 <div class="flex gap-4">
 <a class="w-10 h-10 rounded-full border border-white/10 flex items-center justify-center hover:bg-white/10 transition-colors" href="https://github.com/Srinu-design" aria-label="GitHub">
 <svg class="ico w-5 h-5" viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="5" r="2"/><circle cx="6" cy="19" r="2"/><circle cx="18" cy="7" r="2"/><path d="M6 7v10M18 9c0 5-6 4-12 8"/></svg>
@@ -366,8 +384,8 @@
 <li><a class="font-body-md text-white/70 hover:text-white transition-colors" href="https://github.com/Srinu-design/sift/blob/main/docs/eval-report.md">Eval report</a></li>
 </ul>
 </nav>
-<nav aria-label="Source">
-<h2 class="font-label text-white mb-6 uppercase tracking-widest text-[10px]">Source</h2>
+<nav aria-label="Elsewhere">
+<h2 class="font-label text-white mb-6 uppercase tracking-widest text-[10px]">Elsewhere</h2>
 <ul class="flex flex-col gap-4 m-0 p-0 list-none">
 <li><a class="font-body-md text-white/70 hover:text-white transition-colors" href="https://github.com/Srinu-design">GitHub</a></li>
 <li><a class="font-body-md text-white/70 hover:text-white transition-colors" href="https://github.com/Srinu-design/hopper">Hopper source</a></li>
