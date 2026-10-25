@@ -13,7 +13,8 @@ from hopper.api.main import create_app
 from tests.helpers import ROOT
 
 PAGE = ROOT / "src/hopper/web/static/index.html"
-REPO = "https://github.com/Srinu-design/hopper"
+ACCOUNT = "https://github.com/Srinu-design"
+REPO = f"{ACCOUNT}/hopper"
 _VOID = {"img", "input", "link", "meta", "br"}
 
 
@@ -109,7 +110,8 @@ async def test_every_local_file_and_anchor_exists(page: _Page, anon: httpx.Async
 
 
 def test_every_github_link_points_at_a_file_in_this_repository(page: _Page) -> None:
-    external = [link for link in page.links if link.startswith("http")]
+    # The nav bar shared with the portfolio pages links to the account itself.
+    external = [link for link in page.links if link.startswith("http") and link != ACCOUNT]
     assert external, "the page links to the repository"
     for link in external:
         assert link.startswith(REPO), f"{link}: only this repository's own pages"
