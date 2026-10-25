@@ -74,11 +74,20 @@ def test_grafana_is_served_under_its_sub_path() -> None:
 def test_home_page_hopper_page_and_api_paths_all_route() -> None:
     """/ is the portfolio page, /hopper/ is Hopper's page, and every other path still reaches
     the API, so existing clients, the smoke test and CI's /readyz check are unaffected."""
-    assert "handle / {" in CADDYFILE and "root * /etc/caddy/site" in CADDYFILE
+    assert "handle / {\n\t\timport site" in CADDYFILE and "root * /etc/caddy/site" in CADDYFILE
+    assert "handle_path /site/* {\n\t\timport site" in CADDYFILE
     assert "handle_path /hopper/* {\n\t\timport api" in CADDYFILE
     assert "handle {\n\t\timport api" in CADDYFILE
     assert (ROOT / "deploy/site/index.html").is_file()
     assert 'rsync -a --delete "$bundle/site/" "$ROOT/config/caddy/site/"' in DEPLOY_SH.read_text()
+
+
+def test_the_home_page_is_served_with_a_strict_policy() -> None:
+    """Caddy serves the home page itself, so the policy the apps send is set here."""
+    csp = re.search(r'Content-Security-Policy "([^"]+)"', CADDYFILE)
+    assert csp and "default-src 'none';" in csp[1] and "font-src 'self';" in csp[1]
+    assert "unsafe" not in csp[1]
+    assert "X-Content-Type-Options nosniff" in CADDYFILE
 
 
 def test_config_comes_from_the_installed_copy_not_the_release_directory() -> None:

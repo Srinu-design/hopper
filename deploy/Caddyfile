@@ -28,6 +28,18 @@
 	}
 }
 
+(site) {
+	# The same strict policy the two apps send with their pages: the home page has a script of its
+	# own and nothing else, so no inline code, no other origin and no framing.
+	header {
+		Content-Security-Policy "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; font-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
+		Referrer-Policy no-referrer
+		X-Content-Type-Options nosniff
+	}
+	root * /etc/caddy/site
+	file_server
+}
+
 (hopper) {
 	encode zstd gzip
 
@@ -46,12 +58,10 @@
 	# exact path /: every other path still reaches the API, so clients and smoke tests keep
 	# calling /v1/..., /readyz and /docs as before.
 	handle / {
-		root * /etc/caddy/site
-		file_server
+		import site
 	}
 	handle_path /site/* {
-		root * /etc/caddy/site
-		file_server
+		import site
 	}
 	# Hopper's own page, also under /hopper/. It calls the API at absolute paths (/v1, /static),
 	# which the fallback below serves.
