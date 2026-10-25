@@ -13,7 +13,8 @@ workers, and the queue keeps draining. Nothing is lost.*
 
 ## Live demo
 
-- Web page: <http://3.104.222.203/>. What Hopper is, how to call it, and a console to try it with an API key
+- Web page: <http://3.104.222.203/hopper/>. What Hopper is, how to call it, and a console to try it with an API key
+- All projects on this server (Hopper and [Sift](https://github.com/Srinu-design/sift)): <http://3.104.222.203/>
 - API docs: <http://3.104.222.203/docs>
 - Dashboard (read-only): <http://3.104.222.203/grafana/>
 

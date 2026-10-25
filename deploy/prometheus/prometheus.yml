@@ -37,6 +37,16 @@ scrape_configs:
     static_configs:
       - targets: [postgres-exporter:9187]
 
+  # Sift (github.com/Srinu-design/sift) runs on this host as its own Compose project on Hopper's
+  # network. Its API serves /metrics on 9100 like Hopper's processes; with Sift not running (CI,
+  # rehearsals) the name has no records, so there are simply no targets.
+  - job_name: sift-api
+    dns_sd_configs:
+      - names: [sift-api]
+        type: A
+        port: 9100
+        refresh_interval: 10s
+
   - job_name: prometheus
     static_configs:
       - targets: [localhost:9090]

@@ -105,6 +105,12 @@ install_config() { # <tag>: config/ is what Caddy, Prometheus and Grafana mount
 	rsync -a --delete "$bundle/prometheus/" "$ROOT/config/prometheus/" || return 1
 	rsync -a --delete "$bundle/grafana/" "$ROOT/config/grafana/" || return 1
 	rsync -a "$bundle/Caddyfile" "$ROOT/config/caddy/Caddyfile" || return 1
+	# The portfolio home page Caddy serves at / (deploy/site), next to the Caddyfile. Releases
+	# from before it have no site/, and their Caddyfile does not use one: a rollback to them
+	# must still work.
+	if [ -d "$bundle/site" ]; then
+		rsync -a --delete "$bundle/site/" "$ROOT/config/caddy/site/" || return 1
+	fi
 	# Caddy and Prometheus reload in place. On the first deploy none of the three runs yet, and
 	# `up` starts them with this config.
 	if [ -n "$(compose "$1" ps -q caddy)" ]; then

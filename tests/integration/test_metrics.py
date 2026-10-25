@@ -339,7 +339,9 @@ def test_prometheus_scrapes_every_process_on_the_metrics_port() -> None:
     config = (ROOT / "deploy/prometheus/prometheus.yml").read_text(encoding="utf-8")
     for service in ("api", "worker", "scheduler"):
         assert f"job_name: {service}" in config and f"names: [{service}]" in config
-    assert config.count("port: 9100") == 3
+    # Hopper's three, plus Sift's API, which runs on this host's network (deploy/Caddyfile).
+    assert "job_name: sift-api" in config and "names: [sift-api]" in config
+    assert config.count("port: 9100") == 4
     # Postgres itself, through postgres-exporter on its own port.
     assert "job_name: postgres" in config and "targets: [postgres-exporter:9187]" in config
 
