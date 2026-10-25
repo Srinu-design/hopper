@@ -85,7 +85,7 @@ def test_home_page_hopper_page_and_api_paths_all_route() -> None:
 def test_the_home_page_is_served_with_a_strict_policy() -> None:
     """Caddy serves the home page itself, so the policy the apps send is set here."""
     csp = re.search(r'Content-Security-Policy "([^"]+)"', CADDYFILE)
-    assert csp and "default-src 'none';" in csp[1] and "font-src 'self';" in csp[1]
+    assert csp and "default-src 'none';" in csp[1] and "script-src 'self';" in csp[1]
     assert "unsafe" not in csp[1]
     assert "X-Content-Type-Options nosniff" in CADDYFILE
 
@@ -159,7 +159,9 @@ def test_what_ships_to_the_server_keeps_lf_line_endings() -> None:
         p
         for d in ("deploy", "docker")
         for p in (ROOT / d).rglob("*")
-        if p.is_file() and "__pycache__" not in p.parts
+        if p.is_file()
+        and "__pycache__" not in p.parts
+        and p.suffix not in {".webp", ".png", ".gif"}
     ]
     assert DEPLOY_SH in files
     crlf = [str(p.relative_to(ROOT)) for p in files if b"\r\n" in p.read_bytes()]

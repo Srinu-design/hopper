@@ -1,5 +1,5 @@
-/* ---- Design tokens. The same block opens all three stylesheets: the portfolio home
-   (hopper deploy/site/site.css), Hopper's page and Sift's page. Change all three together.
+/* ---- Design tokens. The same block opens both project stylesheets, Hopper's page and Sift's
+   page (the portfolio home is compiled Tailwind, see hopper deploy/site-src). Change both together.
    Every text colour meets WCAG AA (4.5:1) on the surfaces it is used on, in both themes. */
 :root {
   color-scheme: light;
@@ -15,9 +15,9 @@
   --field: #858179;
   --text: #1b1b1b;
   --muted: #5e5b54;
-  --nav: #0b0b0c;
+  --nav: #000000;
   --nav-muted: #b8b6b0;
-  --footer: #0b0b0c;
+  --footer: #181818;
   --code-bg: #1c1c1f;
   --code-text: #e9e7e1;
   --code-muted: #a3a09a;
@@ -38,12 +38,13 @@
   --off-fg: #55524c; --off-bg: #eceae4;
   --dot-ok: #10b981; --dot-warn: #f59e0b; --dot-bad: #ff4b2b; --dot-off: #8f8c85;
   --diagram-filter: none;
-  --font: Inter, "Helvetica Neue", Helvetica, Arial, system-ui, sans-serif;
+  /* Helvetica, as in the Stitch design; Windows and Android show Arial, its metric twin */
+  --font: Helvetica, Arial, sans-serif;
   --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
-  --r-panel: 20px;
-  --r-card: 14px;
-  --r-inner: 10px;
-  --r-ctl: 8px;
+  --r-panel: 40px;
+  --r-card: 24px;
+  --r-inner: 12px;
+  --r-ctl: 12px;
 }
 
 /* The dark palette, twice: once for "follow the system", once for "dark chosen" (the project
@@ -113,16 +114,6 @@
   --diagram-filter: invert(0.9) hue-rotate(180deg);
 }
 
-/* ---- Inter, self-hosted (the policy allows no other origin): the latin subset of the variable
-   font, every weight in one 48 KB file. SIL Open Font License, in fonts/inter-OFL.txt. */
-@font-face {
-  font-family: Inter;
-  font-style: normal;
-  font-weight: 100 900;
-  font-display: swap;
-  src: url("fonts/inter.woff2") format("woff2");
-}
-
 /* ---- Base, shared by all three pages. */
 *, *::before, *::after { box-sizing: border-box; }
 [hidden] { display: none !important; }
@@ -148,9 +139,12 @@ code {
   background: var(--panel); border-radius: 6px; padding: 1px 6px;
 }
 :focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; border-radius: 8px; }
-.nav :focus-visible, .site-footer :focus-visible, .on-dark :focus-visible { outline-color: #ffffff; }
+.gnav :focus-visible, .site-footer :focus-visible, .on-dark :focus-visible { outline-color: #ffffff; }
 
-.wrap { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
+/* the design's column: up to 1728 px, 40 px from the edges */
+.wrap { max-width: 1728px; margin: 0 auto; padding: 0 40px; }
+/* the long technical sections read better a little narrower */
+.wrap.narrow { max-width: 1600px; }
 .muted { color: var(--muted); }
 .mono { font-family: var(--mono); font-size: 0.84rem; }
 .sr-only {
@@ -165,67 +159,62 @@ code {
   font-size: 0.75rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase;
 }
 
-/* ---- The floating black pill nav. */
-.nav-shell { position: sticky; top: 0; z-index: 30; padding: 12px 16px 0; }
-.nav {
-  max-width: 1200px; margin: 0 auto;
-  display: flex; align-items: center; gap: 12px 16px;
-  min-height: 60px; padding: 8px 8px 8px 10px;
-  background: var(--nav); color: #ffffff;
-  border: 1px solid rgb(255 255 255 / 8%); border-radius: var(--r-ctl);
-  box-shadow: var(--shadow-lg);
+/* ---- The nav: the same bar on all three pages, so nothing moves between them. The home page
+   draws it with Tailwind classes of these same values (hopper deploy/site/index.html). */
+.nav-shell { position: sticky; top: 0; z-index: 30; padding: 24px 16px 0; pointer-events: none; }
+.gnav {
+  pointer-events: auto; max-width: 700px; height: 56px; margin: 0 auto; padding: 8px;
+  display: flex; align-items: center; justify-content: space-between;
+  background: #000000; border: 1px solid rgb(255 255 255 / 10%); border-radius: 12px;
+  box-shadow: 0 20px 25px -5px rgb(0 0 0 / 10%), 0 8px 10px -6px rgb(0 0 0 / 10%);
+  -webkit-backdrop-filter: blur(24px); backdrop-filter: blur(24px);
+  font-family: Helvetica, Arial, sans-serif;
 }
-.brand {
-  display: inline-flex; align-items: center; gap: 10px;
-  color: #ffffff; font-weight: 700; font-size: 1.05rem; letter-spacing: -0.02em; text-decoration: none;
-  border-radius: var(--r-ctl); padding-right: 6px;
+.gnav-start { display: flex; align-items: center; gap: 32px; padding-left: 8px; }
+.gnav-mark {
+  display: flex; align-items: center; justify-content: center; flex: none;
+  width: 34px; height: 34px; border: 1px solid rgb(250 249 245 / 80%); border-radius: 12px;
+  color: #faf9f5; font-size: 14px; font-weight: 700; line-height: 1; text-decoration: none;
 }
-.mark {
-  display: inline-grid; place-items: center; flex: none;
-  width: 40px; height: 40px; border-radius: var(--r-ctl);
-  background: #ffffff; color: #0b0b0c; font-weight: 800; font-size: 1.05rem;
+.gnav-links { display: flex; align-items: center; gap: 24px; }
+.gnav-links a {
+  color: rgb(250 249 245 / 80%); font-size: 12px; font-weight: 600; line-height: 1; letter-spacing: 0.05em;
+  text-decoration: none; transition: color 0.3s;
 }
-.mark.aura { background: var(--aura); color: #ffffff; }
-.mark.emerald { background: var(--emerald); color: #ffffff; }
-.tabs, .nav-links {
-  display: flex; gap: 4px; padding: 4px; margin: 0 auto;
-  background: rgb(255 255 255 / 6%); border-radius: var(--r-ctl);
-  overflow-x: auto; scrollbar-width: none;
+.gnav-links a:hover, .gnav-links a[aria-current="page"] { color: #faf9f5; }
+.gnav-button {
+  display: flex; align-items: center; flex: none; height: 32px; padding: 0 16px;
+  border: 1px solid rgb(250 249 245 / 30%); border-radius: 12px;
+  color: #faf9f5; font-size: 10px; font-weight: 600; line-height: 1.5; letter-spacing: 0.05em; text-transform: uppercase;
+  text-decoration: none; transition: background-color 0.3s, color 0.3s;
 }
-.tabs::-webkit-scrollbar, .nav-links::-webkit-scrollbar { display: none; }
-.tabs a, .nav-links a {
-  flex: none; padding: 8px 16px; border-radius: var(--r-ctl);
-  color: var(--nav-muted); font-size: 0.92rem; font-weight: 500; text-decoration: none; white-space: nowrap;
+.gnav-button:hover { background: #faf9f5; color: #181818; }
+@media (max-width: 767px) {
+  .gnav-links { gap: 16px; }
+  .gnav-links .wide-only { display: none; }
 }
-.tabs a:hover, .nav-links a:hover { color: #ffffff; background: rgb(255 255 255 / 12%); }
-.tabs a[aria-current="page"] { background: #ffffff; color: #0b0b0c; }
-.header-end { display: flex; align-items: center; gap: 6px; flex: none; }
-.header-link {
-  padding: 8px 12px; border-radius: var(--r-ctl);
-  color: var(--nav-muted); font-size: 0.9rem; text-decoration: none; white-space: nowrap;
+
+/* ---- Under the nav: the project's own tabs, its live status and the theme switch, as pills. */
+.projectbar {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 10px;
+  max-width: 1728px; margin: 0 auto; padding: 24px 16px 0;
 }
-.header-link:hover { color: #ffffff; background: rgb(255 255 255 / 12%); }
-.pill-outline {
-  display: inline-flex; align-items: center; min-height: 40px; padding: 0 18px;
-  border: 1px solid rgb(255 255 255 / 45%); border-radius: var(--r-ctl);
-  color: #ffffff; font-size: 0.9rem; font-weight: 600; text-decoration: none; white-space: nowrap;
-}
-.pill-outline:hover { background: #ffffff; color: #0b0b0c; }
-.status {
-  display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px;
-  border-radius: var(--r-ctl); background: rgb(255 255 255 / 9%);
-  color: #ffffff; font-size: 0.85rem; font-weight: 500; white-space: nowrap;
-}
+.tabs { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+.tabs a, .status, .icon-btn { background: var(--surface); color: var(--text); box-shadow: var(--shadow); border-radius: var(--r-ctl); }
+.tabs a { padding: 10px 20px; font-size: 0.85rem; font-weight: 600; text-decoration: none; white-space: nowrap; }
+.tabs a:hover, .icon-btn:hover { box-shadow: var(--shadow-lg); text-decoration: none; }
+.tabs a[aria-current="page"] { background: var(--text); color: var(--bg); }
+.status { display: inline-flex; align-items: center; gap: 8px; padding: 10px 14px; font-size: 0.85rem; font-weight: 600; white-space: nowrap; }
+.project-link { padding: 10px 8px; color: var(--muted); font-size: 0.85rem; font-weight: 600; text-decoration: none; white-space: nowrap; }
+.project-link:hover { color: var(--text); }
 .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--dot-off); flex: none; }
 [data-state="ok"] > .status-dot { background: var(--dot-ok); box-shadow: 0 0 0 3px rgb(16 185 129 / 25%); }
 [data-state="warn"] > .status-dot { background: var(--dot-warn); }
 [data-state="down"] > .status-dot { background: var(--dot-bad); }
 .icon-btn {
   display: inline-flex; align-items: center; justify-content: center; flex: none;
-  width: 40px; height: 40px; border-radius: var(--r-ctl); border: 0; padding: 0;
-  background: rgb(255 255 255 / 9%); color: #ffffff; cursor: pointer;
+  width: 40px; height: 40px; border: 0; padding: 0; cursor: pointer;
 }
-.icon-btn:hover { background: rgb(255 255 255 / 18%); }
 .icon-btn svg { width: 19px; height: 19px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .icon-sun { display: none; }
 :root[data-theme="dark"] .icon-sun { display: block; }
@@ -237,15 +226,15 @@ code {
 
 /* ---- The black footer with its rounded top. Fixed colours: it is dark in both themes. */
 .site-footer {
-  margin-top: 96px; padding: 64px 0 28px;
+  margin-top: 128px; padding: 112px 0 32px;
   background: var(--footer); color: #f2f1ec;
-  border-radius: var(--r-panel) var(--r-panel) 0 0;
+  border-radius: 64px 64px 0 0;
 }
 .footer-grid { display: grid; grid-template-columns: minmax(0, 1.6fr) repeat(3, minmax(0, 1fr)); gap: 32px; }
 .footer-name { font-size: 1.35rem; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 8px; }
 .footer-about p:last-child, .footer-col p { color: #b8b6b0; }
-.footer-title { margin: 0 0 12px; color: #b8b6b0; font-size: 0.75rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; }
-.footer-col ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.footer-title { margin: 0 0 20px; color: #b8b6b0; font-size: 0.68rem; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; }
+.footer-col ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; }
 .site-footer a { color: #ffffff; text-decoration: none; }
 .site-footer a:hover { text-decoration: underline; }
 .footer-base {
@@ -263,7 +252,6 @@ code {
 }
 @media (max-width: 640px) {
   .wrap { padding: 0 16px; }
-  .nav-shell { padding: 8px 8px 0; }
   .site-footer { margin-top: 64px; padding-top: 48px; border-radius: var(--r-panel) var(--r-panel) 0 0; }
 }
 
@@ -279,8 +267,6 @@ body {
 }
 a { text-decoration: none; }
 a:hover { text-decoration: underline; }
-.logo-fg { stroke: #ffffff; stroke-width: 3; stroke-linecap: round; fill: none; }
-.mark.logo { padding: 7px; }
 [id] { scroll-margin-top: 150px; }
 .offscreen { position: fixed; left: -9999px; top: 0; }
 
@@ -309,16 +295,13 @@ a:hover { text-decoration: underline; }
   display: inline-flex; align-items: center; justify-content: center; gap: 8px;
   min-height: 44px; padding: 0 22px; border-radius: var(--r-ctl);
   border: 1px solid var(--line-strong); background: var(--card); color: var(--text);
-  font: 600 0.92rem var(--font); cursor: pointer; white-space: nowrap; text-decoration: none;
+  font: 700 0.72rem var(--font); letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer; white-space: nowrap; text-decoration: none;
 }
 .btn:hover { background: var(--panel); text-decoration: none; }
 .btn:disabled { opacity: 0.5; cursor: default; }
-.btn.primary {
-  background: var(--aura); border-color: transparent; color: #ffffff;
-  box-shadow: 0 10px 24px -12px rgb(47 85 228 / 75%);
-}
-.btn.primary:hover { box-shadow: 0 14px 30px -12px rgb(122 59 224 / 80%); }
-.btn.small { min-height: 34px; padding: 0 14px; font-size: 0.85rem; }
+.btn.primary { background: var(--text); border-color: transparent; color: var(--bg); }
+.btn.primary:hover { background: var(--text); box-shadow: var(--shadow-lg); }
+.btn.small { min-height: 34px; padding: 0 14px; font-size: 0.66rem; }
 .btn.danger { color: var(--bad-fg); }
 .btn.danger:hover { background: var(--bad-bg); }
 .btn.full { width: 100%; margin-top: 20px; }
@@ -356,7 +339,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { outline-offs
 .hero-art {
   position: relative; isolation: isolate; overflow: hidden;
   display: flex; align-items: flex-end;
-  min-height: clamp(320px, 40vw, 460px); margin-top: 56px; padding: 20px;
+  min-height: clamp(340px, 46vw, 680px); margin-top: 64px; padding: 20px;
   border-radius: var(--r-panel); box-shadow: var(--shadow-lg);
   background:
     radial-gradient(70% 90% at 88% 6%, rgb(122 59 224 / 90%), transparent 62%),
@@ -424,7 +407,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { outline-offs
 }
 .feature-grid p { color: var(--muted); font-size: 0.94rem; margin: 0; }
 
-.media { margin: 28px 0 0; padding: 12px; border-radius: var(--r-card); }
+.media { max-width: 1200px; margin: 28px auto 0; padding: 12px; border-radius: var(--r-card); } /* the 960 px GIF blurs any wider */
 .media img { border-radius: var(--r-card); width: 100%; }
 .media figcaption, .diagram figcaption { color: var(--muted); font-size: 0.9rem; margin: 14px 8px 4px; text-align: center; }
 .diagram { margin: 24px 0 0; }
@@ -663,12 +646,6 @@ dialog::backdrop { background: rgb(11 11 12 / 55%); -webkit-backdrop-filter: blu
 .dialog-message { font-size: 0.92rem; }
 
 /* ---- narrower screens */
-@media (max-width: 1080px) {
-  .header-link:not(.home-link) { display: none; }
-}
-@media (max-width: 480px) {
-  .home-link { display: none; } /* the footer has it; in the bar it would push the nav to a third row */
-}
 @media (max-width: 1000px) {
   .feature-grid, .diagram-grid, .link-list, .figures.small { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .steps { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -679,9 +656,6 @@ dialog::backdrop { background: rgb(11 11 12 / 55%); -webkit-backdrop-filter: blu
   .toc { display: none; }
 }
 @media (max-width: 760px) {
-  .nav { flex-wrap: wrap; border-radius: var(--r-card); padding: 8px; }
-  .brand { margin-right: auto; }
-  .tabs { order: 3; width: 100%; margin: 0; }
   .tabs a { padding: 8px 14px; }
   [id] { scroll-margin-top: 140px; }
   .subnav { position: static; margin-top: 32px; justify-content: flex-start; padding: 0; }

@@ -1,0 +1,67 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* From the design's own <style> block. */
+body {
+  background-color: theme("colors.page-bg");
+}
+.text-balance { text-wrap: balance; }
+@keyframes scroll {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(calc(-50% - 50px)); }
+}
+.animate-marquee {
+  display: flex;
+  width: max-content;
+  animation: scroll 30s linear infinite;
+}
+.marquee-container {
+  overflow: hidden;
+  width: 100%;
+}
+
+/* Tailwind's display utilities (grid, flex) would otherwise beat the hidden attribute. */
+[hidden] { display: none !important; }
+
+/* Additions the design leaves out. Its icon font is another origin, so icons are inline SVG. */
+.ico { fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+:focus-visible { outline: 3px solid #2f55e4; outline-offset: 3px; }
+.on-dark :focus-visible { outline-color: #ffffff; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+  .animate-marquee { flex-wrap: wrap; justify-content: center; width: auto; }
+}
+
+@layer components {
+/* In the components layer, so a utility such as "absolute" wins over the position here.
+   The design's stock photos, replaced by abstract renders: the projects' colours with diagonal
+   light, as on the project pages. Electric Aura is Hopper, Emerald Pulse is Sift. */
+.art-hero, .art-aura, .art-emerald, .art-sunset { position: relative; isolation: isolate; overflow: hidden; }
+.art-hero::before, .art-aura::before, .art-emerald::before, .art-sunset::before {
+  content: ""; position: absolute; inset: -30%; z-index: -1; pointer-events: none;
+  background:
+    repeating-linear-gradient(118deg, transparent 0 64px, rgb(255 255 255 / 7%) 64px 66px, transparent 66px 150px),
+    linear-gradient(118deg, transparent 38%, rgb(255 255 255 / 16%) 48%, transparent 60%);
+}
+.art-hero {
+  background:
+    radial-gradient(60% 90% at 12% 8%, rgb(47 85 228 / 95%), transparent 62%),
+    radial-gradient(48% 80% at 46% 100%, rgb(122 59 224 / 85%), transparent 62%),
+    radial-gradient(60% 90% at 92% 18%, rgb(4 120 87 / 95%), transparent 62%),
+    radial-gradient(40% 60% at 80% 100%, rgb(14 116 144 / 90%), transparent 66%),
+    linear-gradient(120deg, #0a1340, #0b0b0c 50%, #04261e);
+}
+.art-aura {
+  background: radial-gradient(80% 90% at 80% 10%, #7a3be0, transparent 65%),
+    radial-gradient(80% 90% at 10% 100%, #2f55e4, transparent 65%), #0a1340;
+}
+.art-emerald {
+  background: radial-gradient(80% 90% at 80% 10%, #0e7490, transparent 65%),
+    radial-gradient(80% 90% at 10% 100%, #047857, transparent 65%), #04261e;
+}
+.art-sunset {
+  background: radial-gradient(80% 90% at 80% 10%, #ff4b2b, transparent 65%),
+    radial-gradient(80% 90% at 10% 100%, #ff416c, transparent 65%), #3a0d16;
+}
+}
