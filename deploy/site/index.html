@@ -50,7 +50,7 @@
     </div>
   </section>
 
-  <section class="section wrap" aria-labelledby="measured-title">
+  <section class="section collage wrap" aria-labelledby="measured-title">
     <div class="section-head center">
       <p class="eyebrow">Ground truth</p>
       <h2 id="measured-title">Measured, not claimed</h2>
@@ -98,22 +98,24 @@
   </section>
 
   <section class="feature wrap" id="projects" aria-labelledby="hopper-title">
-    <div class="mock" aria-hidden="true">
-      <div class="mock-head">
-        <span class="dots"><span></span><span></span><span></span></span>
-        <span class="mock-title">hopper · jobs</span>
-        <span class="badge succeeded">live</span>
+    <div class="stage">
+      <div class="mock" aria-hidden="true">
+        <div class="mock-head">
+          <span class="dots"><span></span><span></span><span></span></span>
+          <span class="mock-title">hopper · jobs</span>
+          <span class="badge succeeded">live</span>
+        </div>
+        <table class="mock-table">
+          <thead><tr><th>Task</th><th>Status</th><th>Attempts</th></tr></thead>
+          <tbody>
+            <tr><td>http</td><td><span class="badge running">running</span></td><td>1/8</td></tr>
+            <tr><td>sleep</td><td><span class="badge succeeded">succeeded</span></td><td>1/5</td></tr>
+            <tr><td>flaky</td><td><span class="badge queued">queued</span></td><td>2/5</td></tr>
+            <tr><td>fail_always</td><td><span class="badge dead">dead</span></td><td>5/5</td></tr>
+          </tbody>
+        </table>
+        <p class="mock-foot">Claimed with <code>FOR UPDATE SKIP LOCKED</code> · PostgreSQL 16</p>
       </div>
-      <table class="mock-table">
-        <thead><tr><th>Task</th><th>Status</th><th>Attempts</th></tr></thead>
-        <tbody>
-          <tr><td>http</td><td><span class="badge running">running</span></td><td>1/8</td></tr>
-          <tr><td>sleep</td><td><span class="badge succeeded">succeeded</span></td><td>1/5</td></tr>
-          <tr><td>flaky</td><td><span class="badge queued">queued</span></td><td>2/5</td></tr>
-          <tr><td>fail_always</td><td><span class="badge dead">dead</span></td><td>5/5</td></tr>
-        </tbody>
-      </table>
-      <p class="mock-foot">Claimed with <code>FOR UPDATE SKIP LOCKED</code> · PostgreSQL 16</p>
     </div>
     <div class="feature-copy">
       <p class="eyebrow">Project 1</p>
@@ -148,18 +150,20 @@
       </ul>
       <a class="btn dark" href="/sift/">Open Sift</a>
     </div>
-    <div class="mock" aria-hidden="true">
-      <div class="mock-head">
-        <span class="dots"><span></span><span></span><span></span></span>
-        <span class="mock-title">sift · ask</span>
-        <span class="badge succeeded">cited</span>
-      </div>
-      <p class="mock-question">Can CREATE INDEX CONCURRENTLY run inside a transaction block?</p>
-      <p class="mock-answer">No. Unlike a regular <code>CREATE INDEX</code>, the concurrent form cannot be
-        run inside a transaction block. <span class="cite">[S1]</span></p>
-      <div class="mock-source">
-        <span class="cite">S1</span>
-        <span><strong>PostgreSQL 17 · CREATE INDEX</strong><br>Building Indexes Concurrently</span>
+    <div class="stage">
+      <div class="mock" aria-hidden="true">
+        <div class="mock-head">
+          <span class="dots"><span></span><span></span><span></span></span>
+          <span class="mock-title">sift · ask</span>
+          <span class="badge succeeded">cited</span>
+        </div>
+        <p class="mock-question">Can CREATE INDEX CONCURRENTLY run inside a transaction block?</p>
+        <p class="mock-answer">No. Unlike a regular <code>CREATE INDEX</code>, the concurrent form cannot be
+          run inside a transaction block. <span class="cite">[S1]</span></p>
+        <div class="mock-source">
+          <span class="cite">S1</span>
+          <span><strong>PostgreSQL 17 · CREATE INDEX</strong><br>Building Indexes Concurrently</span>
+        </div>
       </div>
     </div>
   </section>
@@ -270,8 +274,8 @@
       <p>Hopper's console takes a demo API key. Sift answers from the PostgreSQL manuals. The
         dashboard is public and read-only.</p>
       <div class="actions">
-        <a class="btn aura" href="/hopper/">Open Hopper</a>
-        <a class="btn emerald" href="/sift/">Open Sift</a>
+        <a class="btn dark" href="/hopper/">Open Hopper</a>
+        <a class="btn outline" href="/sift/">Open Sift</a>
       </div>
     </div>
   </section>

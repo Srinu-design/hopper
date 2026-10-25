@@ -85,7 +85,7 @@ def test_home_page_hopper_page_and_api_paths_all_route() -> None:
 def test_the_home_page_is_served_with_a_strict_policy() -> None:
     """Caddy serves the home page itself, so the policy the apps send is set here."""
     csp = re.search(r'Content-Security-Policy "([^"]+)"', CADDYFILE)
-    assert csp and "default-src 'none';" in csp[1] and "font-src 'self';" in csp[1]
+    assert csp and "default-src 'none';" in csp[1] and "script-src 'self';" in csp[1]
     assert "unsafe" not in csp[1]
     assert "X-Content-Type-Options nosniff" in CADDYFILE
 

@@ -32,7 +32,7 @@
 	# The same strict policy the two apps send with their pages: the home page has a script of its
 	# own and nothing else, so no inline code, no other origin and no framing.
 	header {
-		Content-Security-Policy "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; font-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
+		Content-Security-Policy "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
 		Referrer-Policy no-referrer
 		X-Content-Type-Options nosniff
 	}
