@@ -169,7 +169,7 @@ smoke() { # <tag>: a few tries, because Caddy's health probe needs a moment to n
 			return 0
 		fi
 		log "smoke test failed (try $try of 3)"
-		[ "$try" -eq 3 ] || sleep 5
+		[ "$try" -eq 3 ] || sleep "$SETTLE"
 	done
 	return 1
 }
@@ -194,6 +194,8 @@ prune() { # keep the newest releases, and always the current and previous ones
 	ls -1t "$ROOT/logs" 2>/dev/null | tail -n +$((KEEP_LOGS + 1)) | while read -r name; do
 		rm -f "${ROOT:?}/logs/$name"
 	done
+	# A fetch killed halfway leaves its temp folder (ls hides dot names); the lock is held.
+	rm -rf "${ROOT:?}"/releases/.incoming.*
 	docker image prune -f >/dev/null || true
 }
 

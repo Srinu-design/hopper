@@ -34,9 +34,7 @@ jobs:
       - uses: actions/checkout@v7
 
       - name: Start the stack from this commit
-        run: |
-          cp .env.example .env
-          make up
+        run: make up  # make env writes .env from .env.example first
 
       - name: Chaos test
         run: python3 chaos/kill_workers.py --mode "$MODE"

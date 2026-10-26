@@ -3,14 +3,14 @@ COPY --from=ghcr.io/astral-sh/uv:0.12.22 /uv /bin/uv
 ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy UV_PYTHON_DOWNLOADS=never
 WORKDIR /app
 COPY pyproject.toml uv.lock ./
-RUN uv sync --frozen --no-dev --no-install-project
+# uv's download cache lives in a cache mount, not in a layer: it never reaches the image or
+# the CI layer cache, and a uv.lock change downloads only the wheels that changed.
+RUN --mount=type=cache,target=/root/.cache/uv uv sync --frozen --no-dev --no-install-project
 COPY src ./src
 # The page at / shows the README's images. They live once, in docs/images, and are copied in
 # here so the installed package carries them next to the page.
 COPY docs/images ./src/hopper/web/static/images
-COPY migrations ./migrations
-COPY alembic.ini ./
-RUN uv sync --frozen --no-dev --no-editable
+RUN --mount=type=cache,target=/root/.cache/uv uv sync --frozen --no-dev --no-editable
 
 FROM python:3.12.15-slim
 # /var/lib/minibroker: where the mini broker (the stretch goal) keeps its log when it runs from
@@ -18,8 +18,9 @@ FROM python:3.12.15-slim
 RUN useradd --create-home app && install -d -o app -g app /var/lib/minibroker
 WORKDIR /app
 COPY --from=build /app/.venv /app/.venv
-COPY --from=build /app/migrations /app/migrations
-COPY --from=build /app/alembic.ini /app/alembic.ini
+# Straight from the context: a migration change does not rebuild the package layer.
+COPY migrations /app/migrations
+COPY alembic.ini /app/alembic.ini
 ENV PATH="/app/.venv/bin:$PATH" PYTHONUNBUFFERED=1
 # The deploy bundle: this release's production compose file, Caddy, Prometheus and Grafana
 # config, deploy script and smoke test. deploy/deploy.sh copies it out of the image, so the

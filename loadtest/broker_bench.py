@@ -32,7 +32,7 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
-from chaos.kill_workers import git_sha, host_description, read_env_file  # noqa: E402
+from chaos.kill_workers import git_sha, host_description, log, read_env_file  # noqa: E402
 from loadtest.bench import (  # noqa: E402  (the same power check and table cells)
     fmt,
     median_spread,
@@ -44,10 +44,6 @@ from loadtest.bench import (  # noqa: E402  (the same power check and table cell
 BROKER = "hopper-minibroker-bench"
 VOLUME = "hopper-minibroker-bench"
 MODES = ("always", "everysec", "no")
-
-
-def log(message: str) -> None:
-    print(f"[{datetime.now(UTC):%H:%M:%S}] {message}", flush=True)
 
 
 def run(args: list[str], timeout: float = 600) -> str:

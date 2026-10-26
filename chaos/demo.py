@@ -190,11 +190,8 @@ class Demo:
 
     def rate_limit(self) -> None:
         self.step("5. A noisy tenant gets 429 with Retry-After, not a timeout")
-        slow = (
-            self.stack.run([*self.compose, "exec", "-T", "api", "python", "-c", SLOW_TENANT_KEY])
-            .strip()
-            .splitlines()[-1]
-        )
+        exec_api = [*self.compose, "exec", "-T", self.args.api_service]
+        slow = self.stack.run([*exec_api, "python", "-c", SLOW_TENANT_KEY]).strip().splitlines()[-1]
         body = {"task": "sleep", "payload": {"ms": 1}}
         answers = [call(self.args.base_url, slow, "POST", "/v1/jobs", body) for _ in range(10)]
         for status, headers, _ in answers:
