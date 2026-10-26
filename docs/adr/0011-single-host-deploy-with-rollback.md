@@ -69,7 +69,9 @@ passes only if the host rolls it back by itself. Its log is the recording of a b
   - An upgrade took 42 to 45 s.
   - The broken `/readyz` was caught 40 to 42 s in, and the old release was serving again at 77 to 79 s, with the
     other API replica serving throughout.
-  - The whole stack, 12 containers, used 817 to 1,085 MiB of memory, so a 4 GB instance has room for load.
+  - The whole stack, 12 containers, used 817 to 1,085 MiB of memory, so a 4 GB instance has room for load. The
+    live server is one (`c7i-flex.large`, 2 vCPU, 4 GiB). Since Sift joined it (about 550 MB more), 1.6 GB of its
+    3.8 GB is still available ([Sift's deploy notes](https://github.com/Srinu-design/sift/blob/main/docs/deploy.md)).
 - The rehearsal found two real problems before any server existed:
   - Caddy's passive health check: a request refused during one replica's restart marked it down for 10 s. If the
     other replica's turn came inside that window, Caddy saw neither as up.

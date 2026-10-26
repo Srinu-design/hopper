@@ -49,5 +49,5 @@ talk over the dashboard while it happens.
    **[▶ Watch the one-minute demo](https://youtu.be/<your video id>)**
    ```
 
-The GIF at the top of the README (`docs/images/crash-recovery.gif`) was made from the dashboard during this same
-demo: two workers killed during 5,000 jobs, and 0 lost.
+The animation at the top of the README (`docs/images/crash-recovery.webp`) was made from the dashboard during this
+same demo: two workers killed during 5,000 jobs, and 0 lost.

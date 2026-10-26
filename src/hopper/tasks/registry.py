@@ -43,7 +43,7 @@ def task(
     backoff_base: float = DEFAULT_BACKOFF_BASE,
     backoff_cap: float = DEFAULT_BACKOFF_CAP,
 ) -> Callable[[Handler], Handler]:
-    """Register a handler: @task("http", payload=HttpPayload, max_attempts=8, timeout=15)."""
+    """Register a handler: @task("http", payload=HttpPayload, max_attempts=8, timeout=130)."""
     if max_attempts < 1 or timeout < 1 or backoff_base < 0 or backoff_cap < backoff_base:
         raise ValueError(f"invalid retry policy for task {name!r}")
 

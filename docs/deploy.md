@@ -34,7 +34,7 @@ Region** (for this project it is **Asia Pacific (Sydney), `ap-southeast-2`**).
 |---|---|
 | **Name and tags → Name** | `hopper` |
 | **Application and OS Images** | **Quick Start → Ubuntu**, then **Ubuntu Server 24.04 LTS (HVM), SSD Volume Type**, architecture **64-bit (x86)**. The Hopper image is built for `linux/amd64`, so not Arm |
-| **Instance type** | **`m7i-flex.large`** (2 vCPU, 8 GiB). On the free plan only types marked *Free tier eligible* can be launched, so `t3.medium` is refused; `c7i-flex.large` (2 vCPU, 4 GiB) also fits the stack. About $0.12 an hour, taken from your credits while it runs |
+| **Instance type** | **`c7i-flex.large`** (2 vCPU, 4 GiB), what the live server runs: Hopper and Sift together leave about 1.6 GB of its 3.8 GB available. `m7i-flex.large` (2 vCPU, 8 GiB) gives more room. On the free plan only types marked *Free tier eligible* can be launched, so `t3.medium` is refused. Paid from your credits while it runs (about $0.12 an hour for `m7i-flex.large`) |
 | **Key pair (login)** | **Create new key pair**: name `hopper-login`, type **ED25519**, format **.pem**, then **Create key pair**. The browser downloads `hopper-login.pem`: this is *your* login key, never the deploy key of step 2 |
 | **Network settings** | Keep the default VPC and subnet, **Auto-assign public IP: Enable**, **Create security group**, and tick all three: **Allow SSH traffic from Anywhere (0.0.0.0/0)**, **Allow HTTPS traffic from the internet**, **Allow HTTP traffic from the internet**. The console warns about SSH from anywhere: expected, GitHub's runners deploy over SSH and have no fixed addresses; keys are the only way in (see Security notes) |
 | **Configure storage** | **30** GiB, **gp3** (images, Postgres, 15 days of Prometheus) |
@@ -66,9 +66,9 @@ mv ~/Downloads/hopper-login.pem ~/.ssh/ && chmod 400 ~/.ssh/hopper-login.pem
 ssh -i ~/.ssh/hopper-login.pem ubuntu@<ip> 'uname -a'
 ```
 
-What it costs on the free plan: the instance about $0.12 per running hour, the disk about $2.90 a month and the
-Elastic IP about $3.65 a month even while the instance is stopped, all taken from your credits. **Stop the
-instance when you are not using it**: **Instances** → select **hopper** → **Instance state → Stop instance**
+What it costs on the free plan: the instance up to about $0.12 per running hour, the disk about $2.90 a month
+and the Elastic IP about $3.65 a month even while the instance is stopped, all taken from your credits. **Stop
+the instance when you are not using it**: **Instances** → select **hopper** → **Instance state → Stop instance**
 (**Start instance** brings everything back, Docker restarts every container).
 
 ## 2. Set up the host (once)
@@ -153,8 +153,11 @@ Then create the first platform admin (it asks for a password):
 ssh -t -i ~/.ssh/hopper-login.pem ubuntu@<ip> docker exec -it hopper-api-1-1 python -m hopper.bootstrap --email you@example.com
 ```
 
-Live links: `<PUBLIC_URL>/docs` (API docs) and `<PUBLIC_URL>/grafana/` (dashboard, view only). The Grafana admin
-password is `GRAFANA_ADMIN_PASSWORD` in `/opt/hopper/.env`.
+Live links: `<PUBLIC_URL>/` (the portfolio home page, `deploy/site`), `<PUBLIC_URL>/hopper/` (Hopper's page),
+`<PUBLIC_URL>/docs` (API docs), `<PUBLIC_URL>/grafana/` (dashboard, view only) and `<PUBLIC_URL>/sift/` (Sift,
+once it is deployed next to Hopper:
+[Sift's deploy notes](https://github.com/Srinu-design/sift/blob/main/docs/deploy.md)). The Grafana admin password
+is `GRAFANA_ADMIN_PASSWORD` in `/opt/hopper/.env`.
 
 From now on, every merge to main deploys by itself once CI is green.
 

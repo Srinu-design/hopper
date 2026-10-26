@@ -26,7 +26,7 @@ This is **full jitter**: the delay is a random point anywhere in the window, not
 | attempts | 5 | 8 |
 | base | 2 s | 10 s |
 | cap | 600 s | 1 h |
-| timeout per run | 30 s | 15 s |
+| timeout per run | 30 s | 130 s (each call: 5 s to connect, 10 s to read, or the payload's `timeout`, up to 120 s) |
 
 Each task sets its own values in `@task(...)`. A handler can raise `RetryableError(retry_after=...)`, and the
 larger of that and the backoff wins; the `http` task does this with the target's `Retry-After` header (capped at
