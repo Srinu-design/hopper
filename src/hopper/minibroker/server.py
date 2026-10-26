@@ -27,7 +27,7 @@ network (Compose's, or localhost).
 
 import asyncio
 import contextlib
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 
 import structlog
@@ -147,10 +147,10 @@ class BrokerServer:
     async def start(self, host: str, port: int) -> int:
         """Listen, and start the background loops. Returns the port (useful with port 0)."""
         self._server = await asyncio.start_server(self._connection, host, port)
-        self._tasks = [asyncio.create_task(self._expire_loop(), name="expire")]
+        loops = [(self._expire_interval, self._expire_step), (1.0, self._compact_step)]
         if self.fsync == "everysec":
-            self._tasks.append(asyncio.create_task(self._fsync_loop(), name="fsync"))
-        self._tasks.append(asyncio.create_task(self._compact_loop(), name="compact"))
+            loops.append((1.0, self._fsync_step))
+        self._tasks = [asyncio.create_task(self._every(i, step)) for i, step in loops]
         sock = self._server.sockets[0]
         return int(sock.getsockname()[1])
 
@@ -205,35 +205,39 @@ class BrokerServer:
         finally:
             self._committing = False
 
-    async def _fsync_loop(self) -> None:
+    async def _every(self, interval: float, step: Callable[[], Awaitable[None]]) -> None:
+        """Run step forever. A failure (the disk refusing, say) is logged and retried next
+        time: an unhandled one would end the loop silently, and with it fsyncs or expiry."""
         while True:
-            await asyncio.sleep(1.0)
-            if self.log_file.pending:
-                self.log_file.write()
-            if self.log_file.unsynced:
-                async with self._disk:
-                    await asyncio.to_thread(self.log_file.fsync)
-                self.counters.fsyncs += 1
+            await asyncio.sleep(interval)
+            try:
+                await step()
+            except Exception:
+                log.exception("broker_loop_failed", step=step.__name__)
 
-    async def _expire_loop(self) -> None:
-        while True:
-            await asyncio.sleep(self._expire_interval)
-            for m, status in self.store.expire():
-                log.info("broker_lease_expired", id=m.id, queue=m.queue, status=status)
-            if self.log_file.pending:
-                self.log_file.write()  # the fsync policy covers it from here
-
-    async def _compact_loop(self) -> None:
-        while True:
-            await asyncio.sleep(1.0)
-            size = self.log_file.size
-            if size < self._compact_min_bytes or size < 4 * self.store.live_bytes:
-                continue
+    async def _fsync_step(self) -> None:
+        if self.log_file.pending:
+            self.log_file.write()
+        if self.log_file.unsynced:
             async with self._disk:
-                # Runs on the event loop: nothing else changes the store meanwhile.
-                self.log_file.rewrite(self.store.snapshot())
-            self.counters.compactions += 1
-            log.info("broker_log_compacted", before=size, after=self.log_file.size)
+                await asyncio.to_thread(self.log_file.fsync)
+            self.counters.fsyncs += 1
+
+    async def _expire_step(self) -> None:
+        for m, status in self.store.expire():
+            log.info("broker_lease_expired", id=m.id, queue=m.queue, status=status)
+        if self.log_file.pending:
+            self.log_file.write()  # the fsync policy covers it from here
+
+    async def _compact_step(self) -> None:
+        size = self.log_file.size
+        if size < self._compact_min_bytes or size < 4 * self.store.live_bytes:
+            return
+        async with self._disk:
+            # Runs on the event loop: nothing else changes the store meanwhile.
+            self.log_file.rewrite(self.store.snapshot())
+        self.counters.compactions += 1
+        log.info("broker_log_compacted", before=size, after=self.log_file.size)
 
     # -- connections ------------------------------------------------------------------------
 

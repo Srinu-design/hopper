@@ -30,7 +30,8 @@ def parse_url(url: str) -> tuple[str, int]:
 
 class Client:
     """A small pool of connections. A connection that fails is thrown away, and the next call
-    opens a new one, so a broker restart costs the calls in flight and nothing else."""
+    opens a new one, so a broker restart costs the calls in flight, plus one failed call for
+    each idle pooled connection (up to `size`) the first time it is used again."""
 
     def __init__(self, url: str = DEFAULT_URL, *, size: int = 4, timeout: float = 10.0) -> None:
         self.host, self.port = parse_url(url)
