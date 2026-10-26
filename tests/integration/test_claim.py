@@ -7,7 +7,7 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 from hopper.queue.postgres import PostgresBroker
-from tests.helpers import LEASE, job_row, seed_jobs, seed_tenant
+from tests.helpers import LEASE, attempts_of, counts, job_row, seed_jobs, seed_tenant
 
 
 async def test_no_double_claim_under_concurrency(migrated_engine: AsyncEngine) -> None:
@@ -30,11 +30,7 @@ async def test_no_double_claim_under_concurrency(migrated_engine: AsyncEngine) -
     assert len(all_ids) == 1000
     assert len(set(all_ids)) == 1000  # no duplicates
     assert sum(1 for ids in results if ids) > 1  # the work really was shared
-    async with migrated_engine.connect() as conn:
-        statuses = (
-            await conn.execute(text("SELECT status, count(*) FROM jobs GROUP BY status"))
-        ).all()
-    assert [tuple(r) for r in statuses] == [("running", 1000)]
+    assert await counts(migrated_engine) == {"running": 1000}
 
 
 async def test_claim_sets_lease_and_attempt(migrated_engine: AsyncEngine) -> None:
@@ -121,14 +117,10 @@ async def test_ack_marks_succeeded_and_records_attempt(migrated_engine: AsyncEng
     assert row["finished_at"] is not None
     assert (row["lease_owner"], row["lease_token"], row["lease_expires_at"]) == (None, None, None)
     assert row["result"] == {"answer": 42}
-    async with migrated_engine.connect() as conn:
-        attempts = (
-            await conn.execute(
-                text("SELECT attempt, worker_id, outcome FROM job_attempts WHERE job_id = :i"),
-                {"i": job.id},
-            )
-        ).all()
-    assert [tuple(a) for a in attempts] == [(1, "w1", "succeeded")]
+    attempts = await attempts_of(migrated_engine, job.id)
+    assert [(a["attempt"], a["worker_id"], a["outcome"]) for a in attempts] == [
+        (1, "w1", "succeeded")
+    ]
 
 
 async def test_ack_with_wrong_token_changes_nothing(migrated_engine: AsyncEngine) -> None:
@@ -144,22 +136,7 @@ async def test_ack_with_wrong_token_changes_nothing(migrated_engine: AsyncEngine
     row = await job_row(migrated_engine, job.id)
     assert row["status"] == "running"
     assert row["lease_token"] == job.lease_token
-    async with migrated_engine.connect() as conn:
-        count = (await conn.execute(text("SELECT count(*) FROM job_attempts"))).scalar_one()
-    assert count == 0
-
-
-async def test_double_ack_is_rejected(migrated_engine: AsyncEngine) -> None:
-    tenant_id = await seed_tenant(migrated_engine)
-    await seed_jobs(migrated_engine, tenant_id, 1)
-    broker = PostgresBroker(migrated_engine)
-    [job] = await broker.claim("default", "w1", 1, LEASE)
-
-    assert await broker.ack(job, "w1", None) is True
-    assert await broker.ack(job, "w1", None) is False
-    async with migrated_engine.connect() as conn:
-        count = (await conn.execute(text("SELECT count(*) FROM job_attempts"))).scalar_one()
-    assert count == 1
+    assert await attempts_of(migrated_engine, job.id) == []
 
 
 async def test_concurrent_acks_of_the_same_job_succeed_exactly_once(
@@ -172,6 +149,4 @@ async def test_concurrent_acks_of_the_same_job_succeed_exactly_once(
 
     outcomes = await asyncio.gather(*(broker.ack(job, "w1", None) for _ in range(10)))
     assert outcomes.count(True) == 1
-    async with migrated_engine.connect() as conn:
-        count = (await conn.execute(text("SELECT count(*) FROM job_attempts"))).scalar_one()
-    assert count == 1
+    assert len(await attempts_of(migrated_engine, job.id)) == 1

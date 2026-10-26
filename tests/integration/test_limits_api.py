@@ -9,7 +9,6 @@ from collections.abc import AsyncIterator
 import httpx
 import pytest
 from fastapi import FastAPI
-from prometheus_client import REGISTRY
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine
 
@@ -17,20 +16,9 @@ from hopper.api.main import create_app
 from hopper.auth import passwords, store
 from hopper.config import get_settings
 from hopper.scheduler.depth import DepthLoop
-from tests.helpers import TenantCreds, make_tenant, seed_jobs
+from tests.helpers import TenantCreds, client_for, make_tenant, metric, seed_jobs
 
 JOB = {"task": "sleep", "payload": {"ms": 1}}
-
-
-def client_for(app: FastAPI, key: str | None) -> httpx.AsyncClient:
-    headers = {"Authorization": f"Bearer {key}"} if key else {}
-    return httpx.AsyncClient(
-        transport=httpx.ASGITransport(app=app), base_url="http://test", headers=headers
-    )
-
-
-def counter(name: str, **labels: str) -> float:
-    return REGISTRY.get_sample_value(name, labels) or 0.0
 
 
 async def tenant_with(app: FastAPI, **limits: float) -> TenantCreds:
@@ -63,7 +51,7 @@ async def test_every_response_says_how_much_is_left(api_app: FastAPI) -> None:
 
 async def test_over_the_burst_is_429_with_retry_after(api_app: FastAPI) -> None:
     creds = await tenant_with(api_app, rate_per_sec=0.5, burst=3)
-    before = counter("hopper_ratelimit_rejections_total", route_class="enqueue")
+    before = metric("hopper_ratelimit_rejections_total", route_class="enqueue")
     async with client_for(api_app, creds.api_key) as c:
         codes = [(await c.post("/v1/jobs", json=JOB)).status_code for _ in range(3)]
         refused = await c.post("/v1/jobs", json=JOB)
@@ -76,7 +64,7 @@ async def test_over_the_burst_is_429_with_retry_after(api_app: FastAPI) -> None:
     assert refused.headers["Retry-After"] == "2"
     assert refused.headers["X-RateLimit-Remaining"] == "0"
     assert error["request_id"] == refused.headers["X-Request-ID"]
-    assert counter("hopper_ratelimit_rejections_total", route_class="enqueue") - before == 1
+    assert metric("hopper_ratelimit_rejections_total", route_class="enqueue") - before == 1
 
 
 async def test_a_refused_enqueue_creates_no_job(api_app: FastAPI) -> None:
@@ -147,7 +135,7 @@ async def test_two_api_replicas_share_one_bucket(
 
 async def test_over_the_tenant_quota_is_429_queue_quota_exceeded(api_app: FastAPI) -> None:
     creds = await tenant_with(api_app, max_queue_depth=3)
-    before = counter("hopper_backpressure_rejections_total", reason="quota")
+    before = metric("hopper_backpressure_rejections_total", reason="quota")
     async with client_for(api_app, creds.api_key) as c:
         for _ in range(3):
             assert (await c.post("/v1/jobs", json=JOB)).status_code == 201
@@ -158,7 +146,7 @@ async def test_over_the_tenant_quota_is_429_queue_quota_exceeded(api_app: FastAP
         assert refused.headers["Retry-After"] == "5"
         # Reads are never held back by depth.
         assert (await c.get("/v1/jobs")).status_code == 200
-    assert counter("hopper_backpressure_rejections_total", reason="quota") - before == 1
+    assert metric("hopper_backpressure_rejections_total", reason="quota") - before == 1
 
 
 async def test_under_the_quota_enqueues_go_through(api_app: FastAPI) -> None:
@@ -204,7 +192,7 @@ async def test_over_the_global_limit_is_503_overloaded(
             busy = await tenant_with(app)
             await seed_jobs(migrated_engine, busy.id, 5)  # another tenant fills the system
             await publish_depth(app)
-            before = counter("hopper_backpressure_rejections_total", reason="overloaded")
+            before = metric("hopper_backpressure_rejections_total", reason="overloaded")
             async with client_for(app, creds.api_key) as c:
                 refused = await c.post("/v1/jobs", json=JOB)
     finally:
@@ -212,7 +200,7 @@ async def test_over_the_global_limit_is_503_overloaded(
     assert refused.status_code == 503
     assert refused.json()["error"]["code"] == "overloaded"
     assert refused.headers["Retry-After"] == "5"
-    assert counter("hopper_backpressure_rejections_total", reason="overloaded") - before == 1
+    assert metric("hopper_backpressure_rejections_total", reason="overloaded") - before == 1
 
 
 async def test_no_published_depth_fails_open(api_app: FastAPI) -> None:

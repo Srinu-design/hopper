@@ -4,7 +4,6 @@ dashboard and alert rules only query metrics that exist."""
 import asyncio
 import json
 import re
-import socket
 import urllib.request
 import uuid
 from pathlib import Path
@@ -26,8 +25,10 @@ from hopper.worker import loop as worker_loop
 from tests.helpers import (
     ROOT,
     TenantCreds,
+    free_port,
     insert_job,
     make_worker,
+    metric,
     run_until,
     seed_tenant,
     status_in,
@@ -37,20 +38,16 @@ from tests.helpers import (
 UUID_RE = re.compile(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}")
 
 
-def value(name: str, **labels: str) -> float:
-    return REGISTRY.get_sample_value(name, labels) or 0.0
-
-
 class Delta:
     """Counter and histogram values before and after, since the registry is process-wide."""
 
     def __init__(self, *samples: tuple[str, dict[str, str]]) -> None:
         self.samples = samples
-        self.before = [value(name, **labels) for name, labels in samples]
+        self.before = [metric(name, **labels) for name, labels in samples]
 
     def __call__(self) -> list[float]:
         return [
-            value(name, **labels) - b
+            metric(name, **labels) - b
             for (name, labels), b in zip(self.samples, self.before, strict=True)
         ]
 
@@ -92,7 +89,7 @@ async def test_worker_counts_every_outcome_and_times_runs(migrated_engine: Async
     # Three 20 ms handlers (Windows timers tick every ~16 ms, so no tighter bound than this).
     assert run_count == 3 and 0 < run_sum < 1
     assert waits == 5  # one per claim
-    assert value("hopper_worker_inflight") == 0
+    assert metric("hopper_worker_inflight") == 0
 
 
 async def test_a_lost_lease_ack_is_counted(migrated_engine: AsyncEngine) -> None:
@@ -234,15 +231,8 @@ async def test_no_metric_label_carries_an_id(
 # --- the metrics endpoint ---------------------------------------------------------------------
 
 
-def _free_port() -> int:
-    with socket.socket() as s:
-        s.bind(("127.0.0.1", 0))
-        port: int = s.getsockname()[1]
-        return port
-
-
 def test_the_metrics_endpoint_serves_the_catalogue() -> None:
-    port = _free_port()
+    port = free_port()
     stop = metrics.serve(port)
     try:
         with urllib.request.urlopen(f"http://127.0.0.1:{port}/metrics", timeout=5) as resp:

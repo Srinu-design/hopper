@@ -1,11 +1,7 @@
-import asyncio
-import time
-
 import httpx
 from fastapi import FastAPI
 
-from hopper.queue.postgres import PostgresBroker
-from hopper.worker.loop import Worker
+from tests.helpers import make_worker, run_until
 
 
 async def test_job_goes_from_api_to_worker_to_succeeded(
@@ -18,27 +14,9 @@ async def test_job_goes_from_api_to_worker_to_succeeded(
         assert resp.status_code == 201
         ids.append(resp.json()["id"])
 
-    worker = Worker(
-        PostgresBroker(api_app.state.engine),
-        worker_id="e2e-worker",
-        queues=["default"],
-        slots=8,
-        poll_interval=0.02,
-        max_idle_backoff=0.1,
-    )
-    runner = asyncio.create_task(worker.run())
-    try:
-        deadline = time.monotonic() + 20
-        pending = set(ids)
-        while pending:
-            assert time.monotonic() < deadline, f"still pending: {len(pending)}"
-            for job_id in list(pending):
-                if (await client.get(f"/v1/jobs/{job_id}")).json()["status"] == "succeeded":
-                    pending.discard(job_id)
-            await asyncio.sleep(0.05)
-    finally:
-        worker.stop()
-        await runner
+    engine = api_app.state.engine
+    worker = make_worker(engine, "e2e-worker", slots=8)
+    await run_until([worker], engine, lambda c: c == {"succeeded": 20})
 
     for ms, job_id in enumerate(ids):
         job = (await client.get(f"/v1/jobs/{job_id}")).json()

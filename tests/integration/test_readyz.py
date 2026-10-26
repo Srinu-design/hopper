@@ -6,6 +6,7 @@ import pytest
 
 from hopper.api.main import create_app
 from hopper.config import get_settings
+from tests.helpers import client_for
 
 
 @pytest.fixture(autouse=True)
@@ -18,10 +19,8 @@ def fresh_settings() -> Iterator[None]:
 async def _client() -> AsyncIterator[httpx.AsyncClient]:
     app = create_app()
     # ASGITransport does not run the lifespan, so run it here to create the engine and Redis client.
-    async with app.router.lifespan_context(app):
-        transport = httpx.ASGITransport(app=app)
-        async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
-            yield client
+    async with app.router.lifespan_context(app), client_for(app) as client:
+        yield client
 
 
 @pytest.fixture

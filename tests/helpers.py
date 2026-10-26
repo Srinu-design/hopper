@@ -4,6 +4,7 @@ test files as top-level modules, so importing one from another would execute it 
 import asyncio
 import json
 import os
+import socket
 import subprocess
 import sys
 import time
@@ -15,6 +16,9 @@ from decimal import Decimal
 from pathlib import Path
 from typing import Any
 
+import httpx
+from fastapi import FastAPI
+from prometheus_client import REGISTRY
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine
 
@@ -40,6 +44,38 @@ def run_alembic(
         check=False,
         timeout=timeout,
     )
+
+
+def run_bootstrap(database_url: str, *args: str, **env: str) -> subprocess.CompletedProcess[str]:
+    """Run the real `python -m hopper.bootstrap` CLI against database_url, as `compose run` does."""
+    return subprocess.run(
+        [sys.executable, "-m", "hopper.bootstrap", *args],
+        cwd=ROOT,
+        env={**os.environ, "DATABASE_URL": database_url, **env},
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+
+def client_for(app: FastAPI, key: str | None = None) -> httpx.AsyncClient:
+    """An HTTP client calling the app in-process, sending `key` as the bearer token if given."""
+    headers = {"Authorization": f"Bearer {key}"} if key else {}
+    return httpx.AsyncClient(
+        transport=httpx.ASGITransport(app=app), base_url="http://test", headers=headers
+    )
+
+
+def free_port() -> int:
+    """A local port nothing listens on, for a server a test starts."""
+    with socket.socket() as s:
+        s.bind(("127.0.0.1", 0))
+        return int(s.getsockname()[1])
+
+
+def metric(name: str, **labels: str) -> float:
+    """A sample from this process's Prometheus registry; a series never written reads 0."""
+    return REGISTRY.get_sample_value(name, labels) or 0.0
 
 
 LEASE = 30.0
@@ -169,6 +205,32 @@ async def attempts_of(engine: AsyncEngine, job_id: uuid.UUID) -> list[dict[str, 
             text("SELECT * FROM job_attempts WHERE job_id = :i ORDER BY id"), {"i": job_id}
         )
         return [dict(r._mapping) for r in rows]
+
+
+async def recorded(engine: AsyncEngine, job_id: uuid.UUID) -> tuple[int, int]:
+    """The effect task's (execution rows, effect rows) for one job."""
+    async with engine.connect() as conn:
+        row = (
+            await conn.execute(
+                text(
+                    "SELECT (SELECT count(*) FROM job_executions WHERE job_id = :j),"
+                    "       (SELECT count(*) FROM job_effects WHERE job_id = :j)"
+                ),
+                {"j": job_id},
+            )
+        ).one()
+    return int(row[0]), int(row[1])
+
+
+# Lease timings for real worker processes, so each crash test takes seconds (production: 30 s
+# lease, 10 s heartbeat).
+FAST = {
+    "LEASE_SECONDS": "2",
+    "HEARTBEAT_SECONDS": "0.5",
+    "WORKER_POLL_INTERVAL": "0.05",
+    "WORKER_MAX_IDLE_BACKOFF": "0.1",
+}
+STARTUP_TIMEOUT = 30  # a cold Python start with every import can be slow on CI
 
 
 def start_worker_process(database_url: str, **settings: str) -> subprocess.Popen[bytes]:

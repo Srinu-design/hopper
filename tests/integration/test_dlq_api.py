@@ -8,7 +8,7 @@ from fastapi import FastAPI
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine
 
-from tests.helpers import TenantCreds, job_row
+from tests.helpers import TenantCreds, insert_job, job_row
 
 
 @pytest.fixture
@@ -60,17 +60,6 @@ async def dead_job(
     return job_id
 
 
-async def queued_job(engine: AsyncEngine, tenant_id: uuid.UUID) -> uuid.UUID:
-    async with engine.begin() as conn:
-        job_id: uuid.UUID = (
-            await conn.execute(
-                text("INSERT INTO jobs (tenant_id, task) VALUES (:t, 'sleep') RETURNING id"),
-                {"t": tenant_id},
-            )
-        ).scalar_one()
-    return job_id
-
-
 def ids(page: dict[str, Any]) -> list[str]:
     return [job["id"] for job in page["jobs"]]
 
@@ -83,7 +72,7 @@ async def test_dlq_lists_only_dead_jobs_newest_first(
 ) -> None:
     older = await dead_job(engine, tenant_id, died_minutes_ago=10)
     newer = await dead_job(engine, tenant_id, died_minutes_ago=1)
-    await queued_job(engine, tenant_id)
+    await insert_job(engine, tenant_id, task="sleep")
 
     resp = await client.get("/v1/dlq")
 
@@ -190,7 +179,7 @@ async def test_bulk_replay_by_ids_spreads_run_at(
     client: httpx.AsyncClient, engine: AsyncEngine, tenant_id: uuid.UUID
 ) -> None:
     dead = [await dead_job(engine, tenant_id) for _ in range(20)]
-    alive = await queued_job(engine, tenant_id)
+    alive = await insert_job(engine, tenant_id, task="sleep")
 
     resp = await client.post(
         "/v1/dlq/replay",

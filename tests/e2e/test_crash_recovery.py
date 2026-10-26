@@ -16,6 +16,8 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 from hopper.queue.postgres import PostgresBroker
 from hopper.scheduler.reaper import Reaper
 from tests.helpers import (
+    FAST,
+    STARTUP_TIMEOUT,
     attempts_of,
     insert_job,
     job_row,
@@ -25,14 +27,6 @@ from tests.helpers import (
     status_in,
     wait_for,
 )
-
-FAST = {
-    "LEASE_SECONDS": "2",
-    "HEARTBEAT_SECONDS": "0.5",
-    "WORKER_POLL_INTERVAL": "0.05",
-    "WORKER_MAX_IDLE_BACKOFF": "0.1",
-}
-STARTUP_TIMEOUT = 30  # a cold Python start with every import can be slow on CI
 
 
 async def wait_exit(proc: subprocess.Popen[bytes], timeout: float) -> int:
@@ -49,7 +43,7 @@ async def test_kill_9_mid_job_then_another_worker_finishes_it(
     migrated_engine: AsyncEngine, migrated_db_url: str
 ) -> None:
     tenant_id = await seed_tenant(migrated_engine)
-    job_id = await insert_job(migrated_engine, tenant_id, task="sleep", payload='{"ms": 3000}')
+    job_id = await insert_job(migrated_engine, tenant_id, task="sleep", payload='{"ms": 1000}')
     proc = start_worker_process(migrated_db_url, **FAST)
     try:
         await wait_for(status_in(migrated_engine, job_id, "running"), timeout=STARTUP_TIMEOUT)
@@ -72,7 +66,7 @@ async def test_kill_9_mid_job_then_another_worker_finishes_it(
         await asyncio.gather(*runners)
 
     row = await job_row(migrated_engine, job_id)
-    assert (row["status"], row["attempts"], row["result"]) == ("succeeded", 2, {"slept_ms": 3000})
+    assert (row["status"], row["attempts"], row["result"]) == ("succeeded", 2, {"slept_ms": 1000})
     history = [
         (a["attempt"], a["worker_id"], a["outcome"])
         for a in await attempts_of(migrated_engine, job_id)

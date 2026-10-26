@@ -8,7 +8,6 @@ from datetime import timedelta
 
 import pytest
 import redis.asyncio as redis_asyncio
-from prometheus_client import REGISTRY
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine
 
@@ -16,7 +15,7 @@ from hopper.config import Settings, get_settings
 from hopper.db import create_redis
 from hopper.queue import sql
 from hopper.scheduler.depth import DepthLoop
-from tests.helpers import insert_job, seed_jobs, seed_tenant
+from tests.helpers import insert_job, metric, seed_jobs, seed_tenant
 
 
 @pytest.fixture
@@ -29,10 +28,6 @@ async def redis() -> AsyncIterator[redis_asyncio.Redis]:
 @pytest.fixture
 def namespace() -> str:
     return f"test-{uuid.uuid4().hex[:12]}"
-
-
-def gauge(name: str, **labels: str) -> float | None:
-    return REGISTRY.get_sample_value(name, labels)
 
 
 async def test_depth_by_queue_and_state(
@@ -52,7 +47,7 @@ async def test_depth_by_queue_and_state(
     expected = {"ready": 2, "delayed": 3, "running": 1, "dead": 1}
     assert {s: depth.by_queue[("default", s)] for s in expected} == expected
     for state, jobs in expected.items():
-        assert gauge("hopper_queue_depth", queue="default", state=state) == jobs
+        assert metric("hopper_queue_depth", queue="default", state=state) == jobs
 
 
 async def test_queues_no_worker_serves_are_counted_as_other(
@@ -65,7 +60,7 @@ async def test_queues_no_worker_serves_are_counted_as_other(
     depth = await DepthLoop(migrated_engine, redis, namespace=namespace).tick()
     assert depth.by_queue[("other", "ready")] == 3
     assert {queue for queue, _ in depth.by_queue} == {"default", "other"}
-    assert gauge("hopper_queue_depth", queue="other", state="ready") == 3
+    assert metric("hopper_queue_depth", queue="other", state="ready") == 3
 
 
 async def test_oldest_ready_job_age(
@@ -78,7 +73,7 @@ async def test_oldest_ready_job_age(
     depth = await DepthLoop(migrated_engine, redis, namespace=namespace).tick()
     assert 89 <= depth.oldest_ready_seconds["default"] <= 95
     assert depth.oldest_ready_seconds["other"] == 0
-    assert 89 <= (gauge("hopper_oldest_ready_job_age_seconds", queue="default") or 0) <= 95
+    assert 89 <= metric("hopper_oldest_ready_job_age_seconds", queue="default") <= 95
 
 
 async def test_gauges_fall_to_zero_when_a_queue_drains(
@@ -88,12 +83,12 @@ async def test_gauges_fall_to_zero_when_a_queue_drains(
     await seed_jobs(migrated_engine, tenant, 4)
     loop = DepthLoop(migrated_engine, redis, namespace=namespace)
     await loop.tick()
-    assert gauge("hopper_queue_depth", queue="default", state="ready") == 4
+    assert metric("hopper_queue_depth", queue="default", state="ready") == 4
     async with migrated_engine.begin() as conn:
         await conn.execute(text("UPDATE jobs SET status = 'succeeded'"))
     await loop.tick()
-    assert gauge("hopper_queue_depth", queue="default", state="ready") == 0
-    assert gauge("hopper_oldest_ready_job_age_seconds", queue="default") == 0
+    assert metric("hopper_queue_depth", queue="default", state="ready") == 0
+    assert metric("hopper_oldest_ready_job_age_seconds", queue="default") == 0
 
 
 async def test_queued_jobs_per_tenant_are_published_for_backpressure(
@@ -138,7 +133,7 @@ async def test_redis_down_still_updates_the_gauges(migrated_engine: AsyncEngine)
     finally:
         await unreachable.aclose()
     assert depth.total_queued == 7
-    assert gauge("hopper_queue_depth", queue="default", state="ready") == 7
+    assert metric("hopper_queue_depth", queue="default", state="ready") == 7
 
 
 async def test_the_depth_queries_read_the_partial_indexes(migrated_engine: AsyncEngine) -> None:

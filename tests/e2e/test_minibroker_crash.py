@@ -6,7 +6,6 @@ The broker runs as `python -m hopper.minibroker` and the worker as
 
 import asyncio
 import os
-import socket
 import subprocess
 import sys
 import uuid
@@ -16,15 +15,9 @@ import pytest
 
 from hopper.minibroker.client import Client, MiniBroker
 from hopper.minibroker.protocol import Value
-from tests.helpers import ROOT
+from tests.helpers import ROOT, free_port
 
 pytestmark = pytest.mark.skipif(sys.platform == "win32", reason="POSIX signals and fsync")
-
-
-def free_port() -> int:
-    with socket.socket() as s:
-        s.bind(("127.0.0.1", 0))
-        return int(s.getsockname()[1])
 
 
 def start_broker(data: Path, port: int, fsync: str) -> subprocess.Popen[bytes]:

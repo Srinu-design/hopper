@@ -120,8 +120,8 @@ def test_a_ready_api_without_working_workers_fails(
     """The point of the smoke test: /readyz is green, but the job never runs."""
     fake, url = api
     fake.statuses = ["queued"]
-    assert smoke.main(["--url", url, "--key", "k", "--timeout", "1.5"]) == 1
-    assert "still queued after 1.5 s: are the workers running?" in capsys.readouterr().err
+    assert smoke.main(["--url", url, "--key", "k", "--timeout", "0.4"]) == 1
+    assert "still queued after 0.4 s: are the workers running?" in capsys.readouterr().err
 
 
 def test_a_job_that_dies_fails_at_once(

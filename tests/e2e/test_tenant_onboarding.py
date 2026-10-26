@@ -5,11 +5,7 @@ import asyncio
 import base64
 import hashlib
 import hmac
-import os
-import subprocess
-import sys
 import threading
-import time
 from collections.abc import Iterator
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any
@@ -18,10 +14,8 @@ import httpx
 import pytest
 from fastapi import FastAPI
 
-from hopper.queue.postgres import PostgresBroker
 from hopper.tasks import http
-from hopper.worker.loop import Worker
-from tests.helpers import ROOT
+from tests.helpers import make_worker, run_bootstrap, run_until
 
 received: list[tuple[dict[str, str], bytes]] = []
 
@@ -49,19 +43,6 @@ def hook() -> Iterator[int]:
         server.server_close()
 
 
-def bootstrap(db_url: str, email: str) -> subprocess.CompletedProcess[str]:
-    """The real CLI, exactly as `docker compose run --rm api python -m hopper.bootstrap`."""
-    env = {**os.environ, "DATABASE_URL": db_url, "HOPPER_ADMIN_PASSWORD": "bootstrap-password"}
-    return subprocess.run(
-        [sys.executable, "-m", "hopper.bootstrap", "--email", email],
-        cwd=ROOT,
-        env=env,
-        capture_output=True,
-        text=True,
-        check=False,
-    )
-
-
 async def loopback_only(host: str, port: int) -> list[str]:
     return ["127.0.0.1"]
 
@@ -69,10 +50,15 @@ async def loopback_only(host: str, port: int) -> list[str]:
 async def test_from_bootstrap_to_a_signed_webhook(
     anon_client: httpx.AsyncClient, api_app: FastAPI, migrated_db_url: str, hook: int
 ) -> None:
-    made = await asyncio.to_thread(bootstrap, migrated_db_url, "Root@Hopper.test")
+    admin = {"HOPPER_ADMIN_PASSWORD": "bootstrap-password"}
+    made = await asyncio.to_thread(
+        run_bootstrap, migrated_db_url, "--email", "Root@Hopper.test", **admin
+    )
     assert made.returncode == 0, made.stderr
     assert "platform admin root@hopper.test created" in made.stdout
-    again = await asyncio.to_thread(bootstrap, migrated_db_url, "root@hopper.test")
+    again = await asyncio.to_thread(
+        run_bootstrap, migrated_db_url, "--email", "root@hopper.test", **admin
+    )
     assert again.returncode == 1 and "already exists" in again.stderr
 
     async def token(email: str, password: str) -> dict[str, str]:
@@ -108,24 +94,10 @@ async def test_from_bootstrap_to_a_signed_webhook(
     job_id = job.json()["id"]
 
     await http.configure(http.HttpSettings(allow_private=True, resolver=loopback_only))
-    worker = Worker(
-        PostgresBroker(api_app.state.engine),
-        worker_id="e2e",
-        queues=["default"],
-        poll_interval=0.02,
-        max_idle_backoff=0.1,
-    )
-    runner = asyncio.create_task(worker.run())
+    engine = api_app.state.engine
     try:
-        deadline = time.monotonic() + 15
-        while (await anon_client.get(f"/v1/jobs/{job_id}", headers=as_tenant)).json()[
-            "status"
-        ] != "succeeded":
-            assert time.monotonic() < deadline, "http job did not succeed"
-            await asyncio.sleep(0.05)
+        await run_until([make_worker(engine, "e2e")], engine, lambda c: c == {"succeeded": 1}, 15)
     finally:
-        worker.stop()
-        await runner
         await http.configure(http.HttpSettings())
 
     [(headers, body)] = received

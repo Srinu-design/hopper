@@ -1,7 +1,6 @@
 """The effect task: one execution row per run, one effect row per job, whatever the reruns."""
 
 import uuid
-from collections.abc import Iterator
 
 import pytest
 from sqlalchemy import text
@@ -10,32 +9,9 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 from hopper.tasks import effect
 from hopper.tasks.context import JobContext, running
 from hopper.tasks.effect import EffectPayload
-from tests.helpers import insert_job, job_row, make_worker, run_until, seed_tenant
+from tests.helpers import insert_job, job_row, make_worker, recorded, run_until, seed_tenant
 
 QUICK = '{"min_ms": 0, "max_ms": 10}'
-
-
-@pytest.fixture
-def effect_engine(migrated_engine: AsyncEngine) -> Iterator[AsyncEngine]:
-    """The worker process does this at start; tests point the task at their own database."""
-    effect.configure(migrated_engine)
-    yield migrated_engine
-    effect.configure(None)
-
-
-async def recorded(engine: AsyncEngine, job_id: uuid.UUID) -> tuple[int, int]:
-    """(execution rows, effect rows) for one job."""
-    async with engine.connect() as conn:
-        row = (
-            await conn.execute(
-                text(
-                    "SELECT (SELECT count(*) FROM job_executions WHERE job_id = :j),"
-                    "       (SELECT count(*) FROM job_effects WHERE job_id = :j)"
-                ),
-                {"j": job_id},
-            )
-        ).one()
-    return int(row[0]), int(row[1])
 
 
 async def test_one_run_records_one_execution_and_one_effect(effect_engine: AsyncEngine) -> None:

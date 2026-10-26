@@ -4,13 +4,22 @@ from typing import Any
 
 import pytest
 from sqlalchemy import text
-from sqlalchemy.ext.asyncio import AsyncEngine
+from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 
 from hopper.queue.postgres import PostgresBroker
 from hopper.tasks.builtin import SleepPayload
 from hopper.tasks.registry import task
 from hopper.worker.loop import Worker
-from tests.helpers import counts, insert_job, make_worker, run_until, seed_jobs, seed_tenant
+from tests.helpers import (
+    attempts_of,
+    counts,
+    insert_job,
+    job_row,
+    make_worker,
+    run_until,
+    seed_jobs,
+    seed_tenant,
+)
 
 _probe = {"current": 0, "max": 0}
 
@@ -85,26 +94,12 @@ async def test_failed_handler_is_nacked_for_retry_and_the_worker_carries_on(
 
     await run_until([worker], migrated_engine, lambda c: c.get("succeeded") == 20)
 
-    async with migrated_engine.connect() as conn:
-        job = (
-            await conn.execute(
-                text("SELECT status, run_at > now() AS later, last_error FROM jobs WHERE id = :i"),
-                {"i": bad},
-            )
-        ).one()
-        outcomes = (
-            (
-                await conn.execute(
-                    text("SELECT outcome FROM job_attempts WHERE job_id = :i"), {"i": bad}
-                )
-            )
-            .scalars()
-            .all()
-        )
+    job = await job_row(migrated_engine, bad)
+    outcomes = [a["outcome"] for a in await attempts_of(migrated_engine, bad)]
     # flaky uses the default 2 s backoff base, so it may have run more than once by now,
     # but it is never acked and is always either waiting to retry or running again.
-    assert job.status in {"queued", "running"}
-    assert job.last_error == "RuntimeError: flaky task failed"
+    assert job["status"] in {"queued", "running"}
+    assert job["last_error"] == "RuntimeError: flaky task failed"
     assert outcomes and set(outcomes) == {"failed"}
 
 
@@ -121,17 +116,9 @@ async def test_handler_timeout_is_retried_as_timed_out(migrated_engine: AsyncEng
     )
 
     assert time.monotonic() - started < 4  # cancelled at the 1 s deadline, not after 5 s
-    async with migrated_engine.connect() as conn:
-        last_error = (
-            await conn.execute(text("SELECT last_error FROM jobs WHERE id = :i"), {"i": slow})
-        ).scalar_one()
-        outcome = (
-            await conn.execute(
-                text("SELECT outcome FROM job_attempts WHERE job_id = :i"), {"i": slow}
-            )
-        ).scalar_one()
-    assert outcome == "timed_out"
-    assert last_error == "JobTimedOut: timed out after 1s"
+    [attempt] = await attempts_of(migrated_engine, slow)
+    assert attempt["outcome"] == "timed_out"
+    assert (await job_row(migrated_engine, slow))["last_error"] == "JobTimedOut: timed out after 1s"
 
 
 async def test_stop_waits_for_in_flight_jobs_then_returns(migrated_engine: AsyncEngine) -> None:
@@ -146,11 +133,8 @@ async def test_stop_waits_for_in_flight_jobs_then_returns(migrated_engine: Async
     worker.stop()
     await asyncio.wait_for(runner, timeout=5)
 
-    async with migrated_engine.connect() as conn:
-        status = (
-            await conn.execute(text("SELECT status FROM jobs WHERE id = :i"), {"i": job_id})
-        ).scalar_one()
-    assert status == "succeeded"  # finished before run() returned
+    row = await job_row(migrated_engine, job_id)
+    assert row["status"] == "succeeded"  # finished before run() returned
 
 
 async def test_stopped_worker_claims_nothing_more(migrated_engine: AsyncEngine) -> None:
@@ -171,6 +155,8 @@ async def test_idle_worker_survives_an_empty_queue(migrated_engine: AsyncEngine)
     await asyncio.wait_for(runner, timeout=5)
 
 
-def test_worker_needs_a_queue(migrated_engine: AsyncEngine) -> None:
+async def test_worker_needs_a_queue() -> None:
+    engine = create_async_engine("postgresql+asyncpg://")  # never connects
     with pytest.raises(ValueError, match="at least one queue"):
-        Worker(PostgresBroker(migrated_engine), worker_id="w", queues=[])
+        Worker(PostgresBroker(engine), worker_id="w", queues=[])
+    await engine.dispose()

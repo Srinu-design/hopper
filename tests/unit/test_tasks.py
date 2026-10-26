@@ -23,7 +23,7 @@ from hopper.tasks.registry import TaskPayload
 
 
 def test_builtin_tasks_are_registered() -> None:
-    assert {"sleep", "flaky", "fail_always"} <= set(registry.task_names())
+    assert {"sleep", "flaky", "fail_always", "cpu", "effect"} <= set(registry.task_names())
     spec = registry.get_task("sleep")
     assert spec is not None
     assert spec.payload_model is SleepPayload
@@ -85,10 +85,6 @@ async def test_fail_always_is_retryable_unless_permanent() -> None:
         await fail_always(FailAlwaysPayload())
     with pytest.raises(PermanentError):
         await fail_always(FailAlwaysPayload(permanent=True))
-
-
-def test_load_and_chaos_tasks_are_registered() -> None:
-    assert {"cpu", "effect"} <= set(registry.task_names())
 
 
 def test_hash_rounds_is_sha256_applied_n_times() -> None:
