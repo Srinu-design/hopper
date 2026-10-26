@@ -1,11 +1,13 @@
 import re
 import uuid
-from collections.abc import AsyncIterator, Awaitable, Callable
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from importlib.metadata import version
 
 import structlog
-from fastapi import FastAPI, Request, Response
+from fastapi import FastAPI
+from starlette.datastructures import Headers, MutableHeaders
+from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 from hopper import metrics, web
 from hopper.api import admin, dlq, health, jobs, schedules
@@ -58,26 +60,42 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 _REQUEST_ID = re.compile(r"[A-Za-z0-9._-]{1,128}")
 
 
-async def request_context_middleware(
-    request: Request, call_next: Callable[[Request], Awaitable[Response]]
-) -> Response:
+class RequestContextMiddleware:
     """Gives every request an id for its log lines (and its job, if it enqueues one), and
     stamps the response with X-Request-ID and, where a token bucket was consulted, the
-    X-RateLimit headers. Errors included: a 429 says how many tokens are left (none)."""
-    incoming = request.headers.get("x-request-id", "")
-    request_id = incoming if _REQUEST_ID.fullmatch(incoming) else uuid.uuid4().hex
-    request.state.request_id = request_id
-    structlog.contextvars.bind_contextvars(request_id=request_id)
-    try:
-        response = await call_next(request)
-    finally:
-        structlog.contextvars.unbind_contextvars("request_id")
-    response.headers["X-Request-ID"] = request_id
-    decision = getattr(request.state, "rate_limit", None)
-    if decision is not None:
-        response.headers["X-RateLimit-Limit"] = str(decision.limit)
-        response.headers["X-RateLimit-Remaining"] = str(decision.remaining)
-    return response
+    X-RateLimit headers. Errors included: a 429 says how many tokens are left (none).
+
+    Plain ASGI, like HttpMetricsMiddleware: @app.middleware("http") would wrap it in
+    BaseHTTPMiddleware, which costs a task and a response copy on every request."""
+
+    def __init__(self, app: ASGIApp) -> None:
+        self.app = app
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+        incoming = Headers(scope=scope).get("x-request-id", "")
+        request_id = incoming if _REQUEST_ID.fullmatch(incoming) else uuid.uuid4().hex
+        state = scope.setdefault("state", {})  # what request.state reads and writes
+        state["request_id"] = request_id
+
+        async def send_with_headers(message: Message) -> None:
+            if message["type"] == "http.response.start":
+                headers = MutableHeaders(scope=message)
+                headers["X-Request-ID"] = request_id
+                decision = state.get("rate_limit")
+                if decision is not None:
+                    headers["X-RateLimit-Limit"] = str(decision.limit)
+                    headers["X-RateLimit-Remaining"] = str(decision.remaining)
+            await send(message)
+
+        structlog.contextvars.bind_contextvars(request_id=request_id)
+        try:
+            await self.app(scope, receive, send_with_headers)
+        finally:
+            # The routes run in this task now, so the tenant they bound is unbound here too.
+            structlog.contextvars.unbind_contextvars("request_id", "tenant_id")
 
 
 def create_app() -> FastAPI:
@@ -86,7 +104,7 @@ def create_app() -> FastAPI:
     # Added last = outermost: metrics time everything, then the request id exists before
     # anything else runs.
     app.add_middleware(BodySizeLimitMiddleware)
-    app.middleware("http")(request_context_middleware)
+    app.add_middleware(RequestContextMiddleware)
     app.add_middleware(HttpMetricsMiddleware)
     install_error_handlers(app)
     app.include_router(health.router)

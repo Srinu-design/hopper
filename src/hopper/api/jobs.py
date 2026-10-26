@@ -10,7 +10,7 @@ from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, model_validato
 from hopper.api.errors import ApiError
 from hopper.api.limits import EnqueueTenant, ReadTenant
 from hopper.api.pagination import decode_cursor, encode_cursor
-from hopper.api.schemas import JobOut, JobSummary, job_out
+from hopper.api.schemas import NAME_PATTERN, JobOut, JobSummary, job_out
 from hopper.api.validation import checked_task
 from hopper.metrics import JOBS_ENQUEUED, queue_label, task_label
 from hopper.queue.dlq import DeadFilter, replay
@@ -18,7 +18,6 @@ from hopper.queue.jobs import JobFilter, cancel_job, get_job, insert_job, list_j
 
 router = APIRouter(prefix="/v1/jobs", tags=["jobs"])
 
-QUEUE_PATTERN = r"^[A-Za-z0-9_.-]{1,64}$"
 MAX_DELAY = timedelta(days=30)
 JobStatus = Literal["queued", "running", "succeeded", "dead", "cancelled"]
 
@@ -28,7 +27,7 @@ class EnqueueRequest(BaseModel):
 
     task: str = Field(min_length=1, max_length=64)
     payload: dict[str, Any] = Field(default_factory=dict)
-    queue: str = Field(default="default", pattern=QUEUE_PATTERN)
+    queue: str = Field(default="default", pattern=NAME_PATTERN)
     priority: int = Field(default=0, ge=-100, le=100)  # higher runs first
     # Run later: a delay, or an absolute time, at most 30 days out. Precision is the worker
     # poll interval (under 0.5 s). A run_at in the past simply runs now.
@@ -86,7 +85,7 @@ async def enqueue(
     if idempotency_key is not None and idempotency_key.startswith("cron:"):
         raise ApiError(422, "reserved_idempotency_key", "keys starting with cron: are reserved")
     spec = checked_task(body.task, body.payload)
-    digest = request_hash(body)
+    digest = request_hash(body) if idempotency_key is not None else None
     job, created = await insert_job(
         request.app.state.engine,
         tenant_id=tenant_id,
@@ -97,7 +96,7 @@ async def enqueue(
         max_attempts=spec.max_attempts,
         timeout_seconds=spec.timeout_seconds,
         idempotency_key=idempotency_key,
-        request_hash=digest if idempotency_key is not None else None,
+        request_hash=digest,
         run_at=body.run_at,
         delay_seconds=body.delay_seconds or 0.0,
         request_id=request.state.request_id,
@@ -122,7 +121,7 @@ async def list_tenant_jobs(
     request: Request,
     tenant_id: ReadTenant,
     status: JobStatus | None = None,
-    queue: Annotated[str | None, Query(pattern=QUEUE_PATTERN)] = None,
+    queue: Annotated[str | None, Query(pattern=NAME_PATTERN)] = None,
     limit: Annotated[int, Query(ge=1, le=200)] = 50,
     cursor: str | None = None,
 ) -> JobPage:
