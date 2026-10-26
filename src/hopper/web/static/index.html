@@ -49,7 +49,7 @@
 <main id="main">
 
 <!-- ============================================================ About -->
-<section id="about" data-tab="about" class="tab-panel">
+<section id="about" data-tab="about">
   <div class="hero">
     <div class="wrap hero-head">
       <p class="eyebrow">Project 1 · Job queue</p>
@@ -60,11 +60,11 @@
         on a cron schedule.</p>
       <div class="actions">
         <a class="btn primary" href="#try">Try it in the browser</a>
-        <a class="btn outlined" href="#use">How to use it</a>
+        <a class="btn" href="#use">How to use it</a>
       </div>
     </div>
     <div class="wrap">
-      <div class="hero-art aura-art on-dark">
+      <div class="hero-art">
       <dl class="figures">
         <div><dt data-figure>600 enqueues/s</dt><dd>held with API p95 at <span data-figure>126 ms</span></dd></div>
         <div><dt data-figure>2,773 jobs/s</dt><dd>drained by 8 workers: <span data-figure>100,000 jobs in 36 s</span></dd></div>
@@ -116,7 +116,7 @@
     <section class="section" id="recover" aria-labelledby="recover-title">
       <h2 id="recover-title">It keeps going when workers die</h2>
       <figure class="media">
-        <img src="/static/images/crash-recovery.gif" width="960" height="484" loading="lazy"
+        <img src="/static/images/crash-recovery.webp" width="960" height="484" loading="lazy"
              alt="A dashboard while two workers are killed during 5,000 jobs: the queue keeps draining to zero.">
         <figcaption>Two workers killed in the middle of 5,000 jobs. Their leases expire, the reaper hands the jobs to
           the other workers, and the queue keeps draining. Nothing is lost.</figcaption>
@@ -431,7 +431,7 @@ RETURNING ...</code></pre></div>
 </section>
 
 <!-- ============================================================ How to use it -->
-<section id="use" data-tab="use" class="tab-panel" hidden>
+<section id="use" data-tab="use" hidden>
   <div class="wrap">
     <header class="page-head">
       <h1>How to use it</h1>
@@ -665,7 +665,7 @@ print(job["status"], job["result"] or job["last_error"])</code></pre></div>
 </section>
 
 <!-- ============================================================ Try it -->
-<section id="try" data-tab="try" class="tab-panel" hidden>
+<section id="try" data-tab="try" hidden>
   <div class="wrap">
     <header class="page-head">
       <h1>Try it in the browser</h1>
@@ -688,7 +688,7 @@ print(job["status"], job["result"] or job["last_error"])</code></pre></div>
 
     <div id="signed-in" hidden>
       <div class="console-bar">
-        <span class="connected">Connected with <code id="key-label"></code></span>
+        <span>Connected with <code id="key-label"></code></span>
         <span class="live" id="live" data-state="ok"><span class="status-dot" aria-hidden="true"></span><span id="live-text">Live</span></span>
         <button type="button" id="sign-out" class="btn small">Forget key</button>
       </div>
