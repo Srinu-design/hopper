@@ -8,6 +8,7 @@ import pytest
 import structlog
 from sqlalchemy import exc as sa_exc
 
+from hopper.api import errors
 from hopper.api.errors import database_unavailable
 from hopper.api.main import create_app
 
@@ -53,8 +54,10 @@ def test_any_other_error_stays_a_500(error: BaseException) -> None:
     assert not database_unavailable(error)
 
 
-async def test_a_bug_is_a_500_logged_with_its_request_id() -> None:
+async def test_a_bug_is_a_500_logged_with_its_request_id(monkeypatch: pytest.MonkeyPatch) -> None:
     """The handler runs after the request-context middleware has unbound the id."""
+    # structlog caches a module's logger on first use; a fresh one is seen by capture_logs.
+    monkeypatch.setattr(errors, "log", structlog.get_logger())
     app = create_app()
 
     async def boom() -> None:
