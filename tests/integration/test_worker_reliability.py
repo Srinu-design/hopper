@@ -7,7 +7,7 @@ from typing import Any
 
 import pytest
 from sqlalchemy import text
-from sqlalchemy.ext.asyncio import AsyncEngine
+from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 
 from hopper.queue.postgres import PostgresBroker
 from hopper.scheduler.reaper import Reaper
@@ -164,12 +164,14 @@ async def test_reaper_loop_reclaims_on_its_interval_and_stops_promptly(
     assert (await job_row(migrated_engine, job_id))["last_error"] == "lease expired on crashed"
 
 
-def test_heartbeat_must_be_shorter_than_the_lease(migrated_engine: AsyncEngine) -> None:
+async def test_heartbeat_must_be_shorter_than_the_lease() -> None:
+    engine = create_async_engine("postgresql+asyncpg://")  # never connects
     with pytest.raises(ValueError, match="shorter than the lease"):
         Worker(
-            PostgresBroker(migrated_engine),
+            PostgresBroker(engine),
             worker_id="w",
             queues=["default"],
             lease_seconds=10,
             heartbeat_interval=10,
         )
+    await engine.dispose()

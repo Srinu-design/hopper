@@ -26,7 +26,9 @@ The workers already talk to the queue only through `Broker` (`claim`, `heartbeat
 - **Leases and fencing, as on Postgres:** every PULL gives a new token, and every ACK, NACK, EXTEND and RELEASE
   must name it. An expired lease counts as an attempt, and the last attempt goes to the dead-letter queue.
 - **Durability: an append-only log.** Every PUSH, ACK, NACK and death is written before the reply. On start the
-  log is read back, and a torn last record (a write cut short by `kill -9`) is cut off. When the log is four times
+  log is read back, and a torn last record (a write cut short by `kill -9`) is cut off. A write the disk refuses
+  (say, full) is cut back off the file and retried in order, so it never leaves a torn record mid-file; the
+  background loops (expiry, fsync, compaction) log such an error and carry on. When the log is four times
   the size of the live messages, compaction rewrites it with only those, into a new file that replaces the old
   one atomically.
 - **The fsync knob, like Redis's `appendfsync`:** `always` (fsync before every reply, shared by every request
@@ -55,7 +57,8 @@ The workers already talk to the queue only through `Broker` (`claim`, `heartbeat
 - Measured in [loadtest/results/](../../loadtest/results/) and [chaos/results/](../../chaos/results/): see
   [benchmarks.md](../benchmarks.md#stretch-the-mini-broker-against-postgres).
 - Tests: the same 10 contract tests run against both brokers (`tests/integration/test_broker_contract.py`), the
-  store and log have unit tests with a fake clock (`tests/unit/test_minibroker_store.py`), and real processes are
+  store and log have unit tests with a fake clock (`tests/unit/test_minibroker_store.py`) and with a write the
+  disk refuses (`tests/unit/test_minibroker_log.py`), and real processes are
   killed with `kill -9` (`tests/e2e/test_minibroker_crash.py`).
 - **Worse than Postgres in what it keeps:** an acked message is forgotten (no result, no attempt history), there
   is no tenant data, so the `http` task cannot sign its requests on it, and nothing can be queried

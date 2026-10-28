@@ -3,10 +3,6 @@
 @tailwind utilities;
 
 /* From the design's own <style> block. */
-body {
-  background-color: theme("colors.page-bg");
-}
-.text-balance { text-wrap: balance; }
 @keyframes scroll {
   0% { transform: translateX(0); }
   100% { transform: translateX(calc(-50% - 50px)); }
@@ -37,8 +33,8 @@ body {
 /* In the components layer, so a utility such as "absolute" wins over the position here.
    The design's stock photos, replaced by abstract renders: the projects' colours with diagonal
    light, as on the project pages. Electric Aura is Hopper, Emerald Pulse is Sift. */
-.art-hero, .art-aura, .art-emerald, .art-sunset { position: relative; isolation: isolate; overflow: hidden; }
-.art-hero::before, .art-aura::before, .art-emerald::before, .art-sunset::before {
+.art-hero, .art-aura, .art-emerald { position: relative; isolation: isolate; overflow: hidden; }
+.art-hero::before, .art-aura::before, .art-emerald::before {
   content: ""; position: absolute; inset: -30%; z-index: -1; pointer-events: none;
   background:
     repeating-linear-gradient(118deg, transparent 0 64px, rgb(255 255 255 / 7%) 64px 66px, transparent 66px 150px),
@@ -59,9 +55,5 @@ body {
 .art-emerald {
   background: radial-gradient(80% 90% at 80% 10%, #0e7490, transparent 65%),
     radial-gradient(80% 90% at 10% 100%, #047857, transparent 65%), #04261e;
-}
-.art-sunset {
-  background: radial-gradient(80% 90% at 80% 10%, #ff4b2b, transparent 65%),
-    radial-gradient(80% 90% at 10% 100%, #ff416c, transparent 65%), #3a0d16;
 }
 }

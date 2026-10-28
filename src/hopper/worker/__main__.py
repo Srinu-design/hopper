@@ -17,7 +17,7 @@ from hopper.worker.loop import Worker
 async def main() -> None:
     settings = get_settings()
     configure_logging(settings.log_level)
-    engine = create_engine(settings)
+    engine = create_engine(settings, autocommit=True)  # claim, ack, nack: one statement each
     await http.configure(
         http.HttpSettings(
             allow_private=settings.http_allow_private_networks,

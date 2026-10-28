@@ -8,21 +8,21 @@ the normal worker (it acks after running: at-least-once) and loses the job with 
 import asyncio
 import subprocess
 import uuid
-from collections.abc import Iterator
 
-import pytest
-from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 from hopper.queue.postgres import PostgresBroker
 from hopper.scheduler.reaper import Reaper
-from hopper.tasks import effect
 from hopper.worker.loop import Worker
 from tests.helpers import (
+    FAST,
+    LEASE,
+    STARTUP_TIMEOUT,
     attempts_of,
     insert_job,
     job_row,
     make_worker,
+    recorded,
     run_until,
     seed_tenant,
     start_worker_process,
@@ -30,35 +30,7 @@ from tests.helpers import (
     wait_for,
 )
 
-FAST = {
-    "LEASE_SECONDS": "2",
-    "HEARTBEAT_SECONDS": "0.5",
-    "WORKER_POLL_INTERVAL": "0.05",
-    "WORKER_MAX_IDLE_BACKOFF": "0.1",
-}
-STARTUP_TIMEOUT = 30  # a cold Python start with every import can be slow on CI
-SLOW_EFFECT = '{"min_ms": 3000, "max_ms": 3000}'  # long enough to kill the worker mid-run
-
-
-@pytest.fixture
-def effect_engine(migrated_engine: AsyncEngine) -> Iterator[AsyncEngine]:
-    effect.configure(migrated_engine)
-    yield migrated_engine
-    effect.configure(None)
-
-
-async def recorded(engine: AsyncEngine, job_id: uuid.UUID) -> tuple[int, int]:
-    async with engine.connect() as conn:
-        row = (
-            await conn.execute(
-                text(
-                    "SELECT (SELECT count(*) FROM job_executions WHERE job_id = :j),"
-                    "       (SELECT count(*) FROM job_effects WHERE job_id = :j)"
-                ),
-                {"j": job_id},
-            )
-        ).one()
-    return int(row[0]), int(row[1])
+SLOW_EFFECT = '{"min_ms": 1000, "max_ms": 1000}'  # long enough to kill the worker mid-run
 
 
 async def kill_when(
@@ -107,13 +79,9 @@ async def test_acking_before_running_loses_the_job_on_the_same_kill(
     await kill_when(proc, effect_engine, job_id, "succeeded")
 
     # Nothing is left for the reaper or any worker: the queue thinks the job is done.
-    reaper = Reaper(PostgresBroker(effect_engine), interval=0.1)
-    survivor = make_worker(effect_engine, "survivor")
-    runners = [asyncio.create_task(reaper.run()), asyncio.create_task(survivor.run())]
-    await asyncio.sleep(4)  # two lease lengths
-    reaper.stop()
-    survivor.stop()
-    await asyncio.gather(*runners)
+    broker = PostgresBroker(effect_engine)
+    assert await Reaper(broker).reap_once() == 0
+    assert await broker.claim("default", "survivor", 10, LEASE) == []
     assert (await job_row(effect_engine, job_id))["status"] == "succeeded"
     assert await recorded(effect_engine, job_id) == (0, 0)  # the effect never happened: lost
 
@@ -129,8 +97,8 @@ async def test_with_the_switch_a_failure_is_never_retried(effect_engine: AsyncEn
         max_idle_backoff=0.1,
         ack_before_run=True,
     )
+    # run_until stops the worker, and its drain waits for the handler to fail after the ack.
     await run_until([worker], effect_engine, lambda c: c.get("succeeded"))
-    await asyncio.sleep(0.2)  # let the handler fail after the ack
     row = await job_row(effect_engine, job_id)
     assert (row["status"], row["attempts"], row["last_error"]) == ("succeeded", 1, None)
     assert [a["outcome"] for a in await attempts_of(effect_engine, job_id)] == ["succeeded"]

@@ -1,5 +1,4 @@
-# Targets: up, down, test, lint, fmt, migrate, alerts, rehearse, chaos, chaos-control, demo, load,
-# bench, broker-bench, broker-chaos, diagrams.
+# Every target is in the .PHONY list below.
 COMPOSE := docker compose -f docker/compose.yaml --env-file .env
 PROMTOOL := docker run --rm -w /etc/prometheus -v "$(CURDIR)/deploy/prometheus:/etc/prometheus:ro" --entrypoint promtool prom/prometheus:v3.15.0
 
@@ -9,9 +8,8 @@ PROMTOOL := docker run --rm -w /etc/prometheus -v "$(CURDIR)/deploy/prometheus:/
 env:
 	@test -f .env || cp .env.example .env
 
+# api, worker and scheduler wait for the migrate service to finish, so this migrates once.
 up: env
-	$(COMPOSE) up -d --build postgres redis
-	$(COMPOSE) run --rm --build migrate
 	$(COMPOSE) up -d --build
 
 down:
@@ -20,8 +18,8 @@ down:
 logs:
 	$(COMPOSE) logs -f
 
-migrate:
-	uv run alembic upgrade head
+migrate: env
+	uv run --env-file .env alembic upgrade head
 
 test:
 	uv run pytest -q

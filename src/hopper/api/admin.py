@@ -13,6 +13,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from hopper.api.errors import ApiError
 from hopper.api.limits import take_token
+from hopper.api.schemas import NAME_PATTERN
 from hopper.auth import keys, passwords, store, tokens
 from hopper.auth.admin import AdminUser, PlatformAdmin
 from hopper.config import get_settings
@@ -20,7 +21,6 @@ from hopper.config import get_settings
 router = APIRouter(tags=["admin"])
 
 EMAIL_PATTERN = r"^[^@\s]{1,64}@[^@\s]+\.[^@\s]+$"
-NAME_PATTERN = r"^[A-Za-z0-9_.-]{1,64}$"
 # A DNS name in lower case: labels of letters, digits and inner hyphens.
 _LABEL = r"[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?"
 HOST_PATTERN = rf"^{_LABEL}(\.{_LABEL})*$"
@@ -53,7 +53,7 @@ class TenantIn(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     name: str = Field(pattern=NAME_PATTERN)
-    rate_per_sec: float = Field(default=50, gt=0, le=100_000)  # token bucket refill (Week 6)
+    rate_per_sec: float = Field(default=50, gt=0, le=100_000)  # token bucket refill
     burst: int = Field(default=100, ge=1, le=1_000_000)
     max_queue_depth: int = Field(default=100_000, ge=1)
     owner: OwnerIn | None = None

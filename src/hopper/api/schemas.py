@@ -4,6 +4,8 @@ from uuid import UUID
 
 from pydantic import BaseModel
 
+NAME_PATTERN = r"^[A-Za-z0-9_.-]{1,64}$"  # queue, schedule and tenant names
+
 
 class AttemptOut(BaseModel):
     attempt: int

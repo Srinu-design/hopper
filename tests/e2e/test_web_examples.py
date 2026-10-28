@@ -4,7 +4,6 @@ the jobs. An example that stops working fails here, not in a reader's terminal."
 
 import asyncio
 import os
-import socket
 import sys
 import time
 import uuid
@@ -16,7 +15,7 @@ import httpx
 import pytest
 from sqlalchemy.ext.asyncio import AsyncEngine
 
-from tests.helpers import ROOT, make_tenant, make_worker, status_in, wait_for
+from tests.helpers import ROOT, free_port, make_tenant, make_worker, status_in, wait_for
 
 PAGE = ROOT / "src/hopper/web/static/index.html"
 
@@ -44,17 +43,10 @@ class _Examples(HTMLParser):
             self.found[self._name] += data
 
 
-def _free_port() -> int:
-    with socket.socket() as s:
-        s.bind(("127.0.0.1", 0))
-        port: int = s.getsockname()[1]
-        return port
-
-
 @pytest.fixture
 async def server(migrated_db_url: str, tmp_path: Path) -> AsyncIterator[str]:
     """`uvicorn hopper.api.main:app` as its own process, on the test database."""
-    port = _free_port()
+    port = free_port()
     env = {
         **os.environ,
         "DATABASE_URL": migrated_db_url,

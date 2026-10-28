@@ -37,4 +37,3 @@ docker save "$IMAGE" | docker exec -i "$HOST" docker load -q >/dev/null
 docker exec "$HOST" mkdir -p /rehearsal
 docker cp "$REPO_DIR/deploy" "$HOST:/rehearsal/deploy"
 docker exec "$HOST" bash /rehearsal/deploy/rehearse.sh "$IMAGE" ${2:+"$2"} 2>&1 | tee rehearsal.log
-exit "${PIPESTATUS[0]}"

@@ -26,6 +26,17 @@ async def lease_left(engine: AsyncEngine, job_id: uuid.UUID) -> float:
     return seconds
 
 
+async def expire_leases(engine: AsyncEngine) -> None:
+    """Every held lease runs out now, without waiting out the clock (one test does that)."""
+    async with engine.begin() as conn:
+        await conn.execute(
+            text(
+                "UPDATE jobs SET lease_expires_at = now() - interval '1 second' "
+                "WHERE lease_expires_at IS NOT NULL"
+            )
+        )
+
+
 async def test_heartbeat_extends_the_lease(migrated_engine: AsyncEngine) -> None:
     tenant_id = await seed_tenant(migrated_engine)
     await seed_jobs(migrated_engine, tenant_id, 1)
@@ -124,8 +135,8 @@ async def test_after_lease_expiry_a_second_worker_owns_the_job_and_the_old_ack_i
     tenant_id = await seed_tenant(migrated_engine)
     await seed_jobs(migrated_engine, tenant_id, 1)
     broker = PostgresBroker(migrated_engine)
-    [first] = await broker.claim("default", "w1", 1, SHORT_LEASE)
-    await asyncio.sleep(SHORT_LEASE + 0.2)
+    [first] = await broker.claim("default", "w1", 1, LEASE)
+    await expire_leases(migrated_engine)
     await broker.reap(500)
 
     [second] = await broker.claim("default", "w2", 1, LEASE)
@@ -155,8 +166,8 @@ async def test_poison_pill_is_dead_after_max_attempts_of_lease_expiry(
 
     statuses = []
     for n in range(1, 4):
-        assert len(await broker.claim("default", f"w{n}", 1, SHORT_LEASE)) == 1
-        await asyncio.sleep(SHORT_LEASE + 0.2)  # worker n crashes mid-job
+        assert len(await broker.claim("default", f"w{n}", 1, LEASE)) == 1
+        await expire_leases(migrated_engine)  # worker n crashes mid-job
         [reaped] = await broker.reap(500)
         statuses.append(reaped.status)
 
@@ -173,8 +184,8 @@ async def test_reaper_works_in_batches(migrated_engine: AsyncEngine) -> None:
     tenant_id = await seed_tenant(migrated_engine)
     await seed_jobs(migrated_engine, tenant_id, 7)
     broker = PostgresBroker(migrated_engine)
-    await broker.claim("default", "w1", 7, SHORT_LEASE)
-    await asyncio.sleep(SHORT_LEASE + 0.2)
+    await broker.claim("default", "w1", 7, LEASE)
+    await expire_leases(migrated_engine)
 
     assert len(await broker.reap(3)) == 3  # one statement never takes more than its limit
     assert await Reaper(broker, batch_size=3).reap_once() == 4  # a pass loops until done
@@ -190,8 +201,8 @@ async def test_concurrent_reapers_reclaim_each_job_exactly_once(
     tenant_id = await seed_tenant(migrated_engine)
     await seed_jobs(migrated_engine, tenant_id, 300)
     broker = PostgresBroker(migrated_engine)
-    assert len(await broker.claim("default", "w1", 300, SHORT_LEASE)) == 300
-    await asyncio.sleep(SHORT_LEASE + 0.2)
+    assert len(await broker.claim("default", "w1", 300, LEASE)) == 300
+    await expire_leases(migrated_engine)
 
     totals = await asyncio.gather(*(Reaper(broker, batch_size=20).reap_once() for _ in range(5)))
 

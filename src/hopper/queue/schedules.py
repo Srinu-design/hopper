@@ -140,8 +140,10 @@ async def fire_due(engine: AsyncEngine, *, limit: int) -> list[Fired]:
     """
     fired: list[Fired] = []
     async with engine.begin() as conn:
-        now = await _db_now(conn)
         due = (await conn.execute(text(sql.DUE_SCHEDULES), {"limit": limit})).all()
+        if not due:
+            return fired  # the usual tick: skip the clock read
+        now = await _db_now(conn)  # transaction start time, the same now() the query used
         for s in due:
             try:
                 upcoming = next_run(s.cron, s.timezone, now)

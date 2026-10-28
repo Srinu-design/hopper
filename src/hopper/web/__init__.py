@@ -36,8 +36,13 @@ PAGE_HEADERS = {
 class _StaticFiles(StaticFiles):
     def file_response(self, *args: Any, **kwargs: Any) -> Response:
         response = super().file_response(*args, **kwargs)
-        response.headers["Cache-Control"] = "no-cache"
-        response.headers["X-Content-Type-Options"] = "nosniff"
+        if response.media_type == "text/html":
+            # /static/index.html is the console too: same policy as /. Not on the diagram
+            # SVGs, which carry inline styles and open full size in their own tab.
+            response.headers.update(PAGE_HEADERS)
+        else:
+            response.headers["Cache-Control"] = "no-cache"
+            response.headers["X-Content-Type-Options"] = "nosniff"
         return response
 
 

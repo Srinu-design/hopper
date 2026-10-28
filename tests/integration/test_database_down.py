@@ -1,6 +1,6 @@
 """With Postgres unreachable the API answers 503 with Retry-After, never a bare 500."""
 
-from collections.abc import AsyncIterator, Iterator
+from collections.abc import AsyncIterator
 
 import httpx
 import pytest
@@ -10,28 +10,19 @@ from sqlalchemy.ext.asyncio import create_async_engine
 from hopper.api.main import create_app
 from hopper.auth import keys
 from hopper.config import get_settings
+from tests.helpers import client_for
 
 DOWN = "postgresql+asyncpg://hopper:hopper@127.0.0.1:1/hopper"  # nothing listens on port 1
 
 
 @pytest.fixture
-def fresh_settings() -> Iterator[None]:
-    get_settings.cache_clear()
-    yield
-    get_settings.cache_clear()
-
-
-@pytest.fixture
-async def down_client(
-    fresh_settings: None, monkeypatch: pytest.MonkeyPatch
-) -> AsyncIterator[httpx.AsyncClient]:
+async def down_client(monkeypatch: pytest.MonkeyPatch) -> AsyncIterator[httpx.AsyncClient]:
     monkeypatch.setenv("DATABASE_URL", DOWN)
     get_settings.cache_clear()
     app = create_app()
-    async with app.router.lifespan_context(app):
-        transport = httpx.ASGITransport(app=app)
-        async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
-            yield client
+    async with app.router.lifespan_context(app), client_for(app) as client:
+        yield client
+    get_settings.cache_clear()
 
 
 def _assert_unavailable(resp: httpx.Response) -> None:

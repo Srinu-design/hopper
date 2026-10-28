@@ -574,13 +574,13 @@ def render_summary(env: dict[str, Any], results: dict[str, Any]) -> str:
         for rate in sorted({r["rate"] for r in a_runs}):
             rr = [r for r in a_runs if r["rate"] == rate]
             cells = [
-                fmt(median_spread(collect(rr, lambda r: r["api"]["achieved_rps"])), 1),
-                fmt(median_spread(collect(rr, lambda r: r["api"]["p50_ms"])), 1),
-                fmt(median_spread(collect(rr, lambda r: r["api"]["p95_ms"])), 1),
-                fmt(median_spread(collect(rr, lambda r: r["api"]["p99_ms"])), 1),
-                fmt(median_spread(collect(rr, lambda r: errors(r["api"]))), 2, 100) + "%",
-                fmt(median_spread(collect(rr, lambda r: r.get("cpu", {}).get("api")))),
-                fmt(median_spread(collect(rr, lambda r: r.get("cpu", {}).get("postgres")))),
+                stat(rr, lambda r: r["api"]["achieved_rps"], 1),
+                stat(rr, lambda r: r["api"]["p50_ms"], 1),
+                stat(rr, lambda r: r["api"]["p95_ms"], 1),
+                stat(rr, lambda r: r["api"]["p99_ms"], 1),
+                stat(rr, lambda r: errors(r["api"]), 2, 100) + "%",
+                stat(rr, lambda r: r.get("cpu", {}).get("api")),
+                stat(rr, lambda r: r.get("cpu", {}).get("postgres")),
             ]
             lines.append(f"| {rate:,} | " + " | ".join(cells) + " |")
         lines.append("")
@@ -599,10 +599,10 @@ def render_summary(env: dict[str, Any], results: dict[str, Any]) -> str:
         for workers in sorted({r["workers"] for r in b_runs}):
             rr = [r for r in b_runs if r["workers"] == workers]
             cells = [
-                fmt(median_spread(collect(rr, lambda r: r["jobs_per_s"]))),
-                fmt(median_spread(collect(rr, lambda r: r["drain_s"])), 1),
-                fmt(median_spread(collect(rr, lambda r: r.get("cpu", {}).get("postgres")))),
-                fmt(median_spread(collect(rr, lambda r: r.get("cpu", {}).get("workers")))),
+                stat(rr, lambda r: r["jobs_per_s"]),
+                stat(rr, lambda r: r["drain_s"], 1),
+                stat(rr, lambda r: r.get("cpu", {}).get("postgres")),
+                stat(rr, lambda r: r.get("cpu", {}).get("workers")),
             ]
             lines.append(f"| {workers} | " + " | ".join(cells) + " |")
         lines.append("")
@@ -624,10 +624,7 @@ def render_summary(env: dict[str, Any], results: dict[str, Any]) -> str:
             ("Enqueue to done (`sleep`), ms", lambda r, i: ms(r["jobs"]["end_to_end_s"], i)),
         ]
         for label, get in rows:
-            cells = [
-                fmt(median_spread(collect(c_runs, lambda r, i=i, get=get: get(r, i))), 1)
-                for i in range(3)
-            ]
+            cells = [stat(c_runs, lambda r, i=i, get=get: get(r, i), 1) for i in range(3)]
             lines.append(f"| {label} | " + " | ".join(cells) + " |")
         jobs_s = [r["jobs"]["jobs"] / seconds(r["duration"]) for r in c_runs]
         cpu = {

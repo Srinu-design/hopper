@@ -10,10 +10,11 @@ _METHODS = frozenset({"GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"
 class HttpMetricsMiddleware:
     """Counts and times every response, labelled by route template, method and status.
 
-    The route label is the template (/v1/jobs/{job_id}), never the raw path, and a path that
-    matches no route is "unmatched": raw paths and odd methods would give every scanner's
-    request its own time series. Plain ASGI, outermost, so the time covers all other
-    middleware; a crash is counted as the 500 that the server error handler sends.
+    The route label is the template (/v1/jobs/{job_id}), never the raw path, and anything
+    that is not an API route is "unmatched", including mounted files (/static/*) and the docs:
+    raw paths and odd methods would give every scanner's request its own time series. Plain
+    ASGI, outermost, so the time covers all other middleware; a crash is counted as the 500
+    that the server error handler sends.
     """
 
     def __init__(self, app: ASGIApp) -> None:

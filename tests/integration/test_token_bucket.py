@@ -3,31 +3,35 @@ maths, refill, expiry, the Redis clock, and failing open when Redis is down."""
 
 import asyncio
 import math
-import os
 import uuid
 from collections.abc import AsyncIterator, Callable
 
 import pytest
 import redis.asyncio as redis_asyncio
-from prometheus_client import REGISTRY
 from redis import exceptions as redis_errors
 
 from hopper.config import Settings, get_settings
 from hopper.db import create_redis
 from hopper.ratelimit.limiter import RateLimiter
 from hopper.ratelimit.redis_health import RedisHealth
+from tests.helpers import metric
+
+FALLBACKS = "hopper_ratelimit_fallback_total"
 
 
 @pytest.fixture
-async def namespace() -> AsyncIterator[str]:
+async def redis() -> AsyncIterator[redis_asyncio.Redis]:
+    client = create_redis(get_settings())
+    yield client
+    await client.aclose()
+
+
+@pytest.fixture
+async def namespace(redis: redis_asyncio.Redis) -> AsyncIterator[str]:
     ns = f"test-{uuid.uuid4().hex[:12]}"
     yield ns
-    client = redis_asyncio.from_url(os.environ["REDIS_URL"])
-    try:
-        async for key in client.scan_iter(match=f"{ns}:*"):
-            await client.delete(key)
-    finally:
-        await client.aclose()
+    async for key in redis.scan_iter(match=f"{ns}:*"):
+        await redis.delete(key)
 
 
 @pytest.fixture
@@ -45,21 +49,17 @@ async def make_limiter(namespace: str) -> AsyncIterator[Callable[[], RateLimiter
         await client.aclose()
 
 
-def fallbacks() -> float:
-    return REGISTRY.get_sample_value("hopper_ratelimit_fallback_total") or 0.0
-
-
 async def test_burst_is_exact_under_concurrency_across_replicas(
     make_limiter: Callable[[], RateLimiter],
 ) -> None:
     """500 concurrent takes from three replicas on one bucket of 100 with almost no refill:
     exactly 100 succeed. A read-then-write limiter lets more through here."""
     replicas = [make_limiter() for _ in range(3)]
-    before = fallbacks()
+    before = metric(FALLBACKS)
     decisions = await asyncio.gather(
         *(replicas[i % 3].take("tenant:enqueue", capacity=100, rate=0.001) for i in range(500))
     )
-    assert fallbacks() == before  # every decision came from the Lua script
+    assert metric(FALLBACKS) == before  # every decision came from the Lua script
     assert sum(d.allowed for d in decisions) == 100
     assert sorted(d.remaining for d in decisions if d.allowed) == list(range(100))
 
@@ -112,41 +112,33 @@ async def test_buckets_are_separate_per_key(make_limiter: Callable[[], RateLimit
 
 
 async def test_an_idle_bucket_expires_once_it_would_be_full_again(
-    make_limiter: Callable[[], RateLimiter], namespace: str
+    make_limiter: Callable[[], RateLimiter], namespace: str, redis: redis_asyncio.Redis
 ) -> None:
     await make_limiter().take("e", capacity=100, rate=50)
-    client = redis_asyncio.from_url(os.environ["REDIS_URL"])
-    try:
-        ttl_ms = await client.pttl(f"{namespace}:rl:e")
-    finally:
-        await client.aclose()
+    ttl_ms = await redis.pttl(f"{namespace}:rl:e")
     assert 0 < ttl_ms <= math.ceil(100 / 50 * 1000) * 2  # twice the 2 s full refill
 
 
 async def test_the_bucket_runs_on_the_redis_clock(
-    make_limiter: Callable[[], RateLimiter], namespace: str
+    make_limiter: Callable[[], RateLimiter], namespace: str, redis: redis_asyncio.Redis
 ) -> None:
     await make_limiter().take("clock", capacity=5, rate=1)
-    client = redis_asyncio.from_url(os.environ["REDIS_URL"])
-    try:
-        stored = int(float(await client.hget(f"{namespace}:rl:clock", "ts")))
-        seconds, micros = await client.time()
-    finally:
-        await client.aclose()
+    stored = int(float(await redis.hget(f"{namespace}:rl:clock", "ts")))
+    seconds, micros = await redis.time()
     assert abs(seconds * 1000 + micros // 1000 - stored) < 1000
 
 
 async def test_redis_down_fails_open_to_an_in_process_bucket(namespace: str) -> None:
     unreachable = create_redis(Settings(redis_url="redis://127.0.0.1:1/0"))
     limiter = RateLimiter(unreachable, namespace=namespace, health=RedisHealth(5.0))
-    before = fallbacks()
+    before = metric(FALLBACKS)
     try:
         decisions = [await limiter.take("down", capacity=3, rate=0.001) for _ in range(4)]
     finally:
         await unreachable.aclose()
     # Still limited, just locally: the burst passes, then 429 as usual.
     assert [d.allowed for d in decisions] == [True, True, True, False]
-    assert fallbacks() - before == 4
+    assert metric(FALLBACKS) - before == 4
 
 
 class FakeScript:
@@ -159,34 +151,28 @@ class FakeScript:
         raise self.error
 
 
-async def test_a_down_redis_is_tried_once_per_retry_period(namespace: str) -> None:
+async def test_a_down_redis_is_tried_once_per_retry_period(
+    namespace: str, redis: redis_asyncio.Redis
+) -> None:
     now = [0.0]
-    client = redis_asyncio.from_url(os.environ["REDIS_URL"])
-    limiter = RateLimiter(
-        client, namespace=namespace, health=RedisHealth(5.0, clock=lambda: now[0])
-    )
+    limiter = RateLimiter(redis, namespace=namespace, health=RedisHealth(5.0, clock=lambda: now[0]))
     script = FakeScript(redis_errors.ConnectionError("refused"))
     limiter._script = script  # type: ignore[assignment]
-    try:
-        for _ in range(20):
-            await limiter.take("x", capacity=100, rate=1)
-        assert script.calls == 1  # not one failed call per request
-        now[0] += 5.0
+    for _ in range(20):
         await limiter.take("x", capacity=100, rate=1)
-        assert script.calls == 2
-    finally:
-        await client.aclose()
+    assert script.calls == 1  # not one failed call per request
+    now[0] += 5.0
+    await limiter.take("x", capacity=100, rate=1)
+    assert script.calls == 2
 
 
-async def test_a_script_error_is_a_bug_and_is_not_swallowed(namespace: str) -> None:
-    client = redis_asyncio.from_url(os.environ["REDIS_URL"])
-    limiter = RateLimiter(client, namespace=namespace, health=RedisHealth(5.0))
+async def test_a_script_error_is_a_bug_and_is_not_swallowed(
+    namespace: str, redis: redis_asyncio.Redis
+) -> None:
+    limiter = RateLimiter(redis, namespace=namespace, health=RedisHealth(5.0))
     limiter._script = FakeScript(redis_errors.ResponseError("ERR bad script"))  # type: ignore[assignment]
-    try:
-        with pytest.raises(redis_errors.ResponseError):
-            await limiter.take("x", capacity=1, rate=1)
-    finally:
-        await client.aclose()
+    with pytest.raises(redis_errors.ResponseError):
+        await limiter.take("x", capacity=1, rate=1)
 
 
 @pytest.mark.parametrize(("capacity", "rate"), [(0, 1.0), (1, 0.0), (1, -1.0)])

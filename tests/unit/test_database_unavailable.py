@@ -3,10 +3,14 @@
 import socket
 
 import asyncpg
+import httpx
 import pytest
+import structlog
 from sqlalchemy import exc as sa_exc
 
+from hopper.api import errors
 from hopper.api.errors import database_unavailable
+from hopper.api.main import create_app
 
 
 def _wrapped(orig: BaseException, *, invalidated: bool = False) -> sa_exc.DBAPIError:
@@ -48,3 +52,23 @@ def test_an_unreachable_database_is_a_503(error: BaseException) -> None:
 )
 def test_any_other_error_stays_a_500(error: BaseException) -> None:
     assert not database_unavailable(error)
+
+
+async def test_a_bug_is_a_500_logged_with_its_request_id(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The handler runs after the request-context middleware has unbound the id."""
+    # structlog caches a module's logger on first use; a fresh one is seen by capture_logs.
+    monkeypatch.setattr(errors, "log", structlog.get_logger())
+    app = create_app()
+
+    async def boom() -> None:
+        raise RuntimeError("a bug")
+
+    app.add_api_route("/boom", boom)
+    transport = httpx.ASGITransport(app=app, raise_app_exceptions=False)
+    with structlog.testing.capture_logs() as logs:
+        async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+            resp = await client.get("/boom", headers={"X-Request-ID": "req-500"})
+    assert resp.status_code == 500
+    assert resp.json()["error"]["request_id"] == "req-500"
+    [entry] = [e for e in logs if e["event"] == "unhandled_error"]
+    assert entry["request_id"] == "req-500"

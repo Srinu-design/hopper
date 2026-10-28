@@ -4,13 +4,10 @@ The bench itself drives Docker and is run by `make load` / `make bench`; these t
 the parts that turn raw output into the published numbers.
 """
 
-from pathlib import Path
-
 import pytest
 
 from loadtest import bench
-
-ROOT = Path(__file__).resolve().parents[2]
+from tests.helpers import ROOT
 
 
 def k6_summary(*, count: int = 1000, rate: float = 100.0, failed: float = 0.0) -> dict:

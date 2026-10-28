@@ -84,6 +84,7 @@ jobs:
           load: true
           tags: hopper:ci
           cache-from: type=gha
+          cache-to: type=gha,mode=max
       # good-1 is main's image (the release live in production), so the final rollback runs it
       # on the schema this change migrated to: the backward-compatibility check.
       - name: Rehearse deploys, broken releases and rollbacks
@@ -91,7 +92,9 @@ jobs:
           PREVIOUS_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
         run: bash deploy/rehearse.sh hopper:ci "ghcr.io/${GITHUB_REPOSITORY,,}:$PREVIOUS_SHA"
 
+  # Only main pushes an image; on a pull request, delivery has already built the same one.
   image:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: [lint, alerts, test, delivery]
     runs-on: ubuntu-latest
     permissions: { contents: read, packages: write }
@@ -101,7 +104,6 @@ jobs:
       - name: Image name (GHCR requires lowercase)
         run: echo "IMAGE=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_ENV"
       - uses: docker/login-action@v4
-        if: github.ref == 'refs/heads/main'
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -110,7 +112,7 @@ jobs:
         with:
           context: .
           file: docker/Dockerfile
-          push: ${{ github.ref == 'refs/heads/main' }}
+          push: true
           tags: ${{ env.IMAGE }}:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max

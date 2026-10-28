@@ -209,6 +209,12 @@ The build guide predicted Postgres write load would break first. **It was the AP
 | 5 (predicted) | **Claim contention** | 0 lock waits so far, but many workers compete for the head of one queue | bigger claim batches; split hot queues |
 | 6 (predicted) | **Depth counting** | `count(*)` once a second over the queued rows | planner estimates or incremental counters |
 
+**Since the load test**, two changes cut per-call cost; they were measured only as local micro-benchmarks, and the
+load test has not been re-run. The worker's database engine runs in autocommit, because each claim, ack, nack and
+heartbeat is one statement: 2 round trips per call instead of 6, and 485 to about 270 µs per call (about 45%
+less). The API's request-context middleware is plain ASGI: `/healthz` in-process went from 534 to 363 µs per
+request (about 32% less).
+
 **Redis is not close to breaking.** It does one small Lua call per request, and a single Redis can typically do
 tens of thousands of those a second.
 

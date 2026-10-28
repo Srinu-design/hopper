@@ -35,6 +35,9 @@
 		Content-Security-Policy "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
 		Referrer-Policy no-referrer
 		X-Content-Type-Options nosniff
+		# Revalidated on every load (the ETag makes that cheap), as the apps do: a deploy shows
+		# at once instead of after a browser's guessed cache lifetime.
+		Cache-Control no-cache
 	}
 	root * /etc/caddy/site
 	file_server

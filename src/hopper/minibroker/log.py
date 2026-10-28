@@ -60,13 +60,21 @@ class Log:
         return bool(self._pending)
 
     def write(self) -> None:
-        """Hand everything appended so far to the kernel."""
+        """Hand everything appended so far to the kernel.
+
+        If the disk refuses (say, full), a partial write is cut off and the records stay
+        pending, so the next write retries them in order: a torn record in the middle of the
+        file would make a restart drop every record after it."""
         data = bytes(self._pending)
-        self._pending.clear()
         view = memoryview(data)
-        while view:
-            written = os.write(self._fd, view)
-            view = view[written:]
+        try:
+            while view:
+                written = os.write(self._fd, view)
+                view = view[written:]
+        except OSError:
+            os.ftruncate(self._fd, self.size)  # O_APPEND: the retry lands at the old end
+            raise
+        self._pending.clear()
         self.size += len(data)
         self.unsynced = True
 

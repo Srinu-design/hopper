@@ -4,25 +4,19 @@ from uuid import UUID
 from fastapi import APIRouter, Query, Request
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, model_validator
 
+from hopper.api.jobs import JobPage
 from hopper.api.limits import EnqueueTenant, ReadTenant
 from hopper.api.pagination import decode_cursor, encode_cursor
-from hopper.api.schemas import JobSummary
+from hopper.api.schemas import NAME_PATTERN, JobSummary
 from hopper.queue import dlq
 
 router = APIRouter(prefix="/v1/dlq", tags=["dlq"])
-
-QUEUE_PATTERN = r"^[A-Za-z0-9_.-]{1,64}$"
-
-
-class DlqPage(BaseModel):
-    jobs: list[JobSummary]
-    next_cursor: str | None
 
 
 class DlqFilterIn(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    queue: str | None = Field(default=None, pattern=QUEUE_PATTERN)
+    queue: str | None = Field(default=None, pattern=NAME_PATTERN)
     task: str | None = Field(default=None, min_length=1, max_length=64)
     since: AwareDatetime | None = None
 
@@ -49,16 +43,16 @@ class ReplayResult(BaseModel):
     has_more: bool  # more dead jobs match: call again to replay the next batch
 
 
-@router.get("", response_model=DlqPage)
+@router.get("", response_model=JobPage)
 async def list_dlq(
     request: Request,
     tenant_id: ReadTenant,
-    queue: Annotated[str | None, Query(pattern=QUEUE_PATTERN)] = None,
+    queue: Annotated[str | None, Query(pattern=NAME_PATTERN)] = None,
     task: Annotated[str | None, Query(min_length=1, max_length=64)] = None,
     since: AwareDatetime | None = None,
     limit: Annotated[int, Query(ge=1, le=200)] = 50,
     cursor: str | None = None,
-) -> DlqPage:
+) -> JobPage:
     """Dead jobs, newest first. Pass next_cursor back as cursor for the next page."""
     rows = await dlq.list_dead(
         request.app.state.engine,
@@ -69,7 +63,7 @@ async def list_dlq(
     )
     page = rows[:limit]
     next_cursor = encode_cursor(page[-1]["dead_at"], page[-1]["id"]) if len(rows) > limit else None
-    return DlqPage(jobs=[JobSummary.model_validate(r) for r in page], next_cursor=next_cursor)
+    return JobPage(jobs=[JobSummary.model_validate(r) for r in page], next_cursor=next_cursor)
 
 
 @router.post("/replay", response_model=ReplayResult)
@@ -77,15 +71,11 @@ async def replay_dlq(
     body: ReplayRequest, request: Request, tenant_id: EnqueueTenant
 ) -> ReplayResult:
     """Requeue up to 1,000 dead jobs, spreading their run_at over spread_seconds."""
-    where = (
-        dlq.DeadFilter(ids=body.ids)
-        if body.ids is not None
-        else dlq.DeadFilter(
-            queue=body.filter.queue if body.filter else None,
-            task=body.filter.task if body.filter else None,
-            since=body.filter.since if body.filter else None,
-        )
-    )
+    if body.ids is not None:
+        where = dlq.DeadFilter(ids=body.ids)
+    else:
+        f = body.filter or DlqFilterIn()  # the validator guarantees a filter without ids
+        where = dlq.DeadFilter(queue=f.queue, task=f.task, since=f.since)
     replayed, more = await dlq.replay(
         request.app.state.engine,
         tenant_id=tenant_id,

@@ -69,7 +69,7 @@ class Target:
                 elif self.path == "/huge":
                     self._send(200, b"x" * (1024 * 1024))
                 elif self.path == "/slow":
-                    time.sleep(2)
+                    time.sleep(1)
                     self._send(200, b"late")
 
             def _send(
@@ -318,6 +318,6 @@ async def test_the_allowlist_is_by_name_not_by_address(
 async def test_a_job_can_wait_longer_than_the_default_read_timeout(
     migrated_engine: AsyncEngine, acme: TenantCreds, target: Target
 ) -> None:
-    """/slow answers after 2 s; the workers' read timeout here is 0.5 s."""
+    """/slow answers after 1 s; the workers' read timeout here is 0.5 s."""
     job = await run_http_job(migrated_engine, acme, url=target.url("/slow"), timeout=5)
     assert (job["status"], job["result"]["body"]) == ("succeeded", "late")

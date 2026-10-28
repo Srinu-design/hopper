@@ -16,7 +16,7 @@ from dataclasses import dataclass
 # at most 256 KB; a PULL reply is an array of arrays, read only by the client.
 MAX_BULK = 1 << 20
 MAX_ITEMS = 1 << 16
-MAX_INLINE = 64 * 1024
+# An inline line is capped by StreamReader's 64 KiB default limit (readuntil raises).
 
 
 class ProtocolError(Exception):
@@ -100,8 +100,6 @@ async def read_command(reader: asyncio.StreamReader) -> list[bytes] | None:
     except asyncio.IncompleteReadError:
         return None
     if not line.startswith(b"*"):
-        if len(line) > MAX_INLINE:
-            raise ProtocolError("inline command too long")
         return line.split()
     count = _int(line[1:])
     if not 0 <= count <= MAX_ITEMS:

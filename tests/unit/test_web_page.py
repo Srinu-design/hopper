@@ -10,7 +10,7 @@ import httpx
 import pytest
 
 from hopper.api.main import create_app
-from tests.helpers import ROOT
+from tests.helpers import ROOT, client_for
 
 PAGE = ROOT / "src/hopper/web/static/index.html"
 ACCOUNT = "https://github.com/Srinu-design"
@@ -71,8 +71,7 @@ def page() -> _Page:
 
 @pytest.fixture
 async def anon() -> AsyncIterator[httpx.AsyncClient]:
-    transport = httpx.ASGITransport(app=create_app())
-    async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+    async with client_for(create_app()) as client:
         yield client
 
 
@@ -85,6 +84,15 @@ async def test_the_page_is_served_at_the_root_with_a_strict_policy(anon: httpx.A
     assert "unsafe" not in csp
     assert response.headers["x-content-type-options"] == "nosniff"
     assert response.headers["referrer-policy"] == "no-referrer"
+
+
+async def test_the_same_page_under_static_gets_the_same_policy(anon: httpx.AsyncClient) -> None:
+    """/static/index.html is the console too. The diagrams keep their inline styles."""
+    page, root = await anon.get("/static/index.html"), await anon.get("/")
+    assert page.headers["content-security-policy"] == root.headers["content-security-policy"]
+    assert page.headers["referrer-policy"] == "no-referrer"
+    svg = await anon.get("/static/favicon.svg")
+    assert svg.status_code == 200 and "content-security-policy" not in svg.headers
 
 
 async def test_the_page_is_not_part_of_the_api_schema(anon: httpx.AsyncClient) -> None:

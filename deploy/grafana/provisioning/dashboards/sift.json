@@ -303,7 +303,7 @@
       "type": "prometheus",
       "uid": "prometheus"
      },
-     "expr": "sum by (queue) (hopper_queue_depth{state=\"ready\", queue=~\"default|sift-embed\"})",
+     "expr": "max by (queue) (hopper_queue_depth{state=\"ready\"})",
      "legendFormat": "{{queue}} ready"
     }
    ]

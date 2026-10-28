@@ -13,6 +13,7 @@ import pytest
 from fastapi import FastAPI
 from sqlalchemy import text
 
+from hopper.api.main import create_app
 from tests.helpers import TenantCreds, job_row
 
 # Routes that take one of A's ids: B must get 404 (not 403, so ids do not leak).
@@ -52,18 +53,18 @@ def routes(app: FastAPI) -> set[tuple[str, str]]:
     }
 
 
-def test_every_route_is_covered(api_app: FastAPI) -> None:
-    assert routes(api_app) == BY_ID | COLLECTIONS | ADMIN | PUBLIC
+def test_every_route_is_covered() -> None:
+    assert routes(create_app()) == BY_ID | COLLECTIONS | ADMIN | PUBLIC
 
 
-@pytest.mark.parametrize(("method", "path"), sorted(BY_ID | COLLECTIONS | ADMIN))
 async def test_every_protected_route_rejects_anonymous_requests(
-    anon_client: httpx.AsyncClient, method: str, path: str
+    anon_client: httpx.AsyncClient,
 ) -> None:
-    url = path.replace("{job_id}", str(uuid.uuid4()))
-    url = url.replace("{schedule_id}", str(uuid.uuid4())).replace("{key_id}", str(uuid.uuid4()))
-    resp = await anon_client.request(method, url, json={})
-    assert resp.status_code == 401, (method, path, resp.text)
+    for method, path in sorted(BY_ID | COLLECTIONS | ADMIN):
+        url = path.replace("{job_id}", str(uuid.uuid4()))
+        url = url.replace("{schedule_id}", str(uuid.uuid4())).replace("{key_id}", str(uuid.uuid4()))
+        resp = await anon_client.request(method, url, json={})
+        assert resp.status_code == 401, f"{method} {path}: {resp.status_code} {resp.text}"
 
 
 @dataclass

@@ -120,6 +120,7 @@ function watchSections() {
 // ------------------------------------------------------------------ live status
 
 async function checkStatus() {
+  if (document.hidden) return; // checked again when the tab is shown
   const box = $("#status");
   let state = "down";
   let text = "Down";
@@ -398,7 +399,6 @@ async function refreshJobs() {
   const query = new URLSearchParams({ limit: LIST_LIMIT });
   if (statusFilter) query.set("status", statusFilter);
   const { data } = await api("GET", `/v1/jobs?${query}`);
-  const focused = document.activeElement && document.activeElement.dataset.jobId;
   const rows = data.jobs.map((job) =>
     clickableRow(
       job.id,
@@ -410,13 +410,9 @@ async function refreshJobs() {
       el("td", { class: "mono muted" }, shortId(job.id)),
     ),
   );
-  $("#jobs-body").replaceChildren(...rows);
+  replaceRows($("#jobs-body"), rows);
   $("#jobs-loading").hidden = true;
   $("#jobs-empty").hidden = rows.length > 0;
-  if (focused) {
-    const again = document.querySelector(`#jobs-body [data-job-id="${CSS.escape(focused)}"]`);
-    if (again) again.focus();
-  }
 }
 
 async function refreshDlq() {
@@ -436,9 +432,17 @@ async function refreshDlq() {
       el("td", {}, replay),
     );
   });
-  $("#dlq-body").replaceChildren(...rows);
+  replaceRows($("#dlq-body"), rows);
   $("#dlq-empty").hidden = rows.length > 0;
   $("#replay-all").disabled = rows.length === 0;
+}
+
+// Redraws a table body, keeping keyboard focus on the same job's row in that table.
+function replaceRows(body, rows) {
+  const focused = body.contains(document.activeElement) && document.activeElement.dataset.jobId;
+  body.replaceChildren(...rows);
+  const again = focused && body.querySelector(`[data-job-id="${CSS.escape(focused)}"]`);
+  if (again) again.focus();
 }
 
 function clickableRow(jobId, ...cells) {
@@ -707,7 +711,10 @@ document.addEventListener("DOMContentLoaded", () => {
   dialog.addEventListener("click", (event) => {
     if (event.target === dialog) dialog.close(); // a click on the backdrop
   });
-  document.addEventListener("visibilitychange", resumePolling);
+  document.addEventListener("visibilitychange", () => {
+    resumePolling();
+    checkStatus();
+  });
   window.addEventListener("hashchange", showFromHash);
 
   fillPayload();

@@ -1,7 +1,6 @@
 # Scripts and config that run on Linux hosts and in containers keep LF line endings, even in a
 # Windows checkout: bash and Caddy fail on CRLF.
 *.sh text eol=lf
-Caddyfile text eol=lf
 deploy/** text eol=lf
 docker/** text eol=lf
 # Images ship in deploy/site too: binary, so the rule above never converts their bytes.

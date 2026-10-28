@@ -9,13 +9,12 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from hopper.api.errors import ApiError
 from hopper.api.limits import ReadTenant
+from hopper.api.schemas import NAME_PATTERN
 from hopper.api.validation import checked_task
 from hopper.queue import schedules
 from hopper.scheduler.crontab import cron_error, timezone_error
 
 router = APIRouter(prefix="/v1/schedules", tags=["schedules"])
-
-NAME_PATTERN = r"^[A-Za-z0-9_.-]{1,64}$"
 
 
 class ScheduleIn(BaseModel):

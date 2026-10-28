@@ -4,12 +4,16 @@ from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 from hopper.config import Settings
 
 
-def create_engine(settings: Settings) -> AsyncEngine:
+def create_engine(settings: Settings, *, autocommit: bool = False) -> AsyncEngine:
+    """autocommit=True is for callers whose every transaction is a single statement (the
+    worker): begin() and commit() then cost no round-trips, and neither does the pre-ping's
+    BEGIN/ROLLBACK, so each call is 2 round-trips instead of 6."""
     return create_async_engine(
         settings.database_url,
         pool_size=settings.db_pool_size,
         max_overflow=settings.db_max_overflow,
         pool_pre_ping=True,
+        **({"isolation_level": "AUTOCOMMIT"} if autocommit else {}),
     )
 
 

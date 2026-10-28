@@ -1,6 +1,5 @@
 """Delayed jobs, listing a tenant's jobs, and cancelling a waiting job."""
 
-import asyncio
 import uuid
 from datetime import UTC, datetime, timedelta, timezone
 from typing import Any
@@ -8,6 +7,7 @@ from typing import Any
 import httpx
 import pytest
 from fastapi import FastAPI
+from sqlalchemy import text
 
 from hopper.queue.postgres import PostgresBroker
 from tests.helpers import LEASE, job_row
@@ -42,10 +42,11 @@ async def test_run_at_keeps_the_instant_whatever_the_offset(
 async def test_a_delayed_job_is_claimed_only_when_due(
     client: httpx.AsyncClient, api_app: FastAPI
 ) -> None:
-    job = await enqueue(client, delay_seconds=1)
+    job = await enqueue(client, delay_seconds=60)
     broker = PostgresBroker(api_app.state.engine)
     assert await broker.claim("default", "w", 10, LEASE) == []  # not yet
-    await asyncio.sleep(1.2)
+    async with api_app.state.engine.begin() as conn:  # the delay runs out
+        await conn.execute(text("UPDATE jobs SET run_at = now() WHERE id = :i"), {"i": job["id"]})
     assert [j.id for j in await broker.claim("default", "w", 10, LEASE)] == [uuid.UUID(job["id"])]
 
 

@@ -12,7 +12,8 @@ from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 
 from hopper.api.main import create_app
 from hopper.config import get_settings
-from tests.helpers import TenantCreds, make_tenant, run_alembic
+from hopper.tasks import effect
+from tests.helpers import TenantCreds, client_for, make_tenant, run_alembic
 
 # Tests default to the local Compose stack; CI overrides these via the environment.
 os.environ.setdefault("DATABASE_URL", "postgresql+asyncpg://hopper:hopper@127.0.0.1:5432/hopper")
@@ -113,9 +114,15 @@ async def migrated_engine(migrated_db_url: str) -> AsyncIterator[AsyncEngine]:
 
 
 @pytest.fixture
-async def api_app(
-    migrated_engine: AsyncEngine, migrated_db_url: str, monkeypatch: pytest.MonkeyPatch
-) -> AsyncIterator[FastAPI]:
+def effect_engine(migrated_engine: AsyncEngine) -> Iterator[AsyncEngine]:
+    """The worker process does this at start; tests point the effect task at their database."""
+    effect.configure(migrated_engine)
+    yield migrated_engine
+    effect.configure(None)
+
+
+@pytest.fixture
+async def api_app(migrated_db_url: str, monkeypatch: pytest.MonkeyPatch) -> AsyncIterator[FastAPI]:
     """The real FastAPI app, lifespan running, pointed at the migrated scratch database.
 
     Its Redis keys get a namespace of their own, so rate-limit buckets and the depth snapshot
@@ -128,12 +135,6 @@ async def api_app(
     async with app.router.lifespan_context(app):
         yield app
     get_settings.cache_clear()
-
-
-def _client(app: FastAPI, bearer: str | None = None) -> httpx.AsyncClient:
-    headers = {"Authorization": f"Bearer {bearer}"} if bearer else {}
-    transport = httpx.ASGITransport(app=app)
-    return httpx.AsyncClient(transport=transport, base_url="http://test", headers=headers)
 
 
 @pytest.fixture
@@ -150,7 +151,7 @@ async def other_tenant(api_app: FastAPI) -> TenantCreds:
 
 @pytest.fixture
 async def client(api_app: FastAPI, tenant: TenantCreds) -> AsyncIterator[httpx.AsyncClient]:
-    async with _client(api_app, tenant.api_key) as c:
+    async with client_for(api_app, tenant.api_key) as c:
         yield c
 
 
@@ -158,12 +159,12 @@ async def client(api_app: FastAPI, tenant: TenantCreds) -> AsyncIterator[httpx.A
 async def other_client(
     api_app: FastAPI, other_tenant: TenantCreds
 ) -> AsyncIterator[httpx.AsyncClient]:
-    async with _client(api_app, other_tenant.api_key) as c:
+    async with client_for(api_app, other_tenant.api_key) as c:
         yield c
 
 
 @pytest.fixture
 async def anon_client(api_app: FastAPI) -> AsyncIterator[httpx.AsyncClient]:
     """No credentials at all."""
-    async with _client(api_app) as c:
+    async with client_for(api_app) as c:
         yield c

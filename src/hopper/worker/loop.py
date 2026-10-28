@@ -144,6 +144,7 @@ class Worker:
 
     async def _claim_until_stopped(self) -> None:
         idle_delay = self._poll_interval
+        failures = 0
         while not self._stopping.is_set():
             free = self._slots - len(self._running)
             if free <= 0:
@@ -153,8 +154,12 @@ class Worker:
                 claimed, saturated = await self._claim(free)
             except Exception:
                 log.exception("claim_failed")
-                await self._sleep(min(self._max_idle_backoff, 1.0))
+                # Doubling up to 5 s: a database outage costs a log line every few seconds,
+                # not two a second, and the worker is back within 5 s of the database.
+                failures += 1
+                await self._sleep(min(self._max_idle_backoff * 2 ** (failures - 1), 5.0))
                 continue
+            failures = 0
             if claimed and saturated:
                 idle_delay = self._poll_interval
                 continue  # the queue still has work: claim again at once

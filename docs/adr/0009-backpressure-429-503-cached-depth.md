@@ -45,8 +45,8 @@ it never counts. The same count sets the `hopper_queue_depth` and `hopper_oldest
   tenant with a quota of 20 had 20 delayed jobs accepted; after the next count, the 21st got 429 while its reads
   still worked. An API started with a global limit of 10 answered 503 `overloaded` while 20 jobs were queued.
 - Counting reads only the partial indexes. A test confirms the plans use them, with no sequential scan, over 20,000
-  finished rows. Two schedulers × two queries a second is the cost; how it grows with a 100,000-job backlog is a
-  Week 8 measurement.
+  finished rows. Two schedulers × two queries a second is the cost. How it grows with a 100,000-job backlog was not
+  measured: the Week 8 load test timed the API and the workers, not these queries.
 - If no scheduler has published for 15 s, the hash expires and the API **fails open** (no depth limits), rather
   than trusting a count that no longer moves; the `NoScheduler` alert covers that window. If Redis is down, the API
   uses the last counts it read: stale, but still a limit.

@@ -120,5 +120,11 @@ def install_error_handlers(app: FastAPI) -> None:
 
     @app.exception_handler(Exception)
     async def unexpected(request: Request, exc: Exception) -> JSONResponse:
-        log.exception("unhandled_error", path=request.url.path)
+        # Handlers for Exception run outside the request-context middleware, which has unbound
+        # request_id by now: pass it explicitly so the log line still correlates.
+        log.exception(
+            "unhandled_error",
+            path=request.url.path,
+            request_id=getattr(request.state, "request_id", None),
+        )
         return _response(request, 500, "internal_error", "internal server error")

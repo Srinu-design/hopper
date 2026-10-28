@@ -2,7 +2,6 @@
 .venv
 .env
 .env.*
-!.env.example
 **/__pycache__
 .mypy_cache
 .ruff_cache
@@ -20,3 +19,5 @@ chaos
 deploy/broken
 deploy/rehearse.sh
 deploy/rehearse-local.sh
+# The home page's Tailwind sources: the compiled deploy/site/site.css is what ships.
+deploy/site-src
