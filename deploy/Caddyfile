@@ -56,6 +56,12 @@
 	handle_path /sift/* {
 		reverse_proxy sift-api:8000
 	}
+	# SplitSync (github.com/Srinu-design/splitsync), the same way: its own Compose project on
+	# Hopper's network, relative URLs. Its WebSockets (/splitsync/ws/...) pass through as-is.
+	redir /splitsync /splitsync/
+	handle_path /splitsync/* {
+		reverse_proxy splitsync-app:8000
+	}
 
 	# The portfolio home page (deploy/site, installed by deploy.sh next to this file). Only the
 	# exact path /: every other path still reaches the API, so clients and smoke tests keep
